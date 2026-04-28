@@ -69,22 +69,11 @@ export function Navbar() {
                     </Button>
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-3">
-                    <Link href="/login">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={isLanding ? "text-cream/80 hover:text-cream hover:bg-white/10" : ""}
-                      >
-                        {t("login")}
-                      </Button>
-                    </Link>
-                    <Link href="/signup">
-                      <Button variant="default" size="sm">
-                        {t("getStarted")}
-                      </Button>
-                    </Link>
-                  </div>
+                  <Link href="/login">
+                    <Button variant="default" size="sm">
+                      {t("login")}
+                    </Button>
+                  </Link>
                 )}
               </>
             )}
@@ -127,18 +116,11 @@ export function Navbar() {
                     </Button>
                   </Link>
                 ) : (
-                  <div className="space-y-2">
-                    <Link href="/login" onClick={() => setMobileOpen(false)}>
-                      <Button variant="outline" size="sm" className="w-full">
-                        {t("login")}
-                      </Button>
-                    </Link>
-                    <Link href="/signup" onClick={() => setMobileOpen(false)}>
-                      <Button variant="default" size="sm" className="w-full">
-                        {t("getStarted")}
-                      </Button>
-                    </Link>
-                  </div>
+                  <Link href="/login" onClick={() => setMobileOpen(false)}>
+                    <Button variant="default" size="sm" className="w-full">
+                      {t("login")}
+                    </Button>
+                  </Link>
                 )}
               </>
             )}

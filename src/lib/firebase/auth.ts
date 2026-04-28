@@ -1,9 +1,4 @@
 import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
   signOut,
@@ -19,32 +14,18 @@ function setAuthCookie(present: boolean) {
     : "__session=; path=/; max-age=0; samesite=lax";
 }
 
-const googleProvider = new GoogleAuthProvider();
-
-export async function loginWithGoogle() {
-  const cred = await signInWithPopup(auth, googleProvider);
-  setAuthCookie(true);
-  return cred;
-}
-
-export async function loginWithEmail(email: string, password: string) {
-  const cred = await signInWithEmailAndPassword(auth, email, password);
-  setAuthCookie(true);
-  return cred;
-}
-
-export async function signupWithEmail(email: string, password: string) {
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
-  setAuthCookie(true);
-  return cred;
-}
-
 export async function sendMagicLink(email: string, locale: string = "en") {
-  const actionCodeSettings = {
-    url: `${window.location.origin}/${locale}/login?finishSignIn=true`,
-    handleCodeInApp: true,
-  };
-  await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+  const res = await fetch("/api/send-magic-link", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, locale }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to send magic link");
+  }
+
   window.localStorage.setItem("lzecher_email_for_signin", email);
 }
 
