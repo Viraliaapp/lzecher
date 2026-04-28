@@ -167,3 +167,14 @@ body {
 .animate-pulse-gold {
   animation: pulse-gold 2s infinite;
 }
+
+/* ── Candle glow animations ── */
+@keyframes glow-strong {
+  0%, 100% { opacity: 0.25; transform: translateX(-50%) scale(1); }
+  50% { opacity: 0.4; transform: translateX(-50%) scale(1.08); }
+}
+
+@keyframes glow-soft {
+  0%, 100% { opacity: 0.15; transform: translateX(-50%) scale(1); }
+  50% { opacity: 0.25; transform: translateX(-50%) scale(1.05); }
+}

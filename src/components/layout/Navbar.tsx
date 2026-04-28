@@ -29,7 +29,7 @@ export function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" className="flex items-center gap-2 group shrink-0">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold/10 group-hover:bg-gold/20 transition-colors">
               <BookOpen
                 className={cn(
@@ -40,7 +40,7 @@ export function Navbar() {
             </div>
             <span
               className={cn(
-                "font-heading text-xl font-bold tracking-tight",
+                "font-heading text-xl font-bold tracking-tight hidden min-[400px]:inline",
                 isLanding ? "text-cream" : "text-navy"
               )}
             >
@@ -48,54 +48,59 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link
-              href="/about"
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-gold",
-                isLanding ? "text-cream/80" : "text-muted"
-              )}
-            >
-              {t("about")}
-            </Link>
+          {/* Right side: Language switcher (ALWAYS visible) + Desktop nav + Mobile hamburger */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Language switcher — always visible on all screen sizes */}
             <LanguageSwitcher isLanding={isLanding} />
-            {!loading && (
-              <>
-                {user ? (
-                  <Link href="/dashboard">
-                    <Button variant={isLanding ? "default" : "secondary"} size="sm">
-                      {t("dashboard")}
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link href="/login">
-                    <Button variant="default" size="sm">
-                      {t("login")}
-                    </Button>
-                  </Link>
-                )}
-              </>
-            )}
-          </div>
 
-          {/* Mobile hamburger */}
-          <button
-            className="md:hidden p-2"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? (
-              <X className={cn("h-6 w-6", isLanding ? "text-cream" : "text-navy")} />
-            ) : (
-              <Menu className={cn("h-6 w-6", isLanding ? "text-cream" : "text-navy")} />
-            )}
-          </button>
+            {/* Desktop nav items */}
+            <div className="hidden md:flex items-center gap-4">
+              <Link
+                href="/about"
+                className={cn(
+                  "text-sm font-medium transition-colors hover:text-gold",
+                  isLanding ? "text-cream/80" : "text-muted"
+                )}
+              >
+                {t("about")}
+              </Link>
+              {!loading && (
+                <>
+                  {user ? (
+                    <Link href="/dashboard">
+                      <Button variant={isLanding ? "default" : "secondary"} size="sm">
+                        {t("dashboard")}
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link href="/login">
+                      <Button variant="default" size="sm">
+                        {t("login")}
+                      </Button>
+                    </Link>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Mobile hamburger */}
+            <button
+              className="md:hidden p-2 -mr-2"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? (
+                <X className={cn("h-5 w-5", isLanding ? "text-cream" : "text-navy")} />
+              ) : (
+                <Menu className={cn("h-5 w-5", isLanding ? "text-cream" : "text-navy")} />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="md:hidden pb-4 space-y-3">
+          <div className="md:hidden pb-4 space-y-3 border-t border-navy/10 pt-3">
             <Link
               href="/about"
               className={cn(
@@ -106,7 +111,6 @@ export function Navbar() {
             >
               {t("about")}
             </Link>
-            <LanguageSwitcher isLanding={isLanding} />
             {!loading && (
               <>
                 {user ? (

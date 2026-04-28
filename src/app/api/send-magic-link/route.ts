@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const dir = locale === "he" ? "rtl" : "ltr";
 
     const { error } = await resend.emails.send({
-      from: "Lzecher <onboarding@resend.dev>",
+      from: "Lzecher <noreply@lzecher.com>",
       to: email,
       subject,
       html: `

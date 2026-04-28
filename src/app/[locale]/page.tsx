@@ -1,11 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { HeroSection } from "@/components/landing/HeroSection";
-import { FeaturesSection } from "@/components/landing/FeaturesSection";
-import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
-import { TracksSection } from "@/components/landing/TracksSection";
-import { CTASection } from "@/components/landing/CTASection";
+import { HomeClient } from "@/components/landing/HomeClient";
 import type { Metadata } from "next";
 
 export async function generateMetadata({
@@ -47,13 +43,7 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar />
-      <main>
-        <HeroSection />
-        <FeaturesSection />
-        <TracksSection />
-        <HowItWorksSection />
-        <CTASection />
-      </main>
+      <HomeClient />
       <Footer />
     </>
   );

@@ -23,21 +23,35 @@ function getApp(): App {
   if (cachedApp) return cachedApp;
 
   const projectId =
+    process.env.FIREBASE_ADMIN_PROJECT_ID ||
     process.env.FIREBASE_PROJECT_ID ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
-    "viralia-sifttube";
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
+  // Option 1: Individual env vars (FIREBASE_ADMIN_CLIENT_EMAIL + FIREBASE_ADMIN_PRIVATE_KEY)
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+  const privateKeyRaw = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+
+  if (clientEmail && privateKeyRaw && projectId) {
+    const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+    cachedApp = appMod.initializeApp({
+      credential: appMod.cert({ projectId, clientEmail, privateKey }),
+      projectId,
+    });
+    return cachedApp;
+  }
+
+  // Option 2: Full service account JSON
   const saRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (saRaw) {
     cachedApp = appMod.initializeApp({
       credential: appMod.cert(JSON.parse(saRaw)),
       projectId,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
-  } else {
-    cachedApp = appMod.initializeApp({ projectId });
+    return cachedApp;
   }
 
+  // Option 3: No credentials (works on GCP with default credentials)
+  cachedApp = appMod.initializeApp({ projectId });
   return cachedApp;
 }
 
