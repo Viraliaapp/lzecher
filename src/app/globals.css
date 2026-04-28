@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+/* ── Lzecher Brand Theme ── */
+@theme inline {
+  /* Brand: Navy */
+  --color-navy: #0F1B2D;
+  --color-navy-deep: #08111E;
+  --color-navy-soft: #1A2840;
+
+  /* Brand: Gold */
+  --color-gold: #C9A961;
+  --color-gold-warm: #D4B679;
+  --color-gold-light: #E8CD93;
+  --color-gold-deep: #A88A47;
+
+  /* Brand: Cream */
+  --color-cream: #FAF6EC;
+  --color-cream-warm: #F5EDD9;
+  --color-cream-glow: #FCF6E4;
+
+  /* Brand: Neutrals */
+  --color-charcoal: #2A2D34;
+  --color-muted: #6B6F76;
+
+  /* Seder Accents */
+  --color-zeraim: #2F5D3E;
+  --color-moed: #1E3A5F;
+  --color-nashim: #8B3A4E;
+  --color-nezikin: #B8860B;
+  --color-kodashim: #5B3F7A;
+  --color-tahorot: #2B6E6E;
+
+  /* Fonts */
+  --font-heading: var(--font-frank-ruhl), "Frank Ruhl Libre", Georgia, serif;
+  --font-serif: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+  --font-sans: var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+/* ── Light theme (default) ── */
+:root {
+  --lz-bg-page: #FAF6EC;
+  --lz-bg-card: #FFFFFF;
+  --lz-bg-nav: #0F1B2D;
+  --lz-bg-input: #FFFFFF;
+  --lz-bg-muted: #F5EDD9;
+
+  --lz-text-primary: #0F1B2D;
+  --lz-text-secondary: #2A2D34;
+  --lz-text-muted: #6B6F76;
+  --lz-text-on-dark: #FAF6EC;
+  --lz-text-gold: #C9A961;
+
+  --lz-border: rgba(15, 27, 45, 0.1);
+  --lz-border-strong: rgba(15, 27, 45, 0.2);
+
+  --lz-gold-gradient: linear-gradient(135deg, #C9A961, #E8CD93);
+  --lz-navy-gradient: linear-gradient(180deg, #0F1B2D, #1A2840);
+}
+
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(201, 169, 97, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 169, 97, 0.5);
+}
+
+/* ── Base styles ── */
+body {
+  background-color: var(--lz-bg-page);
+  color: var(--lz-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Hebrew font priority ── */
+:lang(he) body,
+[dir="rtl"] body {
+  font-family: var(--font-sans);
+}
+
+:lang(he) h1,
+:lang(he) h2,
+:lang(he) h3,
+:lang(he) h4,
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] h4 {
+  font-family: var(--font-heading);
+}
+
+/* ── Selection ── */
+::selection {
+  background-color: rgba(201, 169, 97, 0.25);
+  color: #0F1B2D;
+}
+
+/* ── Focus ring ── */
+:focus-visible {
+  outline: 2px solid #C9A961;
+  outline-offset: 2px;
+}
+
+/* ── Gold text gradient ── */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #C9A961, #E8CD93);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Smooth page transitions ── */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 169, 97, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(201, 169, 97, 0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(201, 169, 97, 0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-pulse-gold {
+  animation: pulse-gold 2s infinite;
+}
