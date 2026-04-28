@@ -9,6 +9,8 @@ import {
 import { routing } from "@/i18n/routing";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
 import "../globals.css";
 
@@ -110,6 +112,8 @@ export default async function LocaleLayout({ children, params }: Props) {
               }}
             />
           </AuthProvider>
+          <Analytics />
+          <SpeedInsights />
         </NextIntlClientProvider>
       </body>
     </html>

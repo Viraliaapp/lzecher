@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -26,8 +26,6 @@ import {
   Share2,
   Check,
   Clock,
-  Users,
-  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { doc, updateDoc, addDoc, collection, increment } from "firebase/firestore";

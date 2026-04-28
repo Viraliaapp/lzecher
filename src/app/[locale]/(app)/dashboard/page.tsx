@@ -21,11 +21,6 @@ export default function DashboardPage() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) return;
-    loadData();
-  }, [user]);
-
   async function loadData() {
     if (!user) return;
     try {
@@ -52,6 +47,12 @@ export default function DashboardPage() {
       setLoading(false);
     }
   }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!user) return;
+    loadData();
+  }, [user]);
 
   if (loading) {
     return (

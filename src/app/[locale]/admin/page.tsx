@@ -33,14 +33,6 @@ export default function AdminPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
 
-  useEffect(() => {
-    if (!authLoading && (!user || !profile?.isAdmin)) {
-      router.push("/dashboard");
-      return;
-    }
-    if (user && profile?.isAdmin) loadQueue();
-  }, [user, profile, authLoading]);
-
   async function loadQueue() {
     try {
       const q = query(
@@ -56,6 +48,15 @@ export default function AdminPage() {
       setLoading(false);
     }
   }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!authLoading && (!user || !profile?.isAdmin)) {
+      router.push("/dashboard");
+      return;
+    }
+    if (user && profile?.isAdmin) loadQueue();
+  }, [user, profile, authLoading]);
 
   async function handleApprove(item: ModerationItem) {
     setProcessingId(item.id);
