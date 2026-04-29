@@ -181,8 +181,11 @@
     "errorCreating": "Error al crear el memorial. Intentalo de nuevo.",
     "optional": "opcional",
     "gregorianLabel": "Gregoriano",
-    "hebrewLabel": "Hebreo",
+    "hebrewLabel": "Fecha hebrea",
     "todayButton": "Hoy",
+    "dayPlaceholder": "Dia",
+    "monthPlaceholder": "Mes",
+    "yearPlaceholder": "Ano",
     "next": "Siguiente",
     "back": "Atras"
   },

@@ -177,8 +177,11 @@
     "errorCreating": "שגיאה ביצירת ההנצחה. נסה שנית.",
     "optional": "אופציונלי",
     "gregorianLabel": "לועזי",
-    "hebrewLabel": "עברי",
+    "hebrewLabel": "תאריך עברי",
     "todayButton": "היום",
+    "dayPlaceholder": "יום",
+    "monthPlaceholder": "חודש",
+    "yearPlaceholder": "שנה",
     "next": "הבא",
     "back": "חזור"
   },

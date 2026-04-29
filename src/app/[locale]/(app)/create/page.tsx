@@ -120,38 +120,43 @@ export default function CreateMemorialPage() {
 
     setSubmitting(true);
     try {
-      const idToken = await auth.currentUser?.getIdToken();
+      // Force-refresh the ID token to avoid expiry issues
+      const idToken = await auth.currentUser?.getIdToken(true);
       if (!idToken) {
-        toast.error("Not authenticated. Please sign in again.");
+        toast.error(t("errorCreating"));
+        router.push("/login");
         return;
       }
+
+      const payload = {
+        idToken,
+        nameHebrew: nameHebrew.trim(),
+        nameEnglish: nameEnglish.trim() || null,
+        fatherNameHebrew: fatherNameHebrew.trim() || null,
+        motherNameHebrew: motherNameHebrew.trim() || null,
+        gender,
+        honorific,
+        dateOfPassing: dateOfPassing || null,
+        dateOfPassingHebrew: dateOfPassingHebrew || null,
+        datePreference,
+        biography: biography.trim() || null,
+        familyMessage: familyMessage.trim() || null,
+        isPublic,
+        allowAnonymous,
+        tracks: selectedTracks,
+        projectType,
+      };
 
       const res = await fetch("/api/projects/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          idToken,
-          nameHebrew: nameHebrew.trim(),
-          nameEnglish: nameEnglish.trim() || null,
-          fatherNameHebrew: fatherNameHebrew.trim() || null,
-          motherNameHebrew: motherNameHebrew.trim() || null,
-          gender,
-          honorific,
-          dateOfPassing: dateOfPassing || null,
-          dateOfPassingHebrew: dateOfPassingHebrew || null,
-          datePreference,
-          biography: biography.trim() || null,
-          familyMessage: familyMessage.trim() || null,
-          isPublic,
-          allowAnonymous,
-          tracks: selectedTracks,
-          projectType,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
+        console.error("Create failed:", res.status, data);
         toast.error(data.error || t("errorCreating"));
         return;
       }
@@ -160,7 +165,9 @@ export default function CreateMemorialPage() {
       router.push("/dashboard");
     } catch (err) {
       console.error("Submit error:", err);
-      toast.error(t("errorCreating"));
+      toast.error(
+        err instanceof Error ? err.message : t("errorCreating")
+      );
     } finally {
       setSubmitting(false);
     }
@@ -330,6 +337,7 @@ export default function CreateMemorialPage() {
               hebrewValue={dateOfPassingHebrew}
               onGregorianChange={setDateOfPassing}
               onHebrewChange={setDateOfPassingHebrew}
+              maxToday
             />
 
             {/* Display preference */}

@@ -177,8 +177,11 @@
     "errorCreating": "Error creating memorial. Please try again.",
     "optional": "optional",
     "gregorianLabel": "Gregorian",
-    "hebrewLabel": "Hebrew",
+    "hebrewLabel": "Hebrew Date",
     "todayButton": "Today",
+    "dayPlaceholder": "Day",
+    "monthPlaceholder": "Month",
+    "yearPlaceholder": "Year",
     "next": "Next",
     "back": "Back"
   },

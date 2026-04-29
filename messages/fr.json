@@ -177,8 +177,11 @@
     "errorCreating": "Erreur lors de la creation du memorial. Veuillez reessayer.",
     "optional": "optionnel",
     "gregorianLabel": "Gregorien",
-    "hebrewLabel": "Hebreu",
+    "hebrewLabel": "Date hebraique",
     "todayButton": "Aujourd'hui",
+    "dayPlaceholder": "Jour",
+    "monthPlaceholder": "Mois",
+    "yearPlaceholder": "Annee",
     "next": "Suivant",
     "back": "Retour"
   },
