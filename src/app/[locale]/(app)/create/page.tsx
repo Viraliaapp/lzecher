@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,6 @@ const STEPS = [
 
 export default function CreateMemorialPage() {
   const t = useTranslations("create");
-  const locale = useLocale();
   const router = useRouter();
   const { user } = useAuth();
   const [step, setStep] = useState(0);

@@ -138,7 +138,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("Project creation error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create memorial. Please try again." },
+      { status: 500 }
+    );
   }
 }

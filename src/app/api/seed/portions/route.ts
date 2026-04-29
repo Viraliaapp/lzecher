@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebase/admin";
+import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { MASECHTOS, TEHILLIM, PARSHIYOT, MITZVAH_TEMPLATES } from "@/lib/seed-data";
 import type { TrackType } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
-    const { projectId } = await request.json();
+    const { projectId, idToken } = await request.json();
+
+    // Admin-only: verify token and isAdmin claim
+    if (!idToken) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    const adminAuth = getAdminAuth();
+    const decoded = await adminAuth.verifyIdToken(idToken);
+    if (!decoded.isAdmin) {
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    }
+
     if (!projectId) {
       return NextResponse.json({ error: "Missing projectId" }, { status: 400 });
     }

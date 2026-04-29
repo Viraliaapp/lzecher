@@ -32,12 +32,45 @@ const TAGLINE: Record<string, string> = {
   fr: "Honorer la memoire par l'etude de la Torah",
 };
 
+// Simple in-memory rate limiter (per email, 5 per hour)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(key: string, maxPerHour: number): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + 3600000 });
+    return true;
+  }
+  if (entry.count >= maxPerHour) return false;
+  entry.count++;
+  return true;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { email, locale = "en" } = await request.json();
 
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
+    }
+
+    // Rate limit: 5 emails per hour per email address
+    const emailKey = email.toLowerCase().trim();
+    if (!checkRateLimit(`email:${emailKey}`, 5)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
+    // Rate limit: 20 emails per hour per IP
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (!checkRateLimit(`ip:${ip}`, 20)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lzecher.com";
@@ -128,7 +161,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Magic link error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to send sign-in link. Please try again." },
+      { status: 500 }
+    );
   }
 }

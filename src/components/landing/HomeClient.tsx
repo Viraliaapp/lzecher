@@ -3,7 +3,6 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
 import { motion } from "framer-motion";
 

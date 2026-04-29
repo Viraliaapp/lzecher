@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { HDate } from "@hebcal/hdate";
 
@@ -33,16 +33,18 @@ export function HebrewDatePicker({
   required,
 }: HebrewDatePickerProps) {
   const [hebrewStr, setHebrewStr] = useState(hebrewValue);
+  const onHebrewChangeRef = useRef(onHebrewChange);
+  onHebrewChangeRef.current = onHebrewChange;
 
   useEffect(() => {
     if (gregorianValue) {
       const heb = gregorianToHebrew(gregorianValue);
       if (heb) {
         setHebrewStr(heb);
-        onHebrewChange(heb);
+        // Use ref to avoid triggering cascading renders from calling parent setState in effect
+        onHebrewChangeRef.current(heb);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gregorianValue]);
 
   return (

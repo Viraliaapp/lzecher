@@ -37,6 +37,26 @@ export default function LoginPage() {
   const [magicSent, setMagicSent] = useState(false);
   const [completing, setCompleting] = useState(false);
 
+  async function ensureUserDoc(uid: string, userEmail: string | null) {
+    const ref = doc(db, "lzecher_users", uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        id: uid,
+        uid,
+        email: userEmail,
+        displayName: null,
+        photoURL: null,
+        createdAt: Date.now(),
+        language: locale,
+        totalClaimed: 0,
+        totalCompleted: 0,
+        projectsCreated: 0,
+        projectsContributed: [],
+      });
+    }
+  }
+
   // Handle magic link completion
   useEffect(() => {
     if (
@@ -69,26 +89,6 @@ export default function LoginPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading]);
-
-  async function ensureUserDoc(uid: string, userEmail: string | null) {
-    const ref = doc(db, "lzecher_users", uid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      await setDoc(ref, {
-        id: uid,
-        uid,
-        email: userEmail,
-        displayName: null,
-        photoURL: null,
-        createdAt: Date.now(),
-        language: locale,
-        totalClaimed: 0,
-        totalCompleted: 0,
-        projectsCreated: 0,
-        projectsContributed: [],
-      });
-    }
-  }
 
   async function handleSendLink() {
     const trimmed = email.trim();
