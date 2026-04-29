@@ -8,8 +8,7 @@ interface Props {
   params: Promise<{ locale: string; slug: string }>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale, slug } = await params;
+async function getProjectBySlug(slug: string) {
   try {
     const adminDb = getAdminDb();
     const snap = await adminDb
@@ -17,66 +16,57 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       .where("slug", "==", slug)
       .limit(1)
       .get();
+    if (snap.empty) return null;
+    const data = snap.docs[0].data();
+    return { id: snap.docs[0].id, ...data } as MemorialProject;
+  } catch (err) {
+    console.error("Memorial query failed:", err);
+    return null;
+  }
+}
 
-    if (snap.empty) return { title: "Memorial · Lzecher" };
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const project = await getProjectBySlug(slug);
+  if (!project) return { title: "Memorial · Lzecher" };
 
-  const project = snap.docs[0].data() as MemorialProject;
   const title = `${project.nameEnglish} · Lzecher`;
-  const description = `Honor the memory of ${project.nameHebrew} (${project.nameEnglish}) through communal Torah learning. Claim a portion of Mishnayos, Tehillim, or Mitzvot l'iluy nishmas.`;
+  const description = `Honor the memory of ${project.nameHebrew} (${project.nameEnglish}) through communal Torah learning.`;
 
   return {
     title,
     description,
     alternates: { canonical: `https://lzecher.com/${locale}/memorial/${slug}` },
-    openGraph: {
-      title,
-      description,
-      url: `https://lzecher.com/${locale}/memorial/${slug}`,
-      type: "article",
-    },
+    openGraph: { title, description, url: `https://lzecher.com/${locale}/memorial/${slug}`, type: "article" },
     twitter: { card: "summary_large_image", title, description },
   };
-  } catch {
-    return { title: "Memorial · Lzecher" };
-  }
 }
 
 export default async function MemorialPage({ params }: Props) {
   const { slug } = await params;
-  const adminDb = getAdminDb();
+  const project = await getProjectBySlug(slug);
 
-  let snap;
+  if (!project) {
+    notFound();
+  }
+
+  // Only show active/completed/pending_moderation projects
+  if (!["active", "completed", "pending_moderation"].includes(project.status)) {
+    notFound();
+  }
+
+  let portions: Portion[] = [];
   try {
-    snap = await adminDb
-      .collection("lzecher_projects")
-      .where("slug", "==", slug)
-      .limit(1)
+    const adminDb = getAdminDb();
+    const portionsSnap = await adminDb
+      .collection("lzecher_portions")
+      .where("projectId", "==", project.id)
+      .orderBy("order")
       .get();
-  } catch (err) {
-    console.error("Memorial page query failed:", err);
-    notFound();
+    portions = portionsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Portion));
+  } catch {
+    // Portions may not exist yet (pending moderation)
   }
-
-  if (snap.empty) notFound();
-
-  // Check status client-side to avoid needing composite index
-  const projectData = snap.docs[0].data();
-  if (!["active", "completed", "pending_moderation"].includes(projectData.status)) {
-    notFound();
-  }
-
-  const projectDoc = snap.docs[0];
-  const project = { id: projectDoc.id, ...projectDoc.data() } as MemorialProject;
-
-  const portionsSnap = await adminDb
-    .collection("lzecher_portions")
-    .where("projectId", "==", project.id)
-    .orderBy("order")
-    .get();
-
-  const portions = portionsSnap.docs.map(
-    (d) => ({ id: d.id, ...d.data() } as Portion)
-  );
 
   const jsonLd = {
     "@context": "https://schema.org",
