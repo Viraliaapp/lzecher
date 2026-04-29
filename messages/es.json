@@ -180,6 +180,9 @@
     "projectCreated": "Memorial creado exitosamente! Sera revisado antes de publicarse.",
     "errorCreating": "Error al crear el memorial. Intentalo de nuevo.",
     "optional": "opcional",
+    "gregorianLabel": "Gregoriano",
+    "hebrewLabel": "Hebreo",
+    "todayButton": "Hoy",
     "next": "Siguiente",
     "back": "Atras"
   },

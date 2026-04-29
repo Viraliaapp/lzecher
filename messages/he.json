@@ -176,6 +176,9 @@
     "projectCreated": "ההנצחה נוצרה בהצלחה! היא תיבדק לפני הפרסום.",
     "errorCreating": "שגיאה ביצירת ההנצחה. נסה שנית.",
     "optional": "אופציונלי",
+    "gregorianLabel": "לועזי",
+    "hebrewLabel": "עברי",
+    "todayButton": "היום",
     "next": "הבא",
     "back": "חזור"
   },

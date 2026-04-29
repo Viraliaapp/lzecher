@@ -176,6 +176,9 @@
     "projectCreated": "Memorial created successfully! It will be reviewed before going live.",
     "errorCreating": "Error creating memorial. Please try again.",
     "optional": "optional",
+    "gregorianLabel": "Gregorian",
+    "hebrewLabel": "Hebrew",
+    "todayButton": "Today",
     "next": "Next",
     "back": "Back"
   },
