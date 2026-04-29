@@ -3,15 +3,14 @@ import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 function slugify(text: string): string {
-  return (
-    text
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-      .slice(0, 60) +
-    "-" +
-    Math.random().toString(36).slice(2, 8)
-  );
+  const base = text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 60);
+  const suffix = Math.random().toString(36).slice(2, 8);
+  // If text was all non-Latin (e.g., Hebrew), base will be empty
+  return base ? `${base}-${suffix}` : `memorial-${suffix}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -39,8 +38,8 @@ export async function POST(request: NextRequest) {
     if (!idToken) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    if (!nameHebrew?.trim() || !nameEnglish?.trim()) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    if (!nameHebrew?.trim()) {
+      return NextResponse.json({ error: "Hebrew name is required" }, { status: 400 });
     }
     if (!tracks || tracks.length === 0) {
       return NextResponse.json(
@@ -71,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getAdminDb();
-    const slug = slugify(nameEnglish);
+    const slug = slugify(nameEnglish?.trim() || nameHebrew);
 
     const projectRef = db.collection("lzecher_projects").doc();
     const projectData = {
@@ -82,7 +81,9 @@ export async function POST(request: NextRequest) {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       nameHebrew: nameHebrew.trim(),
-      nameEnglish: nameEnglish.trim(),
+      nameEnglish: nameEnglish?.trim() || null,
+      nameSpanish: body.nameSpanish?.trim() || null,
+      nameFrench: body.nameFrench?.trim() || null,
       fatherNameHebrew: fatherNameHebrew?.trim() || null,
       motherNameHebrew: motherNameHebrew?.trim() || null,
       gender: gender || "male",
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
     await modRef.set({
       id: modRef.id,
       projectId: projectRef.id,
-      projectName: nameEnglish.trim(),
+      projectName: nameEnglish?.trim() || nameHebrew.trim(),
       createdBy: uid,
       createdByEmail: email || null,
       submittedAt: Date.now(),

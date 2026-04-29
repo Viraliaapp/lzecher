@@ -107,7 +107,7 @@
     "nameHebrew": "Nom en hebreu",
     "nameHebrewPlaceholder": "השם בעברית",
     "nameEnglish": "Nom en anglais",
-    "nameEnglishPlaceholder": "Nom complet en anglais",
+    "nameEnglishPlaceholder": "Translitteration en anglais (optionnel)",
     "fatherName": "Nom du pere en hebreu",
     "fatherNamePlaceholder": "שם האב בעברית",
     "motherName": "Nom de la mere en hebreu",
@@ -175,6 +175,7 @@
     "fillRequired": "Veuillez remplir tous les champs obligatoires.",
     "projectCreated": "Memorial cree avec succes ! Il sera examine avant sa mise en ligne.",
     "errorCreating": "Erreur lors de la creation du memorial. Veuillez reessayer.",
+    "optional": "optionnel",
     "next": "Suivant",
     "back": "Retour"
   },

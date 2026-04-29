@@ -143,7 +143,9 @@ export default function DashboardPage() {
                           {project.status}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted">{project.nameEnglish}</p>
+                      {project.nameEnglish && (
+                        <p className="text-sm text-muted">{project.nameEnglish}</p>
+                      )}
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">

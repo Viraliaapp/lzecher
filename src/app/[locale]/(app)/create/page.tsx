@@ -112,7 +112,6 @@ export default function CreateMemorialPage() {
     if (
       !user ||
       !nameHebrew.trim() ||
-      !nameEnglish.trim() ||
       selectedTracks.length === 0
     ) {
       toast.error(t("fillRequired"));
@@ -133,7 +132,7 @@ export default function CreateMemorialPage() {
         body: JSON.stringify({
           idToken,
           nameHebrew: nameHebrew.trim(),
-          nameEnglish: nameEnglish.trim(),
+          nameEnglish: nameEnglish.trim() || null,
           fatherNameHebrew: fatherNameHebrew.trim() || null,
           motherNameHebrew: motherNameHebrew.trim() || null,
           gender,
@@ -170,7 +169,7 @@ export default function CreateMemorialPage() {
   function canProceed(): boolean {
     switch (step) {
       case 0:
-        return !!nameHebrew.trim() && !!nameEnglish.trim();
+        return !!nameHebrew.trim();
       case 1:
         return true; // dates optional
       case 2:
@@ -230,7 +229,8 @@ export default function CreateMemorialPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-navy mb-1 block">
-                  {t("nameEnglish")} *
+                  {t("nameEnglish")}
+                  <span className="text-muted font-normal ml-1">({t("optional")})</span>
                 </label>
                 <Input
                   placeholder={t("nameEnglishPlaceholder")}
@@ -626,7 +626,7 @@ export default function CreateMemorialPage() {
               <p className="font-heading text-navy" dir="rtl">
                 {nameHebrew} {honorific}
               </p>
-              <p className="text-sm text-muted">{nameEnglish}</p>
+              {nameEnglish && <p className="text-sm text-muted">{nameEnglish}</p>}
               {fatherNameHebrew && (
                 <p className="text-xs text-muted" dir="rtl">
                   {gender === "male" ? "בן" : "בת"} {fatherNameHebrew}

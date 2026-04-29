@@ -107,7 +107,7 @@
     "nameHebrew": "שם בעברית",
     "nameHebrewPlaceholder": "השם המלא בעברית",
     "nameEnglish": "שם באנגלית",
-    "nameEnglishPlaceholder": "Full English name",
+    "nameEnglishPlaceholder": "תעתיק באנגלית (אופציונלי)",
     "fatherName": "שם האב בעברית",
     "fatherNamePlaceholder": "שם האב בעברית",
     "motherName": "שם האם בעברית",
@@ -175,6 +175,7 @@
     "fillRequired": "נא למלא את כל השדות הנדרשים.",
     "projectCreated": "ההנצחה נוצרה בהצלחה! היא תיבדק לפני הפרסום.",
     "errorCreating": "שגיאה ביצירת ההנצחה. נסה שנית.",
+    "optional": "אופציונלי",
     "next": "הבא",
     "back": "חזור"
   },

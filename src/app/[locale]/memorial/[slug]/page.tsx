@@ -30,8 +30,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const project = await getProjectBySlug(slug);
   if (!project) return { title: "Memorial · Lzecher" };
 
-  const title = `${project.nameEnglish} · Lzecher`;
-  const description = `Honor the memory of ${project.nameHebrew} (${project.nameEnglish}) through communal Torah learning.`;
+  const displayName = project.nameEnglish || project.nameHebrew;
+  const title = `${displayName} · Lzecher`;
+  const description = `Honor the memory of ${project.nameHebrew}${project.nameEnglish ? ` (${project.nameEnglish})` : ""} through communal Torah learning.`;
 
   return {
     title,
@@ -71,7 +72,7 @@ export default async function MemorialPage({ params }: Props) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: `${project.nameEnglish} - Memorial Page`,
+    name: `${project.nameEnglish || project.nameHebrew} - Memorial Page`,
     description: `Torah learning dedicated l'iluy nishmas ${project.nameHebrew}`,
     url: `https://lzecher.com/en/memorial/${project.slug}`,
   };

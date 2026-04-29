@@ -185,7 +185,9 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold mb-3" dir="rtl">
               {fullName}
             </h1>
-            <p className="text-cream/70 text-lg">{project.nameEnglish}</p>
+            {project.nameEnglish && (
+              <p className="text-cream/70 text-lg">{project.nameEnglish}</p>
+            )}
             {project.dateOfPassing && (
               <p className="text-cream/50 text-sm mt-2">{project.dateOfPassing}</p>
             )}
