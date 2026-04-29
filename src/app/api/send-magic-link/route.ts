@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth } from "@/lib/firebase/admin";
 import { Resend } from "resend";
+import { checkRateLimit as checkRL, getClientIp } from "@/lib/rate-limit";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -32,21 +33,6 @@ const TAGLINE: Record<string, string> = {
   fr: "Honorer la memoire par l'etude de la Torah",
 };
 
-// Simple in-memory rate limiter (per email, 5 per hour)
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(key: string, maxPerHour: number): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(key);
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(key, { count: 1, resetAt: now + 3600000 });
-    return true;
-  }
-  if (entry.count >= maxPerHour) return false;
-  entry.count++;
-  return true;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { email, locale = "en" } = await request.json();
@@ -55,18 +41,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 
-    // Rate limit: 5 emails per hour per email address
-    const emailKey = email.toLowerCase().trim();
-    if (!checkRateLimit(`email:${emailKey}`, 5)) {
+    // Rate limit: 5 per hour per email
+    const emailRL = await checkRL("magicLinkPerEmail", email.toLowerCase().trim());
+    if (!emailRL.success) {
+      const retryAfter = Math.ceil((emailRL.reset - Date.now()) / 1000);
       return NextResponse.json(
         { error: "Too many requests. Please try again later." },
-        { status: 429 }
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
       );
     }
 
-    // Rate limit: 20 emails per hour per IP
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    if (!checkRateLimit(`ip:${ip}`, 20)) {
+    // Rate limit: 20 per hour per IP
+    const ipRL = await checkRL("magicLinkPerIp", getClientIp(request));
+    if (!ipRL.success) {
       return NextResponse.json(
         { error: "Too many requests. Please try again later." },
         { status: 429 }

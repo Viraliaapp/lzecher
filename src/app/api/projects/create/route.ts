@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 function slugify(text: string): string {
   return (
@@ -58,6 +59,15 @@ export async function POST(request: NextRequest) {
       email = decoded.email;
     } catch {
       return NextResponse.json({ error: "Invalid auth token" }, { status: 401 });
+    }
+
+    // Rate limit: 10 projects per hour per user
+    const rl = await checkRateLimit("projectCreate", uid);
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
     }
 
     const db = getAdminDb();
