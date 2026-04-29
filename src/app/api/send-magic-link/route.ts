@@ -126,9 +126,25 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("Magic link error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const fbErr = err as { code?: string; message?: string; stack?: string };
+    return NextResponse.json(
+      {
+        error: fbErr.message || "Unknown error",
+        errorCode: fbErr.code || null,
+        debug: {
+          FIREBASE_ADMIN_PROJECT_ID: process.env.FIREBASE_ADMIN_PROJECT_ID || "(not set)",
+          FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID || "(not set)",
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "(not set)",
+          FIREBASE_ADMIN_CLIENT_EMAIL: process.env.FIREBASE_ADMIN_CLIENT_EMAIL || "(not set)",
+          hasPrivateKey: !!process.env.FIREBASE_ADMIN_PRIVATE_KEY,
+          privateKeyStartsWith: process.env.FIREBASE_ADMIN_PRIVATE_KEY
+            ? process.env.FIREBASE_ADMIN_PRIVATE_KEY.slice(0, 20)
+            : "(not set)",
+        },
+      },
+      { status: 500 }
+    );
   }
 }
