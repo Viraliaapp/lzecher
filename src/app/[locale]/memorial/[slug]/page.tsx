@@ -59,14 +59,16 @@ export default async function MemorialPage({ params }: Props) {
   let portions: Portion[] = [];
   try {
     const adminDb = getAdminDb();
+    // Avoid composite index requirement — sort in JS instead
     const portionsSnap = await adminDb
       .collection("lzecher_portions")
       .where("projectId", "==", project.id)
-      .orderBy("order")
       .get();
-    portions = portionsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Portion));
-  } catch {
-    // Portions may not exist yet (pending moderation)
+    portions = portionsSnap.docs
+      .map((d) => ({ id: d.id, ...d.data() } as Portion))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  } catch (err) {
+    console.error("Portions query failed:", err);
   }
 
   const jsonLd = {
