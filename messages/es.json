@@ -224,7 +224,10 @@
     "track_mitzvot": "613 Mitzvot",
     "track_mussar": "Mussar",
     "confirmClaimDesc": "Ingrese su nombre para reclamar esta porcion. Usted sera responsable de completarla.",
-    "report": "Reportar"
+    "report": "Reportar",
+    "tribute": "Homenaje",
+    "claimPortions": "Reclamar porciones",
+    "noPortions": "Las porciones se estan preparando. Vuelva pronto."
   },
 
   "admin": {

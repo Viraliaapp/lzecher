@@ -3,10 +3,16 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
 import { motion } from "framer-motion";
+import type { MemorialProject } from "@/lib/types";
 
-export function HomeClient() {
+interface HomeClientProps {
+  memorials?: MemorialProject[];
+}
+
+export function HomeClient({ memorials = [] }: HomeClientProps) {
   const t = useTranslations("landing");
 
   return (
@@ -113,24 +119,72 @@ export function HomeClient() {
             </h2>
           </div>
 
-          {/* Empty state */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="rounded-2xl border border-gold/10 bg-white p-12 text-center max-w-lg mx-auto"
-          >
-            <div className="flex justify-center mb-6">
-              <YahrzeitCandle size="sm" />
+          {memorials.length === 0 ? (
+            /* Empty state */
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="rounded-2xl border border-gold/10 bg-white p-12 text-center max-w-lg mx-auto"
+            >
+              <div className="flex justify-center mb-6">
+                <YahrzeitCandle size="sm" />
+              </div>
+              <p className="text-muted leading-relaxed mb-6">
+                {t("memorialsEmpty")}
+              </p>
+              <Link href="/create">
+                <Button>{t("createMemorial")}</Button>
+              </Link>
+            </motion.div>
+          ) : (
+            /* Memorial cards grid */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {memorials.map((m, i) => {
+                const pct = m.totalPortions > 0 ? Math.round((m.completedPortions / m.totalPortions) * 100) : 0;
+                const honorific = (m as MemorialProject & { honorific?: string }).honorific || (m.gender === "female" ? "ע״ה" : "ז״ל");
+                return (
+                  <motion.div
+                    key={m.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: i * 0.1 }}
+                  >
+                    <Link href={`/memorial/${m.slug}` as "/memorial/[slug]"}>
+                      <div className="rounded-2xl border border-navy/5 bg-white p-6 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer text-center">
+                        <div className="flex justify-center mb-4">
+                          <YahrzeitCandle size="sm" />
+                        </div>
+                        <p className="text-xs text-gold font-medium mb-1">{honorific}</p>
+                        <h3 className="font-heading text-lg font-bold text-navy mb-1" dir="rtl">
+                          {m.nameHebrew}
+                        </h3>
+                        {m.nameEnglish && (
+                          <p className="font-serif italic text-muted text-sm mb-3">{m.nameEnglish}</p>
+                        )}
+                        <div className="flex flex-wrap justify-center gap-1 mb-3">
+                          {m.tracks.map((track) => (
+                            <span key={track} className="text-[10px] px-2 py-0.5 rounded-full bg-gold/10 text-gold-deep font-medium">
+                              {track === "mishnayos" ? "משניות" : track === "tehillim" ? "תהילים" : track === "shnayim_mikra" ? "שניים מקרא" : track === "mussar" ? "מוסר" : "מצוות"}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-xs text-muted">
+                            <span>{m.claimedPortions}/{m.totalPortions}</span>
+                            <span>{pct}%</span>
+                          </div>
+                          <Progress value={pct} className="h-1.5" />
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
             </div>
-            <p className="text-muted leading-relaxed mb-6">
-              {t("memorialsEmpty")}
-            </p>
-            <Link href="/create">
-              <Button>{t("createMemorial")}</Button>
-            </Link>
-          </motion.div>
+          )}
         </div>
       </section>
 

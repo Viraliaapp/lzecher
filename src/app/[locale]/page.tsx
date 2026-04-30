@@ -2,6 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { HomeClient } from "@/components/landing/HomeClient";
+import { getAdminDb } from "@/lib/firebase/admin";
+import type { MemorialProject } from "@/lib/types";
 import type { Metadata } from "next";
 
 export async function generateMetadata({
@@ -25,7 +27,25 @@ export async function generateMetadata({
   };
 }
 
-export default function HomePage() {
+async function getPublicMemorials(): Promise<MemorialProject[]> {
+  try {
+    const db = getAdminDb();
+    const snap = await db
+      .collection("lzecher_projects")
+      .where("isPublic", "==", true)
+      .where("status", "==", "active")
+      .orderBy("createdAt", "desc")
+      .limit(6)
+      .get();
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as MemorialProject));
+  } catch {
+    return [];
+  }
+}
+
+export default async function HomePage() {
+  const memorials = await getPublicMemorials();
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -43,7 +63,7 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar />
-      <HomeClient />
+      <HomeClient memorials={memorials} />
       <Footer />
     </>
   );

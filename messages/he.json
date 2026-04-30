@@ -219,7 +219,10 @@
     "track_shnayim_mikra": "שניים מקרא ואחד תרגום",
     "track_mitzvot": "תרי״ג מצוות",
     "track_mussar": "מוסר",
-    "report": "דיווח"
+    "report": "דיווח",
+    "tribute": "דברי זיכרון",
+    "claimPortions": "תפסו חלקים",
+    "noPortions": "החלקים מוכנים בקרוב. חזרו מאוחר יותר."
   },
   "admin": {
     "title": "ניהול",

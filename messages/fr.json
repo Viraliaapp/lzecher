@@ -219,7 +219,10 @@
     "track_shnayim_mikra": "Chnayim Mikra",
     "track_mitzvot": "613 Mitsvot",
     "track_mussar": "Moussar",
-    "report": "Signaler"
+    "report": "Signaler",
+    "tribute": "Hommage",
+    "claimPortions": "Reserver des portions",
+    "noPortions": "Les portions sont en cours de preparation. Revenez bientot."
   },
   "admin": {
     "title": "Moderation",

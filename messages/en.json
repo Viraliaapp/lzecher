@@ -219,7 +219,10 @@
     "track_shnayim_mikra": "Shnayim Mikra",
     "track_mitzvot": "613 Mitzvot",
     "track_mussar": "Mussar",
-    "report": "Report"
+    "report": "Report",
+    "tribute": "Tribute",
+    "claimPortions": "Claim Portions",
+    "noPortions": "Portions are being prepared. Check back soon."
   },
   "admin": {
     "title": "Admin Panel",
