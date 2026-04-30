@@ -1,79 +1,51 @@
 # Solomon's Remaining Manual Tasks
 
-Tasks that require human action (browser login, clicking through consoles, etc.) that Claude Code cannot automate.
+Updated: April 30, 2026
 
 ---
 
-## Required Before Launch
+## Required Before Sharing Widely
 
-### 1. Enable Email Link Sign-In (~2 min)
-- Go to https://console.firebase.google.com → project `sifttube-416a0`
-- **Authentication → Sign-in method → Email/Password**
+### 1. Enable Email Link Sign-In in Firebase Console (~2 min)
+- Firebase Console → project `sifttube-416a0` → Authentication → Sign-in method
 - Toggle ON **"Email link (passwordless sign-in)"**
-- Click **Save**
-- *Why:* Magic link auth won't work without this
+- Save
+- *Without this, magic link auth doesn't work*
 
-### 2. Add Authorized Domains (~2 min)
-- Same Firebase Console → **Authentication → Settings → Authorized domains**
+### 2. Add Authorized Domains in Firebase Console (~2 min)
+- Authentication → Settings → Authorized domains
 - Add: `lzecher.com`, `www.lzecher.com`, `lzecher.vercel.app`, `localhost`
-- *Why:* Firebase rejects magic link completion from unauthorized domains
 
-### 3. Set Up Upstash Redis (~5 min)
-- Go to https://upstash.com and sign up (GitHub/Google login works)
-- Click **Create Database**
-- Name: `lzecher-prod`, Type: Regional, Region: `us-east-1`
-- Copy **UPSTASH_REDIS_REST_URL** and **UPSTASH_REDIS_REST_TOKEN** from the REST API section
-- Give both values to Claude Code to add to Vercel env vars
-- *Why:* Persistent rate limiting across serverless instances to prevent email spam abuse
+### 3. Sign In With Correct Account (~1 min)
+- If the wizard shows `roz198550@gmail.com` as creator, you're signed in as the wrong account
+- Sign out → sign back in with `solomon2145tag@gmail.com` (or whichever is your primary)
+- The super admin account is `solomon2145@gmail.com` — sign out/in to refresh claims
 
-### 4. Configure DNS (~5 min, if not done)
-- In Namecheap for `lzecher.com`:
-  - A Record: `@` → `76.76.21.21`
-  - CNAME: `www` → `cname.vercel-dns.com`
-- *Why:* Points domain to Vercel
+### 4. Create Your First Memorial (~10 min)
+- Go to https://lzecher.com/he/create (or /en/create)
+- Create the inaugural memorial for your grandfather
+- The memorial goes live instantly — no moderation queue
+- Share the link as the showcase
 
 ---
 
 ## Recommended (Post-Launch)
 
 ### 5. Set Up reCAPTCHA Enterprise + App Check (~10 min)
-- Go to https://console.cloud.google.com/security/recaptcha (project: sifttube-416a0)
-- Enable the reCAPTCHA Enterprise API if prompted
-- **Create Key**: name `lzecher-prod`, platform Website, domains: `lzecher.com`, `www.lzecher.com`, `lzecher.vercel.app`
-- Uncheck "Use checkbox challenge" (we want invisible)
-- Copy the **Key ID**
-- Then go to Firebase Console → **App Check** → Register your web app → Choose reCAPTCHA Enterprise → Paste key → Save
-- Set enforcement to **Unenforced** initially for Firestore, Storage, Auth
-- Give the Key ID to Claude Code to add as `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` in Vercel
-- After a few days of clean traffic in App Check metrics, flip to **Enforced**
-- *Why:* Prevents automated abuse of Firebase services
+- https://console.cloud.google.com/security/recaptcha → Create key for lzecher.com
+- Firebase Console → App Check → Register with reCAPTCHA Enterprise
+- Give the key to Claude Code to add as `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
 
-### 6. Create Sentry Project (~5 min)
-- Go to https://sentry.io, create account, create a Next.js project
-- Copy the DSN
+### 6. Submit Sitemap to Search Engines (~5 min)
+- Google Search Console: verify lzecher.com, submit https://lzecher.com/sitemap.xml
+- Bing Webmaster Tools: same
+
+### 7. Create Sentry Project (~5 min)
+- https://sentry.io → create Next.js project → copy DSN
 - Add `NEXT_PUBLIC_SENTRY_DSN` to Vercel env vars
-- *Why:* Error monitoring in production
 
-### 7. Submit Sitemap to Search Engines (~5 min)
-- Go to https://search.google.com/search-console → Add Property → `lzecher.com`
-- Verify via DNS TXT record
-- Submit sitemap: `https://lzecher.com/sitemap.xml`
-- Do the same at https://www.bing.com/webmasters
-- *Why:* SEO indexing
+### 8. Social Media + Branding (~15 min)
+- Create @lzecher on Instagram/X → add links to footer
 
-### 8. Create First Memorial (~10 min)
-- Go to https://lzecher.com/en/create (or /he/create for Hebrew)
-- Create the inaugural memorial for your grandfather
-- After submitting, go to /admin to approve it (you have isAdmin)
-- Share the link as the showcase example
-- *Why:* The platform needs its first real memorial to demonstrate the product
-
-### 9. Social Media & Branding (~15 min)
-- Create @lzecher on Instagram and X/Twitter
-- Add social links to footer (update `messages/*.json` and `Footer.tsx`)
-- *Why:* Brand presence
-
-### 10. Rav Haskama (~ongoing)
-- Reach out to a Rav for halachic endorsement
-- Add their statement to the `/halachic-guidance` page
-- *Why:* Credibility for the halachic basis of the platform
+### 9. Rav Haskama (~ongoing)
+- Obtain halachic endorsement → add to /halachic-guidance page

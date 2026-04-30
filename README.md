@@ -15,7 +15,7 @@ Honor the memory of departed loved ones through communal Torah learning. Familie
 | Framework | Next.js 16 (App Router, Turbopack) |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4, CVA, Radix UI |
-| Auth | Firebase Auth (Magic Link + Google OAuth) |
+| Auth | Firebase Auth (Magic Link only) |
 | Database | Cloud Firestore |
 | Storage | Firebase Storage |
 | Email | Resend |
@@ -122,18 +122,22 @@ npm run admin:list
 
 # Grant admin access to a user
 npm run admin:grant -- <UID>
+
+# Grant super admin access (can delete memorials, manage admins)
+npm run admin:grant-super -- <UID>
 ```
 
 ## Seed Data
 
-When a memorial project is approved, the API automatically generates portions:
+When a memorial project is created, portions are auto-generated instantly:
 
 | Track | Count |
 |-------|-------|
 | Mishnayos (by perek) | 525 perakim across 63 masechtos |
 | Tehillim | 150 mizmorim |
 | Shnayim Mikra | 54 parshiyot |
-| Mitzvot | 10 templates |
+| Mussar | 130 units across 8 seforim |
+| Mitzvot | 11 templates |
 
 ## Firestore Collections
 

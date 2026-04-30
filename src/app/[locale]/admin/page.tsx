@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { collection, query, getDocs, orderBy, where } from "firebase/firestore";
+import { collection, query, getDocs, orderBy } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase/config";
 import type { MemorialProject } from "@/lib/types";
 import { cn } from "@/lib/utils";
