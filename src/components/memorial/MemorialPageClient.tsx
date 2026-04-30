@@ -26,7 +26,9 @@ import {
   Share2,
   Check,
   Clock,
+  Flag,
 } from "lucide-react";
+import { ReportModal } from "./ReportModal";
 import { toast } from "sonner";
 import { doc, updateDoc, addDoc, collection, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
@@ -63,6 +65,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedPortion, setSelectedPortion] = useState<Portion | null>(null);
   const [claimerName, setClaimerName] = useState("");
+  const [reportOpen, setReportOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
 
   const totalPortions = portions.length;
@@ -212,11 +215,18 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
               <Progress value={pct} className="h-2 bg-cream/10" indicatorClassName="bg-gold" />
             </div>
 
-            <div className="mt-6">
+            <div className="mt-6 flex items-center justify-center gap-3">
               <Button variant="outline" size="sm" className="border-cream/20 text-cream hover:bg-cream/10" onClick={shareLink}>
                 <Share2 className="h-4 w-4" />
                 {t("share")}
               </Button>
+              <button
+                onClick={() => setReportOpen(true)}
+                className="text-xs text-cream/30 hover:text-cream/60 transition-colors"
+              >
+                <Flag className="h-3 w-3 inline mr-1" />
+                {t("report")}
+              </button>
             </div>
           </div>
         </div>
@@ -377,6 +387,9 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Report modal */}
+      <ReportModal slug={project.slug} open={reportOpen} onOpenChange={setReportOpen} />
     </div>
   );
 }

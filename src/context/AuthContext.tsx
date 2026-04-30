@@ -17,6 +17,7 @@ export interface UserProfile {
   displayName: string | null;
   photoURL: string | null;
   isAdmin?: boolean;
+  isSuperAdmin?: boolean;
   createdAt?: number;
   language?: string;
 }

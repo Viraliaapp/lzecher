@@ -187,7 +187,12 @@
     "monthPlaceholder": "Mes",
     "yearPlaceholder": "Ano",
     "next": "Siguiente",
-    "back": "Atras"
+    "back": "Atras",
+    "successTitle": "Tu memorial esta en vivo!",
+    "successDesc": "Tu memorial ha sido publicado y ahora es accesible para cualquiera con el enlace.",
+    "viewMemorial": "Ver memorial",
+    "shareLink": "Copiar enlace",
+    "linkCopied": "Enlace copiado!"
   },
 
   "memorial": {
@@ -215,7 +220,8 @@
     "track_tehillim": "Tehilim",
     "track_shnayim_mikra": "Shnaim Mikra",
     "track_mitzvot": "613 Mitzvot",
-    "confirmClaimDesc": "Ingrese su nombre para reclamar esta porcion. Usted sera responsable de completarla."
+    "confirmClaimDesc": "Ingrese su nombre para reclamar esta porcion. Usted sera responsable de completarla.",
+    "report": "Reportar"
   },
 
   "admin": {
@@ -232,7 +238,59 @@
     "approveError": "Error al aprobar el proyecto.",
     "rejected": "Proyecto rechazado.",
     "rejectError": "Error al rechazar el proyecto.",
-    "provideReason": "Por favor proporcione un motivo para el rechazo."
+    "provideReason": "Por favor proporcione un motivo para el rechazo.",
+    "dashTitle": "Todos los memoriales",
+    "searchPlaceholder": "Buscar por nombre o correo...",
+    "filter_all": "Todos",
+    "filter_active": "Activos",
+    "filter_hidden": "Ocultos",
+    "filter_reported": "Reportados",
+    "hideTitle": "Ocultar memorial",
+    "hideReasonPlaceholder": "Razon para ocultar (opcional)",
+    "hideConfirm": "Ocultar",
+    "hideSuccess": "Memorial oculto",
+    "unhideSuccess": "Memorial restaurado",
+    "deleteTitle": "Eliminar memorial permanentemente",
+    "deleteWarning": "Esta accion es irreversible. Todos los datos seran eliminados permanentemente.",
+    "deleteConfirmPlaceholder": "Escribe la cadena de confirmacion de arriba",
+    "deleteConfirm": "Eliminar para siempre",
+    "deleteSuccess": "Memorial eliminado permanentemente",
+    "actionError": "La accion fallo. Intentalo de nuevo.",
+    "cancel": "Cancelar",
+    "noResults": "No se encontraron memoriales"
+  },
+  "report": {
+    "title": "Reportar este memorial",
+    "subtitle": "Diganos por que este memorial podria necesitar revision.",
+    "reason_inappropriate": "Contenido inapropiado",
+    "reason_wrong_info": "Informacion incorrecta",
+    "reason_hateful": "Contenido de odio",
+    "reason_spam": "Spam o falso",
+    "reason_photo": "Problemas con la foto",
+    "reason_other": "Otro",
+    "detailsPlaceholder": "Detalles adicionales (opcional)",
+    "emailPlaceholder": "Tu correo (opcional)",
+    "submit": "Enviar reporte",
+    "thankYou": "Reporte recibido",
+    "thankYouDesc": "Gracias por ayudar a mantener Lzecher respetuoso.",
+    "error": "No se pudo enviar el reporte."
+  },
+  "feedback": {
+    "title": "Comparte tu opinion",
+    "subtitle": "Ayudanos a mejorar Lzecher. Sugerencias, errores o simplemente para dar las gracias.",
+    "type_suggestion": "Sugerencia",
+    "type_bug": "Reporte de error",
+    "type_question": "Pregunta",
+    "type_praise": "Elogio",
+    "type_other": "Otro",
+    "messageLabel": "Tu opinion",
+    "messagePlaceholder": "Que tienes en mente?",
+    "emailPlaceholder": "Tu correo (opcional)",
+    "testimonialConsent": "Acepto que mi opinion se comparta anonimamente",
+    "submit": "Enviar opinion",
+    "thankYou": "Gracias!",
+    "thankYouDesc": "Tu opinion ayuda a cada familia que usa Lzecher.",
+    "error": "No se pudo enviar la opinion."
   },
 
   "about": {

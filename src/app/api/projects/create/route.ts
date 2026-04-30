@@ -96,7 +96,8 @@ export async function POST(request: NextRequest) {
       familyMessage: familyMessage?.trim() || null,
       isPublic: isPublic !== false,
       allowAnonymous: allowAnonymous !== false,
-      status: "pending_moderation",
+      status: "active",
+      reportsCount: 0,
       projectType: projectType || "permanent",
       tracks,
       totalPortions: 0,
@@ -107,17 +108,74 @@ export async function POST(request: NextRequest) {
 
     await projectRef.set(projectData);
 
-    // Create moderation queue item
-    const modRef = db.collection("lzecher_moderation").doc();
-    await modRef.set({
-      id: modRef.id,
-      projectId: projectRef.id,
-      projectName: nameEnglish?.trim() || nameHebrew.trim(),
-      createdBy: uid,
-      createdByEmail: email || null,
-      submittedAt: Date.now(),
-      status: "pending",
-    });
+    // Auto-generate portions for the project
+    try {
+      const { MASECHTOS, TEHILLIM, PARSHIYOT, MITZVAH_TEMPLATES } = await import("@/lib/seed-data");
+      let order = 0;
+      let totalPortions = 0;
+      const batch = db.batch();
+
+      if (tracks.includes("mishnayos")) {
+        for (const m of MASECHTOS) {
+          for (let p = 1; p <= m.perakim; p++) {
+            order++;
+            const ref = db.collection("lzecher_portions").doc();
+            batch.set(ref, {
+              id: ref.id, projectId: projectRef.id, trackType: "mishnayos",
+              reference: `${m.name} ${p}`, displayName: `${m.name} Chapter ${p}`,
+              displayNameHebrew: `${m.nameHebrew} פרק ${p}`,
+              order, status: "available", seder: m.seder, masechet: m.name, perek: p,
+            });
+            totalPortions++;
+          }
+        }
+      }
+      if (tracks.includes("tehillim")) {
+        for (const mz of TEHILLIM) {
+          order++;
+          const ref = db.collection("lzecher_portions").doc();
+          batch.set(ref, {
+            id: ref.id, projectId: projectRef.id, trackType: "tehillim",
+            reference: `Tehillim ${mz.number}`, displayName: `Psalm ${mz.number}`,
+            displayNameHebrew: `תהילים ${mz.number}`,
+            order, status: "available", mizmor: mz.number,
+          });
+          totalPortions++;
+        }
+      }
+      if (tracks.includes("shnayim_mikra")) {
+        for (const p of PARSHIYOT) {
+          order++;
+          const ref = db.collection("lzecher_portions").doc();
+          batch.set(ref, {
+            id: ref.id, projectId: projectRef.id, trackType: "shnayim_mikra",
+            reference: `Parshas ${p.name}`, displayName: `Parshas ${p.name}`,
+            displayNameHebrew: `פרשת ${p.nameHebrew}`,
+            order, status: "available", parsha: p.name,
+          });
+          totalPortions++;
+        }
+      }
+      if (tracks.includes("mitzvot")) {
+        for (const mt of MITZVAH_TEMPLATES) {
+          order++;
+          const ref = db.collection("lzecher_portions").doc();
+          batch.set(ref, {
+            id: ref.id, projectId: projectRef.id, trackType: "mitzvot",
+            reference: mt.title, displayName: mt.title,
+            displayNameHebrew: mt.titleHebrew,
+            order, status: "available",
+          });
+          totalPortions++;
+        }
+      }
+
+      await batch.commit();
+      await projectRef.update({ totalPortions });
+    } catch (seedErr) {
+      console.error("Auto-seed portions error:", seedErr);
+      // Project still created even if seeding fails
+    }
 
     // Create user doc if it doesn't exist
     const userRef = db.collection("lzecher_users").doc(uid);

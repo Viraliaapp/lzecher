@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +70,7 @@ export default function CreateMemorialPage() {
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
 
   // Step 1: Honoree
   const [nameHebrew, setNameHebrew] = useState("");
@@ -161,8 +162,8 @@ export default function CreateMemorialPage() {
         return;
       }
 
+      setCreatedSlug(data.slug);
       toast.success(t("projectCreated"));
-      router.push("/dashboard");
     } catch (err) {
       console.error("Submit error:", err);
       toast.error(
@@ -188,6 +189,43 @@ export default function CreateMemorialPage() {
       default:
         return true;
     }
+  }
+
+  // Success screen after creation
+  if (createdSlug) {
+    return (
+      <div className="mx-auto max-w-lg px-4 sm:px-6 py-16 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/10 mb-6">
+          <Check className="h-8 w-8 text-gold" />
+        </div>
+        <h1 className="font-heading text-3xl font-bold text-navy mb-3">
+          {t("successTitle")}
+        </h1>
+        <p className="text-muted mb-8 leading-relaxed">
+          {t("successDesc")}
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link href={`/memorial/${createdSlug}` as "/memorial/[slug]"}>
+            <Button size="lg">
+              <Eye className="h-5 w-5" />
+              {t("viewMemorial")}
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => {
+              const url = `${window.location.origin}/memorial/${createdSlug}`;
+              navigator.clipboard.writeText(url);
+              toast.success(t("linkCopied"));
+            }}
+          >
+            <Share2 className="h-5 w-5" />
+            {t("shareLink")}
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (

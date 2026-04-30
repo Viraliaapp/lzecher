@@ -23,7 +23,7 @@ export interface MemorialProject {
   // Settings
   isPublic: boolean;
   allowAnonymous: boolean;
-  status: "active" | "completed" | "archived" | "pending_moderation";
+  status: "active" | "completed" | "archived" | "pending_moderation" | "hidden";
 
   // Tracks enabled
   tracks: TrackType[];
