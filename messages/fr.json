@@ -150,6 +150,8 @@
     "track_shnayim_mikra_desc": "54 parachiots hebdomadaires",
     "track_mitzvot": "Mitsvot",
     "track_mitzvot_desc": "Actes de bonte et engagements spirituels",
+    "track_mussar": "Moussar",
+    "track_mussar_desc": "Etude quotidienne de moussar a partir de sefarim classiques",
     "sharingTitle": "Partage et confidentialite",
     "sharingSubtitle": "Controlez qui peut voir et participer a ce memorial.",
     "publicProject": "Memorial public",
@@ -216,6 +218,7 @@
     "track_tehillim": "Tehilim",
     "track_shnayim_mikra": "Chnayim Mikra",
     "track_mitzvot": "613 Mitsvot",
+    "track_mussar": "Moussar",
     "report": "Signaler"
   },
   "admin": {

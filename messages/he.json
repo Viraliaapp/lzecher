@@ -150,6 +150,8 @@
     "track_shnayim_mikra_desc": "54 פרשיות השבוע",
     "track_mitzvot": "מצוות",
     "track_mitzvot_desc": "מעשי חסד והתחייבויות רוחניות",
+    "track_mussar": "מוסר",
+    "track_mussar_desc": "לימוד מוסר יומי מספרים קלסיים",
     "sharingTitle": "שיתוף ופרטיות",
     "sharingSubtitle": "קבעו מי יכול לראות ולהשתתף בהנצחה.",
     "publicProject": "הנצחה ציבורית",
@@ -216,6 +218,7 @@
     "track_tehillim": "תהלים",
     "track_shnayim_mikra": "שניים מקרא ואחד תרגום",
     "track_mitzvot": "תרי״ג מצוות",
+    "track_mussar": "מוסר",
     "report": "דיווח"
   },
   "admin": {

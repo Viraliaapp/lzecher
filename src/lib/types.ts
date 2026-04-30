@@ -39,6 +39,7 @@ export type TrackType =
   | "mishnayos"
   | "tehillim"
   | "shnayim_mikra"
+  | "mussar"
   | "mitzvot";
 
 /* ── Track Portions ── */

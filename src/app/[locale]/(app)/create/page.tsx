@@ -45,6 +45,7 @@ const TRACK_OPTIONS: {
     icon: ScrollText,
     color: "bg-zeraim/10 text-zeraim",
   },
+  { key: "mussar", icon: BookOpen, color: "bg-kodashim/10 text-kodashim" },
   { key: "mitzvot", icon: Heart, color: "bg-nashim/10 text-nashim" },
 ];
 

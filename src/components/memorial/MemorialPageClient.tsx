@@ -39,6 +39,7 @@ const TRACK_ICONS: Record<TrackType, typeof BookOpen> = {
   mishnayos: BookOpen,
   tehillim: Music,
   shnayim_mikra: ScrollText,
+  mussar: BookOpen,
   mitzvot: Heart,
 };
 

@@ -150,6 +150,8 @@
     "track_shnayim_mikra_desc": "54 weekly parshiyot",
     "track_mitzvot": "Mitzvot",
     "track_mitzvot_desc": "Acts of chesed and spiritual commitments",
+    "track_mussar": "Mussar",
+    "track_mussar_desc": "Daily mussar learning from classic seforim",
     "sharingTitle": "Sharing & Privacy",
     "sharingSubtitle": "Control who can see and participate in this memorial.",
     "publicProject": "Public Memorial",
@@ -216,6 +218,7 @@
     "track_tehillim": "Tehillim",
     "track_shnayim_mikra": "Shnayim Mikra",
     "track_mitzvot": "613 Mitzvot",
+    "track_mussar": "Mussar",
     "report": "Report"
   },
   "admin": {

@@ -157,6 +157,120 @@ export const MITZVAH_TEMPLATES: MitzvahTemplate[] = [
   { id: "tzedakah-maaser", title: "Maaser Commitment", titleHebrew: "התחייבות מעשר", description: "Commit to giving maaser from earnings for a period", descriptionHebrew: "להתחייב לתת מעשר מהכנסות לתקופה מסוימת", category: "tzedakah" },
   { id: "limud-daf-yomi", title: "Learn Daf Yomi", titleHebrew: "דף יומי", description: "Learn a page of Gemara daily in the niftar's merit", descriptionHebrew: "ללמוד דף גמרא ביום לעילוי נשמת הנפטר", category: "limud" },
   { id: "limud-mishnah-yomis", title: "Mishnah Yomis", titleHebrew: "משנה יומית", description: "Learn the daily Mishnah in the niftar's merit", descriptionHebrew: "ללמוד משנה יומית לעילוי נשמת הנפטר", category: "limud" },
-  { id: "middot-shemiras-halashon", title: "Shemiras HaLashon", titleHebrew: "שמירת הלשון", description: "Commit to a period of careful speech in the niftar's merit", descriptionHebrew: "להתחייב לתקופה של שמירת הלשון לעי��וי נשמת הנפט��", category: "middot" },
+  { id: "middot-shemiras-halashon", title: "Shemiras HaLashon", titleHebrew: "שמירת הלשון", description: "Strengthen your speech in their memory. Avoid lashon hara, rechilus, and motzi shem ra. Many take on specific hours of the day or learn daily from Sefer Chofetz Chaim.", descriptionHebrew: "התחזקות בשמירת הלשון לעילוי נשמתם. הימנעות מלשון הרע, רכילות ומוציא שם רע. רבים מקבלים על עצמם שעות מסוימות ביום או לימוד יומי מספר חפץ חיים.", category: "middot" },
   { id: "middot-ahavas-yisrael", title: "Ahavas Yisrael", titleHebrew: "אהבת ישראל", description: "Perform daily acts of kindness toward fellow Jews", descriptionHebrew: "לעשות מעשי חסד יומיים כלפי יהודים אחרים", category: "middot" },
+  { id: "middot-hakaras-hatov", title: "Daily Hakaras Hatov to Hashem", titleHebrew: "הכרת הטוב יומית להשם", description: "Each day, consciously thank Hashem for one specific thing in your life. The act of recognizing daily blessings — health, family, parnassah, the small kindnesses — elevates the neshama.", descriptionHebrew: "מדי יום, להודות להשם בכוונה על דבר אחד ספציפי בחיים. ההכרה בברכות היומיומיות — בריאות, משפחה, פרנסה, החסדים הקטנים — מעלה את הנשמה.", category: "middot" },
+];
+
+/* ── Mussar Seforim ── */
+export interface MussarSefer {
+  id: string;
+  name: string;
+  nameHebrew: string;
+  author: string;
+  authorHebrew: string;
+  units: number;
+  unitType: string;
+  unitTypeHebrew: string;
+  description: string;
+  descriptionHebrew: string;
+}
+
+export const MUSSAR_SEFORIM: MussarSefer[] = [
+  {
+    id: "mesilas-yesharim",
+    name: "Mesilas Yesharim",
+    nameHebrew: "מסילת ישרים",
+    author: "Ramchal (R' Moshe Chaim Luzzatto)",
+    authorHebrew: "רמח״ל",
+    units: 26,
+    unitType: "chapters",
+    unitTypeHebrew: "פרקים",
+    description: "The classic path of the upright — 26 chapters covering the ladder of spiritual growth from watchfulness to holiness.",
+    descriptionHebrew: "דרך הישרים הקלסית — 26 פרקים המכסים את סולם הצמיחה הרוחנית מזהירות ועד קדושה.",
+  },
+  {
+    id: "chovos-halevavos",
+    name: "Chovos HaLevavos",
+    nameHebrew: "חובות הלבבות",
+    author: "Rabbeinu Bachya ibn Pakuda",
+    authorHebrew: "רבינו בחיי אבן פקודא",
+    units: 10,
+    unitType: "gates (sha'arim)",
+    unitTypeHebrew: "שערים",
+    description: "The 10 Gates of the Duties of the Heart — from unity of God through love of God, covering the inner world of faith.",
+    descriptionHebrew: "עשרת שערי חובות הלבבות — משער היחוד ועד שער אהבת ה׳, מכסים את עולם האמונה הפנימי.",
+  },
+  {
+    id: "orchos-tzaddikim",
+    name: "Orchos Tzaddikim",
+    nameHebrew: "אורחות צדיקים",
+    author: "Anonymous (15th century)",
+    authorHebrew: "מחבר אלמוני (המאה ה-15)",
+    units: 28,
+    unitType: "gates (sha'arim)",
+    unitTypeHebrew: "שערים",
+    description: "The Ways of the Righteous — 28 gates on character traits, from shame and arrogance through love and joy.",
+    descriptionHebrew: "דרכי הצדיקים — 28 שערים על מידות, מהבושה והגאווה ועד האהבה והשמחה.",
+  },
+  {
+    id: "shaarei-teshuvah",
+    name: "Shaarei Teshuvah",
+    nameHebrew: "שערי תשובה",
+    author: "Rabbeinu Yonah of Gerona",
+    authorHebrew: "רבינו יונה מגירונדי",
+    units: 4,
+    unitType: "gates (sha'arim)",
+    unitTypeHebrew: "שערים",
+    description: "The Gates of Repentance — the foundational work on teshuvah, covering the principles and stages of return to Hashem.",
+    descriptionHebrew: "שערי התשובה — היצירה היסודית על התשובה, מכסה את עקרונות ושלבי השיבה אל ה׳.",
+  },
+  {
+    id: "pirkei-avos",
+    name: "Pirkei Avos",
+    nameHebrew: "פרקי אבות",
+    author: "Tannaim (Mishnaic sages)",
+    authorHebrew: "התנאים",
+    units: 6,
+    unitType: "chapters",
+    unitTypeHebrew: "פרקים",
+    description: "Ethics of the Fathers — 6 chapters of timeless mussar wisdom from the Mishnaic sages. Learn with a mussar commentary like Rabbeinu Yonah or Bartenura.",
+    descriptionHebrew: "פרקי אבות — 6 פרקי מוסר נצחיים מחכמי המשנה. ללמוד עם פירוש מוסרי כמו רבינו יונה או ברטנורא.",
+  },
+  {
+    id: "sefer-hachinuch",
+    name: "Sefer HaChinuch",
+    nameHebrew: "ספר החינוך",
+    author: "Attributed to R' Aharon HaLevi of Barcelona",
+    authorHebrew: "מיוחס לרבי אהרון הלוי מברצלונה",
+    units: 54,
+    unitType: "parshiyot",
+    unitTypeHebrew: "פרשיות",
+    description: "The 613 mitzvos organized by weekly parsha — learn the reasons and laws of each mitzvah following the Torah reading cycle.",
+    descriptionHebrew: "תרי״ג מצוות לפי סדר הפרשיות — לימוד טעמי ודיני כל מצווה לפי מחזור קריאת התורה.",
+  },
+  {
+    id: "chofetz-chaim-yomi",
+    name: "Chofetz Chaim Yomi",
+    nameHebrew: "חפץ חיים יומי",
+    author: "The Chofetz Chaim (R' Yisrael Meir Kagan)",
+    authorHebrew: "החפץ חיים (ר׳ ישראל מאיר הכהן)",
+    units: 1,
+    unitType: "daily commitment",
+    unitTypeHebrew: "התחייבות יומית",
+    description: "Follow the daily Chofetz Chaim Yomi calendar, studying the laws of proper speech from Sefer Chofetz Chaim and Sefer Shemiras HaLashon.",
+    descriptionHebrew: "לעקוב אחר לוח חפץ חיים יומי, ללמוד את הלכות לשון הרע מספר חפץ חיים וספר שמירת הלשון.",
+  },
+  {
+    id: "mussar-free-form",
+    name: "Personal Mussar Commitment",
+    nameHebrew: "התחייבות מוסר אישית",
+    author: "",
+    authorHebrew: "",
+    units: 1,
+    unitType: "personal commitment",
+    unitTypeHebrew: "התחייבות אישית",
+    description: "Commit to a personal daily mussar learning session — choose your own sefer and pace.",
+    descriptionHebrew: "התחייבות ללימוד מוסר יומי אישי — בחרו ספר וקצב משלכם.",
+  },
 ];

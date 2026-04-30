@@ -154,6 +154,8 @@
     "track_shnayim_mikra_desc": "54 parashiot semanales",
     "track_mitzvot": "Mitzvot",
     "track_mitzvot_desc": "Actos de bondad y compromisos espirituales",
+    "track_mussar": "Mussar",
+    "track_mussar_desc": "Estudio diario de mussar de sefarim clasicos",
     "sharingTitle": "Compartir y privacidad",
     "sharingSubtitle": "Controla quien puede ver y participar en este memorial.",
     "publicProject": "Memorial publico",
@@ -220,6 +222,7 @@
     "track_tehillim": "Tehilim",
     "track_shnayim_mikra": "Shnaim Mikra",
     "track_mitzvot": "613 Mitzvot",
+    "track_mussar": "Mussar",
     "confirmClaimDesc": "Ingrese su nombre para reclamar esta porcion. Usted sera responsable de completarla.",
     "report": "Reportar"
   },

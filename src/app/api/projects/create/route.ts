@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     // Auto-generate portions for the project
     try {
-      const { MASECHTOS, TEHILLIM, PARSHIYOT, MITZVAH_TEMPLATES } = await import("@/lib/seed-data");
+      const { MASECHTOS, TEHILLIM, PARSHIYOT, MITZVAH_TEMPLATES, MUSSAR_SEFORIM } = await import("@/lib/seed-data");
       let order = 0;
       let totalPortions = 0;
       const batch = db.batch();
@@ -154,6 +154,22 @@ export async function POST(request: NextRequest) {
             order, status: "available", parsha: p.name,
           });
           totalPortions++;
+        }
+      }
+      if (tracks.includes("mussar")) {
+        for (const sefer of MUSSAR_SEFORIM) {
+          for (let u = 1; u <= sefer.units; u++) {
+            order++;
+            const ref = db.collection("lzecher_portions").doc();
+            batch.set(ref, {
+              id: ref.id, projectId: projectRef.id, trackType: "mussar",
+              reference: sefer.units === 1 ? sefer.name : `${sefer.name} ${u}`,
+              displayName: sefer.units === 1 ? sefer.name : `${sefer.name} ${sefer.unitType.split(" ")[0]} ${u}`,
+              displayNameHebrew: sefer.units === 1 ? sefer.nameHebrew : `${sefer.nameHebrew} ${sefer.unitTypeHebrew.slice(0, -2)} ${u}`,
+              order, status: "available",
+            });
+            totalPortions++;
+          }
         }
       }
       if (tracks.includes("mitzvot")) {
