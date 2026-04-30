@@ -30,14 +30,17 @@ export async function generateMetadata({
 async function getPublicMemorials(): Promise<MemorialProject[]> {
   try {
     const db = getAdminDb();
+    // Simple query avoiding composite index requirement
     const snap = await db
       .collection("lzecher_projects")
-      .where("isPublic", "==", true)
       .where("status", "==", "active")
-      .orderBy("createdAt", "desc")
-      .limit(6)
+      .limit(20)
       .get();
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as MemorialProject));
+    return snap.docs
+      .map((d) => ({ id: d.id, ...d.data() } as MemorialProject))
+      .filter((p) => p.isPublic)
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .slice(0, 6);
   } catch {
     return [];
   }

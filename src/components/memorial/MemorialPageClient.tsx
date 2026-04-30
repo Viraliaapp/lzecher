@@ -31,8 +31,7 @@ import {
 } from "lucide-react";
 import { ReportModal } from "./ReportModal";
 import { toast } from "sonner";
-import { doc, updateDoc, addDoc, collection, increment } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
+import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Portion, TrackType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -131,37 +130,31 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     if (!selectedPortion || !claimerName.trim()) return;
     setClaimingId(selectedPortion.id);
     try {
-      await updateDoc(doc(db, "lzecher_portions", selectedPortion.id), {
-        status: "claimed",
-        claimedBy: user?.uid || "anonymous",
-        claimedByName: claimerName.trim(),
-        claimedAt: Date.now(),
+      const idToken = await auth.currentUser?.getIdToken().catch(() => null);
+      const res = await fetch("/api/claims", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          portionId: selectedPortion.id,
+          projectId: project.id,
+          claimerName: claimerName.trim(),
+          idToken,
+        }),
       });
-      await addDoc(collection(db, "lzecher_claims"), {
-        projectId: project.id,
-        portionId: selectedPortion.id,
-        trackType: selectedPortion.trackType,
-        reference: selectedPortion.reference,
-        userId: user?.uid || "anonymous",
-        userName: claimerName.trim(),
-        userEmail: user?.email || null,
-        claimedAt: Date.now(),
-        status: "active",
-      });
-      await updateDoc(doc(db, "lzecher_projects", project.id), {
-        claimedPortions: increment(1),
-        participantCount: increment(1),
-      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || t("claimError"));
+        return;
+      }
       setPortions((prev) =>
         prev.map((p) =>
           p.id === selectedPortion.id
-            ? { ...p, status: "claimed" as const, claimedByName: claimerName.trim(), claimedAt: Date.now() }
+            ? { ...p, status: "claimed" as const, claimedByName: claimerName.trim(), claimedBy: user?.uid || "anonymous", claimedAt: Date.now() }
             : p
         )
       );
       toast.success(t("claimSuccess"));
-    } catch (err) {
-      console.error("Claim error:", err);
+    } catch {
       toast.error(t("claimError"));
     } finally {
       setClaimingId(null);
@@ -173,13 +166,25 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   async function handleComplete(portion: Portion) {
     setCompleting(true);
     try {
-      await updateDoc(doc(db, "lzecher_portions", portion.id), {
-        status: "completed",
-        completedAt: Date.now(),
+      const idToken = await auth.currentUser?.getIdToken(true);
+      if (!idToken) {
+        toast.error(t("completeError"));
+        return;
+      }
+      const res = await fetch("/api/claims/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          portionId: portion.id,
+          projectId: project.id,
+          idToken,
+        }),
       });
-      await updateDoc(doc(db, "lzecher_projects", project.id), {
-        completedPortions: increment(1),
-      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || t("completeError"));
+        return;
+      }
       setPortions((prev) =>
         prev.map((p) =>
           p.id === portion.id ? { ...p, status: "completed" as const, completedAt: Date.now() } : p
