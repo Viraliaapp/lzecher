@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { TrackHierarchy } from "./TrackHierarchy";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
@@ -122,7 +123,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
 
   function handleClaimClick(portion: Portion) {
     setSelectedPortion(portion);
-    setClaimerName(user?.displayName || user?.email?.split("@")[0] || "");
+    setClaimerName(user?.displayName || "");
     setConfirmDialogOpen(true);
   }
 
@@ -334,61 +335,15 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                   {tp.length === 0 ? (
                     <p className="text-center text-muted py-8">{t("noPortions")}</p>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
-                      {tp.map((portion) => (
-                        <Card
-                          key={portion.id}
-                          className={cn(
-                            "transition-all",
-                            portion.status === "completed" && "opacity-60",
-                            portion.status === "available" && "hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
-                          )}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="min-w-0">
-                                <p className="font-medium text-navy text-sm truncate">{portion.displayName}</p>
-                                <p className="text-xs text-muted truncate" dir="rtl">{portion.displayNameHebrew}</p>
-                              </div>
-                              {portion.seder && (
-                                <Badge variant={(SEDER_BADGE[portion.seder] || "default") as "zeraim"} className="shrink-0 ml-2">
-                                  {portion.seder}
-                                </Badge>
-                              )}
-                            </div>
-
-                            {portion.status === "available" && (
-                              <Button size="sm" className="w-full mt-2" onClick={() => handleClaimClick(portion)} disabled={claimingId === portion.id}>
-                                {claimingId === portion.id ? <Spinner className="h-3 w-3" /> : (
-                                  <><BookOpen className="h-3 w-3" />{t("claimPortion")}</>
-                                )}
-                              </Button>
-                            )}
-
-                            {portion.status === "claimed" && (
-                              <div className="mt-2 space-y-2">
-                                <div className="flex items-center gap-2 text-xs text-muted">
-                                  <Clock className="h-3 w-3" />
-                                  {t("claimedBy", { name: portion.claimedByName || t("someone") })}
-                                </div>
-                                {user && portion.claimedBy === user.uid && (
-                                  <Button size="sm" variant="secondary" className="w-full" onClick={() => handleComplete(portion)} disabled={completing}>
-                                    <Check className="h-3 w-3" />{t("markComplete")}
-                                  </Button>
-                                )}
-                              </div>
-                            )}
-
-                            {portion.status === "completed" && (
-                              <div className="flex items-center gap-2 text-xs text-emerald-600 mt-2">
-                                <Check className="h-3 w-3" />
-                                {t("completedBy", { name: portion.claimedByName || t("someone") })}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                    <TrackHierarchy
+                      portions={tp}
+                      trackType={track}
+                      onClaim={handleClaimClick}
+                      onComplete={handleComplete}
+                      claimingId={claimingId}
+                      completing={completing}
+                      currentUserId={user?.uid}
+                    />
                   )}
                 </TabsContent>
               );

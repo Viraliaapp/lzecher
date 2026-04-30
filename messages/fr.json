@@ -81,7 +81,8 @@
     "magicLinkSent": "Lien de connexion envoye !",
     "errorSendingLink": "Impossible d'envoyer le lien. Veuillez reessayer.",
     "welcomeBack": "Bienvenue !",
-    "linkExpired": "Ce lien a expire. Veuillez en demander un nouveau."
+    "linkExpired": "Ce lien a expire. Veuillez en demander un nouveau.",
+    "enterEmailPrompt": "Veuillez saisir l'adresse e-mail utilisee pour demander ce lien :"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -222,7 +223,8 @@
     "report": "Signaler",
     "tribute": "Hommage",
     "claimPortions": "Reserver des portions",
-    "noPortions": "Les portions sont en cours de preparation. Revenez bientot."
+    "noPortions": "Les portions sont en cours de preparation. Revenez bientot.",
+    "psalms": "Psaumes"
   },
   "admin": {
     "title": "Moderation",

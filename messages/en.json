@@ -81,7 +81,8 @@
     "magicLinkSent": "Sign-in link sent!",
     "errorSendingLink": "Could not send the sign-in link. Please try again.",
     "welcomeBack": "Welcome!",
-    "linkExpired": "This link has expired. Please request a new one."
+    "linkExpired": "This link has expired. Please request a new one.",
+    "enterEmailPrompt": "Please enter the email you used to request this sign-in link:"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -222,7 +223,8 @@
     "report": "Report",
     "tribute": "Tribute",
     "claimPortions": "Claim Portions",
-    "noPortions": "Portions are being prepared. Check back soon."
+    "noPortions": "Portions are being prepared. Check back soon.",
+    "psalms": "Psalms"
   },
   "admin": {
     "title": "Admin Panel",

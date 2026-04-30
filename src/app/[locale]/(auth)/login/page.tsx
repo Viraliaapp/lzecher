@@ -59,25 +59,35 @@ export default function LoginPage() {
 
   // Handle magic link completion
   useEffect(() => {
-    if (
-      searchParams.get("finishSignIn") &&
-      isMagicLinkSignIn(window.location.href)
-    ) {
-      const storedEmail =
-        window.localStorage.getItem("lzecher_email_for_signin") || "";
-      if (storedEmail) {
-        setCompleting(true);
-        completeMagicLinkSignIn(storedEmail, window.location.href)
-          .then(async (cred) => {
-            await ensureUserDoc(cred.user.uid, cred.user.email);
-            toast.success(t("welcomeBack"));
-          })
-          .catch(() => {
-            toast.error(t("linkExpired"));
-            setCompleting(false);
-          });
-      }
+    if (!searchParams.get("finishSignIn")) return;
+    if (!isMagicLinkSignIn(window.location.href)) return;
+
+    const storedEmail = window.localStorage.getItem("lzecher_email_for_signin") || "";
+    if (!storedEmail) {
+      // Cross-browser: user clicked link in a different browser — ask for email
+      const enteredEmail = window.prompt(t("enterEmailPrompt"));
+      if (!enteredEmail) return;
+      window.localStorage.setItem("lzecher_email_for_signin", enteredEmail);
     }
+
+    const emailToUse = window.localStorage.getItem("lzecher_email_for_signin") || "";
+    if (!emailToUse) return;
+
+    setCompleting(true);
+    completeMagicLinkSignIn(emailToUse, window.location.href)
+      .then(async (cred) => {
+        await ensureUserDoc(cred.user.uid, cred.user.email);
+        toast.success(t("welcomeBack"));
+      })
+      .catch((err) => {
+        console.error("Magic link verify failed:", err);
+        if (err?.code === "auth/invalid-action-code") {
+          toast.error(t("linkExpired"));
+        } else {
+          toast.error(t("linkExpired"));
+        }
+        setCompleting(false);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 

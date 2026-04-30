@@ -83,7 +83,8 @@
     "magicLinkSent": "Enlace de acceso enviado!",
     "errorSendingLink": "No se pudo enviar el enlace. Intentalo de nuevo.",
     "welcomeBack": "Bienvenido!",
-    "linkExpired": "Este enlace ha caducado. Solicita uno nuevo."
+    "linkExpired": "Este enlace ha caducado. Solicita uno nuevo.",
+    "enterEmailPrompt": "Ingresa el correo que usaste para solicitar este enlace:"
   },
 
   "dashboard": {
@@ -227,7 +228,8 @@
     "report": "Reportar",
     "tribute": "Homenaje",
     "claimPortions": "Reclamar porciones",
-    "noPortions": "Las porciones se estan preparando. Vuelva pronto."
+    "noPortions": "Las porciones se estan preparando. Vuelva pronto.",
+    "psalms": "Salmos"
   },
 
   "admin": {
