@@ -8,11 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
-import { Plus, BookOpen, CheckCircle, Clock, Users } from "lucide-react";
+import { Plus, BookOpen, CheckCircle, Clock, Users, Eye, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
+import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Claim } from "@/lib/types";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
@@ -24,23 +24,20 @@ export default function DashboardPage() {
   async function loadData() {
     if (!user) return;
     try {
-      // Load user's projects
-      const projQ = query(
-        collection(db, "lzecher_projects"),
-        where("createdBy", "==", user.uid),
-        orderBy("createdAt", "desc")
-      );
-      const projSnap = await getDocs(projQ);
-      setProjects(projSnap.docs.map((d) => ({ id: d.id, ...d.data() } as MemorialProject)));
+      const idToken = await auth.currentUser?.getIdToken(true);
+      if (!idToken) return;
 
-      // Load user's claims
-      const claimQ = query(
-        collection(db, "lzecher_claims"),
-        where("userId", "==", user.uid),
-        orderBy("claimedAt", "desc")
-      );
-      const claimSnap = await getDocs(claimQ);
-      setClaims(claimSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Claim)));
+      const res = await fetch("/api/dashboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data.projects || []);
+        setClaims(data.claims || []);
+      }
     } catch (err) {
       console.error("Error loading dashboard:", err);
     } finally {
@@ -134,36 +131,50 @@ export default function DashboardPage() {
                   ? Math.round((project.completedPortions / project.totalPortions) * 100)
                   : 0;
               return (
-                <Link key={project.id} href={`/memorial/${project.slug}` as "/memorial/[slug]"}>
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{project.nameHebrew}</CardTitle>
-                        <Badge variant={project.status === "active" ? "success" : "secondary"}>
-                          {project.status}
-                        </Badge>
+                <Card key={project.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg truncate" dir="rtl">{project.nameHebrew}</CardTitle>
+                      <Badge variant={project.status === "active" ? "success" : "secondary"}>
+                        {project.status}
+                      </Badge>
+                    </div>
+                    {project.nameEnglish && (
+                      <p className="text-sm text-muted truncate">{project.nameEnglish}</p>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted">{t("progress")}</span>
+                        <span className="font-medium text-navy">{pct}%</span>
                       </div>
-                      {project.nameEnglish && (
-                        <p className="text-sm text-muted">{project.nameEnglish}</p>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted">{t("progress")}</span>
-                          <span className="font-medium text-navy">{pct}%</span>
-                        </div>
-                        <Progress value={pct} />
-                        <div className="flex items-center justify-between text-xs text-muted">
-                          <span>
-                            {project.completedPortions}/{project.totalPortions} {t("portions")}
-                          </span>
-                          <span>{project.participantCount} {t("participants")}</span>
-                        </div>
+                      <Progress value={pct} />
+                      <div className="flex items-center justify-between text-xs text-muted">
+                        <span>{project.claimedPortions}/{project.totalPortions} {t("portions")}</span>
+                        <span>{project.participantCount || 0} {t("participants")}</span>
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                      <div className="flex gap-2 pt-2">
+                        <Link href={`/memorial/${project.slug}` as "/memorial/[slug]"} className="flex-1">
+                          <Button variant="outline" size="sm" className="w-full">
+                            <Eye className="h-3 w-3" />
+                            {t("view")}
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/memorial/${project.slug}`);
+                            toast.success(t("linkCopied"));
+                          }}
+                        >
+                          <Share2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>

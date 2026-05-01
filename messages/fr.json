@@ -37,14 +37,15 @@
     "errorTitle": "Une erreur est survenue",
     "errorDesc": "Une erreur inattendue s'est produite. Veuillez reessayer.",
     "tryAgain": "Reessayer",
-    "loadingMessage": "Preparation de votre experience..."
+    "loadingMessage": "Preparation de votre experience...",
+    "memorials": "Memoriaux"
   },
   "landing": {
     "heroEyebrow": "— Une initiative gratuite pour chaque ame —",
     "heroLine1": "Etudier ensemble,",
     "heroLine2": "a leur memoire.",
     "heroHebrew": "לומדים יחד, לעילוי נשמתם",
-    "heroDescription": "Une plateforme gratuite pour les familles qui souhaitent honorer un etre cher a travers l'etude collective des Mishnayot. Creez un memorial, invitez votre communaute et completez ensemble les Six Sedarim, a votre rythme, en quatre langues.",
+    "heroDescription": "Une plateforme gratuite pour que les familles honorent un etre cher a travers l'etude collective de la Torah. Creez un memorial, invitez votre communaute et engagez-vous ensemble a etudier la Michna, les Psaumes, Chnayim Mikra, le Moussar ou des mitsvot personnelles — a votre rythme, dans l'une des quatre langues.",
     "createMemorial": "Creer un memorial",
     "viewMemorials": "Voir les memoriaux",
     "pullQuote": "L'ame de l'homme est la lampe de l'Eternel",
@@ -99,7 +100,9 @@
     "portions": "portions",
     "participants": "participants",
     "myClaims": "Mes reservations",
-    "inProgress": "En cours"
+    "inProgress": "En cours",
+    "view": "Voir",
+    "linkCopied": "Lien copie !"
   },
   "create": {
     "stepOf": "Etape {current} sur {total}",
@@ -225,6 +228,14 @@
     "claimPortions": "Reserver des portions",
     "noPortions": "Les portions sont en cours de preparation. Revenez bientot.",
     "psalms": "Psaumes"
+  },
+  "memorials": {
+    "title": "Tous les memoriaux",
+    "subtitle": "Honorant actuellement {count} ames a travers l'etude de la Torah",
+    "searchPlaceholder": "Rechercher par nom...",
+    "noResults": "Aucun memorial ne correspond a votre recherche.",
+    "emptyState": "Le premier memorial sera allume bientot. Soyez le premier a honorer la memoire de quelqu'un.",
+    "createFirst": "Creer un memorial"
   },
   "admin": {
     "title": "Moderation",

@@ -56,6 +56,15 @@ export function Navbar() {
             {/* Desktop nav items */}
             <div className="hidden md:flex items-center gap-4">
               <Link
+                href="/memorials"
+                className={cn(
+                  "text-sm font-medium transition-colors hover:text-gold",
+                  isLanding ? "text-cream/80" : "text-muted"
+                )}
+              >
+                {t("memorials")}
+              </Link>
+              <Link
                 href="/about"
                 className={cn(
                   "text-sm font-medium transition-colors hover:text-gold",
@@ -101,6 +110,16 @@ export function Navbar() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="md:hidden pb-4 space-y-3 border-t border-navy/10 pt-3">
+            <Link
+              href="/memorials"
+              className={cn(
+                "block py-2 text-sm font-medium",
+                isLanding ? "text-cream/80" : "text-muted"
+              )}
+              onClick={() => setMobileOpen(false)}
+            >
+              {t("memorials")}
+            </Link>
             <Link
               href="/about"
               className={cn(

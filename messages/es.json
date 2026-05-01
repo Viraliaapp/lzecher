@@ -37,7 +37,8 @@
     "errorTitle": "Algo salio mal",
     "errorDesc": "Ocurrio un error inesperado. Por favor, intente de nuevo.",
     "tryAgain": "Intentar de nuevo",
-    "loadingMessage": "Preparando su experiencia..."
+    "loadingMessage": "Preparando su experiencia...",
+    "memorials": "Memoriales"
   },
 
   "landing": {
@@ -45,7 +46,7 @@
     "heroLine1": "Aprendemos juntos,",
     "heroLine2": "en su memoria.",
     "heroHebrew": "לומדים יחד, לעילוי נשמתם",
-    "heroDescription": "Una plataforma gratuita para que las familias honren a un ser querido a traves del estudio colectivo de Mishnayot. Crea un memorial, invita a tu comunidad y completen juntos los Seis Sedarim, a su propio ritmo, en cuatro idiomas.",
+    "heroDescription": "Una plataforma gratuita para que las familias honren a un ser querido a traves del estudio colectivo de Tora. Crea un memorial, invita a tu comunidad y comprometanse juntos al estudio de Mishna, Salmos, Shnayim Mikra, Musar o mitzvot personales — a su propio ritmo, en cuatro idiomas.",
     "createMemorial": "Crear un memorial",
     "viewMemorials": "Ver memoriales",
     "pullQuote": "El alma del hombre es la lampara del Senor",
@@ -102,7 +103,9 @@
     "portions": "porciones",
     "participants": "participantes",
     "myClaims": "Mis reclamos",
-    "inProgress": "En progreso"
+    "inProgress": "En progreso",
+    "view": "Ver",
+    "linkCopied": "Enlace copiado!"
   },
 
   "create": {
@@ -230,6 +233,14 @@
     "claimPortions": "Reclamar porciones",
     "noPortions": "Las porciones se estan preparando. Vuelva pronto.",
     "psalms": "Salmos"
+  },
+  "memorials": {
+    "title": "Todos los memoriales",
+    "subtitle": "Honrando actualmente a {count} almas a traves del estudio de la Tora",
+    "searchPlaceholder": "Buscar por nombre...",
+    "noResults": "No se encontraron memoriales.",
+    "emptyState": "El primer memorial se encendera pronto. Se el primero en honrar la memoria de alguien.",
+    "createFirst": "Crear un memorial"
   },
 
   "admin": {

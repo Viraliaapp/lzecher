@@ -69,7 +69,7 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
               <Link href="/create">
                 <Button size="xl">{t("createMemorial")}</Button>
               </Link>
-              <Link href="/about">
+              <Link href="/memorials">
                 <Button
                   variant="outline"
                   size="xl"

@@ -37,14 +37,15 @@
     "errorTitle": "Something went wrong",
     "errorDesc": "An unexpected error occurred. Please try again.",
     "tryAgain": "Try Again",
-    "loadingMessage": "Preparing your experience..."
+    "loadingMessage": "Preparing your experience...",
+    "memorials": "Memorials"
   },
   "landing": {
     "heroEyebrow": "— A free initiative for every soul —",
     "heroLine1": "Learn together,",
     "heroLine2": "in their memory.",
     "heroHebrew": "לומדים יחד, לעילוי נשמתם",
-    "heroDescription": "A free platform for families to honor a departed loved one through the collective study of Mishnayos. Create a memorial, invite your community, and together complete the Six Sedarim — at your own pace, in any of four languages.",
+    "heroDescription": "A free platform for families to honor a departed loved one through collective Torah learning. Create a memorial, invite your community, and together commit to Mishnayos, Tehillim, Shnayim Mikra, Mussar, or personal mitzvot — at your own pace, in any of four languages.",
     "createMemorial": "Create a memorial",
     "viewMemorials": "View memorials",
     "pullQuote": "The soul of man is the candle of the Lord",
@@ -99,7 +100,9 @@
     "portions": "Portions",
     "participants": "Participants",
     "myClaims": "My Claims",
-    "inProgress": "In Progress"
+    "inProgress": "In Progress",
+    "view": "View",
+    "linkCopied": "Link copied!"
   },
   "create": {
     "stepOf": "Step {current} of {total}",
@@ -225,6 +228,14 @@
     "claimPortions": "Claim Portions",
     "noPortions": "Portions are being prepared. Check back soon.",
     "psalms": "Psalms"
+  },
+  "memorials": {
+    "title": "All Memorials",
+    "subtitle": "Currently honoring {count} souls through Torah learning",
+    "searchPlaceholder": "Search by name...",
+    "noResults": "No memorials match your search.",
+    "emptyState": "The first memorial will be lit soon. Be the first to honor someone's memory.",
+    "createFirst": "Create a Memorial"
   },
   "admin": {
     "title": "Admin Panel",
