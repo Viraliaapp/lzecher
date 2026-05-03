@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { ReportModal } from "./ReportModal";
 import { PhotoUploadModal } from "@/components/photo/PhotoUploadModal";
+import { SoftLoginModal } from "@/components/auth/SoftLoginModal";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Portion, TrackType } from "@/lib/types";
@@ -84,10 +85,14 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedPortion, setSelectedPortion] = useState<Portion | null>(null);
   const [claimerName, setClaimerName] = useState("");
+  const [claimerEmail, setClaimerEmail] = useState("");
+  const [reminderPrefs, setReminderPrefs] = useState<string[]>([]);
   const [reportOpen, setReportOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [photoUploadOpen, setPhotoUploadOpen] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(project.photoURL || null);
+  const [softLoginOpen, setSoftLoginOpen] = useState(false);
+  const [chizukMessage, setChizukMessage] = useState<{ he: string; en: string; es: string; fr: string } | null>(null);
 
   const totalPortions = portions.length;
   const claimed = portions.filter((p) => p.status !== "available").length;
@@ -129,7 +134,23 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
 
   function handleClaimClick(portion: Portion) {
     setSelectedPortion(portion);
+    if (!user) {
+      setSoftLoginOpen(true);
+      return;
+    }
+    setClaimerName(user.displayName || "");
+    setConfirmDialogOpen(true);
+  }
+
+  function handleAuthenticated() {
+    setSoftLoginOpen(false);
     setClaimerName(user?.displayName || "");
+    setConfirmDialogOpen(true);
+  }
+
+  function handleAnonymousClaim() {
+    setSoftLoginOpen(false);
+    setClaimerName("");
     setConfirmDialogOpen(true);
   }
 
@@ -146,6 +167,8 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           projectId: project.id,
           claimerName: claimerName.trim(),
           idToken,
+          claimerEmail: claimerEmail || undefined,
+          reminderPreferences: reminderPrefs.length > 0 ? reminderPrefs : undefined,
         }),
       });
       const data = await res.json();
@@ -191,6 +214,10 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         const data = await res.json();
         toast.error(data.error || t("completeError"));
         return;
+      }
+      const data = await res.json();
+      if (data.chizuk) {
+        setChizukMessage(data.chizuk);
       }
       setPortions((prev) =>
         prev.map((p) =>
@@ -315,6 +342,19 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         </div>
       </div>
 
+      {/* Siyum Banner */}
+      {pct === 100 && totalPortions > 0 && (
+        <div className="bg-gradient-to-r from-gold/20 via-gold/10 to-gold/20 border-b border-gold/20">
+          <div className="mx-auto max-w-3xl px-4 sm:px-6 py-6 text-center">
+            <h2 className="font-heading text-xl font-bold text-navy mb-2">{t("siyumEligible") || "All learning complete"}</h2>
+            <p className="text-sm text-muted mb-3">{t("completionBanner" as never)?.replace("{name}", hebrewFirstLast) || `An enormous zechus for ${hebrewFirstLast}'s neshama.`}</p>
+            <p className="font-heading text-navy text-sm leading-relaxed" dir="rtl">
+              הדרן עלך ועלן דעתך. לא נתנשי מינך ולא תתנשי מינן, לא בעלמא הדין ולא בעלמא דאתי.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Tribute/Biography ── */}
       {project.biography && (
         <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8">
@@ -409,6 +449,44 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 placeholder={t("namePlaceholder")}
               />
             </div>
+            {/* Email for reminders */}
+            <div>
+              <label className="text-sm font-medium text-navy mb-1 block">{t("yourEmail") || "Your email (for reminders)"}</label>
+              <Input
+                type="email"
+                value={claimerEmail}
+                onChange={(e) => setClaimerEmail(e.target.value)}
+                placeholder={t("emailPlaceholder") || "you@example.com"}
+              />
+            </div>
+            {/* Reminder preferences */}
+            {claimerEmail && (
+              <div className="border-t border-navy/5 pt-3 mt-3">
+                <p className="text-xs font-medium text-navy mb-2">{t("reminderPrefs") || "Reminder preferences"}</p>
+                <div className="space-y-2">
+                  {[
+                    { key: "confirmation", label: t("reminderConfirmation") || "Confirmation email now" },
+                    { key: "sevenDays", label: t("reminderSevenDays") || "7 days before deadline" },
+                    { key: "threeDays", label: t("reminderThreeDays") || "3 days before deadline" },
+                    { key: "oneDay", label: t("reminderOneDay") || "1 day before deadline" },
+                  ].map(({ key, label }) => (
+                    <label key={key} className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reminderPrefs.includes(key)}
+                        onChange={(e) => {
+                          if (e.target.checked) setReminderPrefs(p => [...p, key]);
+                          else setReminderPrefs(p => p.filter(x => x !== key));
+                        }}
+                        className="rounded border-navy/20"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted mt-2">{t("reminderNote") || "We only send what you choose. Unsubscribe anytime."}</p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmDialogOpen(false)}>{t("cancel")}</Button>
@@ -418,6 +496,37 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Chizuk Modal */}
+      <Dialog open={!!chizukMessage} onOpenChange={() => setChizukMessage(null)}>
+        <DialogContent className="text-center max-w-md">
+          <div className="flex justify-center mb-4">
+            <YahrzeitCandle size="md" />
+          </div>
+          <DialogHeader>
+            <DialogTitle className="font-heading text-xl text-navy">{t("chizukTitle")}</DialogTitle>
+          </DialogHeader>
+          <p className="font-heading text-navy leading-relaxed text-lg py-4" dir={locale === "he" ? "rtl" : "ltr"}>
+            {chizukMessage?.[locale as "he" | "en" | "es" | "fr"] || chizukMessage?.en}
+          </p>
+          <div className="flex items-center justify-center gap-3 my-3">
+            <div className="h-px flex-1 bg-gold/20" />
+            <span className="text-gold/50 text-xs">✦</span>
+            <div className="h-px flex-1 bg-gold/20" />
+          </div>
+          <p className="text-sm text-muted">{completed + 1} {t("completed").toLowerCase()} · {pct}% {t("progress").toLowerCase()}</p>
+          <DialogFooter className="mt-4">
+            <Button onClick={() => setChizukMessage(null)}>{t("continue" as never) || "Continue"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <SoftLoginModal
+        open={softLoginOpen}
+        onOpenChange={setSoftLoginOpen}
+        onAuthenticated={handleAuthenticated}
+        onAnonymousClaim={handleAnonymousClaim}
+      />
 
       <ReportModal slug={project.slug} open={reportOpen} onOpenChange={setReportOpen} />
       <PhotoUploadModal

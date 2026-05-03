@@ -246,6 +246,8 @@
     "checkIn": "Check in for today",
     "streakDays": "{count} day streak",
     "chizukTitle": "Yasher Koach",
+    "continue": "Continue",
+    "siyumEligible": "All learning complete — this memorial is siyum-eligible.",
     "completionTarget": "Target completion",
     "daysRemaining": "{count} days remaining",
     "targetPassed": "Target date passed — learning continues"

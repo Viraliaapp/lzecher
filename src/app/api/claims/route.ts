@@ -3,6 +3,7 @@ import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { getClaimMode } from "@/lib/track-config";
 import type { TrackType, CommitmentDuration } from "@/lib/types";
+import { queueRemindersForClaim } from "@/lib/queue-reminders";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,6 +18,7 @@ export async function POST(request: NextRequest) {
       durationEndDate,
       specificItem,
       reminderPreferences,
+      claimerEmail,
     } = body;
 
     if (!portionId || !projectId || !claimerName?.trim()) {
@@ -43,6 +45,7 @@ export async function POST(request: NextRequest) {
         // Invalid token — treat as anonymous
       }
     }
+    email = email || body.claimerEmail || null;
 
     const db = getAdminDb();
 
@@ -117,6 +120,23 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Queue reminder emails
+      if (email && reminderPreferences && reminderPreferences.length > 0) {
+        try {
+          await queueRemindersForClaim({
+            claimId: claimRef.id,
+            projectId,
+            userId: uid,
+            userEmail: email,
+            reminderPreferences,
+            durationEndDate: resolvedEndDate,
+          });
+        } catch (e) {
+          console.error("Failed to queue reminders:", e);
+          // Don't fail the claim if reminders fail
+        }
+      }
+
       return NextResponse.json({ success: true, claimId: claimRef.id, claimMode: "exclusive" });
     } else {
       // Inclusive — auth required
@@ -170,6 +190,23 @@ export async function POST(request: NextRequest) {
           claimedPortions: (proj.claimedPortions || 0) + 1,
           participantCount: (proj.participantCount || 0) + 1,
         });
+      }
+
+      // Queue reminder emails
+      if (email && reminderPreferences && reminderPreferences.length > 0) {
+        try {
+          await queueRemindersForClaim({
+            claimId: claimRef.id,
+            projectId,
+            userId: uid,
+            userEmail: email,
+            reminderPreferences,
+            durationEndDate: resolvedEndDate,
+          });
+        } catch (e) {
+          console.error("Failed to queue reminders:", e);
+          // Don't fail the claim if reminders fail
+        }
       }
 
       return NextResponse.json({ success: true, claimId: claimRef.id, claimMode: "inclusive" });

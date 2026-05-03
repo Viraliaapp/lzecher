@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { getClaimMode } from "@/lib/track-config";
+import { getChizukMessage } from "@/lib/chizuk-messages";
 import type { TrackType } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
@@ -67,6 +68,13 @@ export async function POST(request: NextRequest) {
         ...(isFullyComplete ? { status: "completed" } : {}),
       });
 
+      const projectRefCheckin = db.collection("lzecher_projects").doc(projectId);
+      const projectSnapCheckin = await projectRefCheckin.get();
+      const projCheckin = projectSnapCheckin.exists ? projectSnapCheckin.data()! : null;
+      const honoreeNameCheckin = projCheckin
+        ? `${projCheckin.nameHebrew} ${projCheckin.familyNameHebrew || ""}`.trim()
+        : "";
+      const chizukCheckin = getChizukMessage("generic_checkin");
       return NextResponse.json({
         success: true,
         completed: newCompleted,
@@ -74,6 +82,12 @@ export async function POST(request: NextRequest) {
         currentStreak: newStreak,
         longestStreak: newLongest,
         claimCompleted: isFullyComplete,
+        chizuk: {
+          he: chizukCheckin.he.replace("{name}", honoreeNameCheckin),
+          en: chizukCheckin.en.replace("{name}", honoreeNameCheckin),
+          es: chizukCheckin.es.replace("{name}", honoreeNameCheckin),
+          fr: chizukCheckin.fr.replace("{name}", honoreeNameCheckin),
+        },
       });
     }
 
@@ -160,7 +174,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true });
+    // Build chizuk response
+    const projectRefFinal = db.collection("lzecher_projects").doc(projectId);
+    const projectSnapFinal = await projectRefFinal.get();
+    const projFinal = projectSnapFinal.exists ? projectSnapFinal.data()! : null;
+    const honoreeName = projFinal
+      ? `${projFinal.nameHebrew} ${projFinal.familyNameHebrew || ""}`.trim()
+      : "";
+    const chizuk = getChizukMessage("generic_complete");
+    return NextResponse.json({
+      success: true,
+      chizuk: {
+        he: chizuk.he.replace("{name}", honoreeName),
+        en: chizuk.en.replace("{name}", honoreeName),
+        es: chizuk.es.replace("{name}", honoreeName),
+        fr: chizuk.fr.replace("{name}", honoreeName),
+      },
+    });
   } catch (err) {
     console.error("Complete error:", err);
     return NextResponse.json({ error: "Failed to mark as complete" }, { status: 500 });
