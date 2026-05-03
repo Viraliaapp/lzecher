@@ -435,6 +435,21 @@
     "orAnonymous": "O reclamar anonimamente sin recordatorios",
     "anonymousNote": "Puedes cerrar esta pestana — el enlace seguira funcionando cuando estes listo."
   },
+  "siyum": {
+    "eligible": "Todo el estudio esta completo — este memorial es elegible para un siyum.",
+    "hadranTitle": "Hadran",
+    "hadranSubtitle": "La declaracion tradicional al completar un cuerpo de estudio de Tora",
+    "scheduleSiyum": "Programar un Siyum",
+    "siyumDate": "Fecha y hora del Siyum",
+    "siyumLocation": "Ubicacion",
+    "siyumLocationPlaceholder": "Direccion o 'En linea via Zoom'",
+    "siyumNotes": "Notas adicionales para los participantes",
+    "siyumScheduled": "Siyum programado para {date}",
+    "completionBanner": "Todo el estudio completo! Un enorme zechus para el neshama de {name}.",
+    "certificateTitle": "Certificado de Participacion",
+    "downloadCertificate": "Descargar Certificado",
+    "certificateBody": "Se certifica que {participant} estudio {portion} l'iluy nishmas {honoree} {honorific}."
+  },
   "contact": {
     "title": "Contactenos",
     "subtitle": "Nos encantaria saber de usted. Ya sea que tenga una pregunta, comentario o necesite asistencia, no dude en comunicarse.",

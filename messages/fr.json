@@ -411,6 +411,21 @@
     "faceError": "Veuillez utiliser un portrait clair d'un seul visage.",
     "addPhoto": "Ajouter une photographie"
   },
+  "siyum": {
+    "eligible": "Toute l'etude est terminee — ce memorial est eligible pour un siyoum.",
+    "hadranTitle": "Hadran",
+    "hadranSubtitle": "La declaration traditionnelle a l'achevement d'un corpus d'etude de Torah",
+    "scheduleSiyum": "Programmer un Siyoum",
+    "siyumDate": "Date et heure du Siyoum",
+    "siyumLocation": "Lieu",
+    "siyumLocationPlaceholder": "Adresse ou 'En ligne via Zoom'",
+    "siyumNotes": "Notes supplementaires pour les participants",
+    "siyumScheduled": "Siyoum prevu le {date}",
+    "completionBanner": "Toute l'etude est terminee ! Un enorme zekhout pour la neshama de {name}.",
+    "certificateTitle": "Certificat de Participation",
+    "downloadCertificate": "Telecharger le Certificat",
+    "certificateBody": "Il est certifie que {participant} a etudie {portion} l'iluy nishmas {honoree} {honorific}."
+  },
   "contact": {
     "title": "Contactez-nous",
     "subtitle": "Une question, une suggestion ou besoin d'aide ? N'hesitez pas a nous ecrire.",
