@@ -10,7 +10,6 @@ Updated: May 3, 2026
 ```bash
 # Generate a secret
 openssl rand -hex 32
-# Output: something like a1b2c3d4e5f6...
 
 # Add to Vercel:
 # Dashboard → Settings → Environment Variables → Add
@@ -32,40 +31,61 @@ In Firebase Console (sifttube-416a0 project):
   - Readable by anyone (for public display)
   - Writable only by authenticated users where `request.auth.uid == uid`
 
-### 4. Test Magic Link Return Flow
+### 4. Test Full Claim Flow (Logged Out)
 1. Open a memorial page in incognito (logged out)
 2. Click "Take this perek" on a Mishnayos portion
-3. Verify the soft login modal appears
-4. Enter your email, send magic link
-5. Check email, click link
-6. Verify you return to the memorial page
+3. Verify the SoftLoginModal appears (friendly copy, privacy promises)
+4. Test "Or claim anonymously" link → should open regular claim dialog
+5. Test email path → send magic link → verify return to memorial
+
+### 5. Test Chizuk After Completion
+1. Sign in, go to a memorial
+2. Claim a perek, then click "Mark Complete"
+3. Verify a beautiful modal appears with:
+   - Yahrzeit candle
+   - Religious message mentioning the honoree's name
+   - Stats and Continue button
+
+### 6. Test Reminder Email Queue
+1. Claim a portion, enter your email, check "Confirmation email now"
+2. Check Firestore → lzecher_scheduled_emails → verify a doc was created
+3. Once CRON_SECRET is set, the daily cron will process queued emails
 
 ---
 
 ## Recommended (Post-Launch Enhancements)
 
-### 5. Build Completion Target Wizard Step
-The schema supports `completionTargetDate` and `completionTargetType`, but the create wizard doesn't have a dedicated step for picking the completion date yet.
+### 7. Build Duration Picker UI
+Backend accepts duration/durationValue/durationEndDate. Need a radio group in the claim modal for inclusive tracks: One-time / Daily for X / Weekly for X / Until date / Indefinitely.
 
-### 6. Build Duration Picker Modal
-For inclusive claims, the backend accepts `duration`, `durationValue` etc. The claim modal needs UI radio buttons for picking commitment length.
-
-### 7. Wire Chizuk Modal Display
-After marking a portion complete, display a celebratory modal with the chizuk message. The library (69 messages, 23 scenarios) is ready.
-
-### 8. Build Siyum Scheduling UI
-When a project hits 100%, display the hadran text and a "Schedule Siyum" form.
+### 8. Build Completion Target Wizard Step
+Schema supports completionTargetDate/completionTargetType. Need a wizard step with radio options: Shloshim / Year / Yahrzeit / Custom / Open-ended.
 
 ### 9. Build Certificate PDF
-Generate a downloadable certificate of participation.
+Generate downloadable participation certificate. Translations ready in siyum.certificateBody.
 
 ### 10. Cloud Vision SafeSearch
-Add content moderation for photo uploads.
+Add content moderation for photo uploads before saving to Storage.
 
 ---
 
-## Status
-- Categories A, B, C: Code complete and deployed
-- Core flows: Production-ready
-- Advanced features: Backend ready, frontend UI needed
-- Last verified: 2026-05-03
+## What's Live Now (Wired & Deployed)
+
+| Feature | Status |
+|---------|--------|
+| Chizuk messages after completion | WIRED — shows modal with localized message |
+| SoftLoginModal for anonymous users | WIRED — gates claim flow for logged-out users |
+| Reminder email queueing | WIRED — creates scheduled_emails docs on claim |
+| Reminder cron processing | READY — needs CRON_SECRET to run |
+| Siyum banner at 100% | WIRED — shows Hadran text on completion |
+| Email + reminder prefs in claim modal | WIRED — shows when email entered |
+| Duration picker UI | NOT YET — backend ready |
+| Completion target wizard step | NOT YET — schema ready |
+
+---
+
+## Platform Status
+- Core flow (create → browse → claim → complete): **Production-ready**
+- Engagement features (chizuk, reminders, soft login, siyum): **Wired and deployed**
+- Advanced features (duration picker, completion target, certificates): **Backend ready, UI pending**
+- Last deploy: 2026-05-03
