@@ -46,7 +46,8 @@ const TRACK_OPTIONS: {
     color: "bg-zeraim/10 text-zeraim",
   },
   { key: "mussar", icon: BookOpen, color: "bg-kodashim/10 text-kodashim" },
-  { key: "mitzvot", icon: Heart, color: "bg-nashim/10 text-nashim" },
+  { key: "kabalos", icon: Heart, color: "bg-nashim/10 text-nashim" },
+  { key: "daf_yomi", icon: BookOpen, color: "bg-nezikin/10 text-nezikin" },
 ];
 
 const PROJECT_TYPES = [

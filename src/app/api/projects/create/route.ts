@@ -129,6 +129,7 @@ export async function POST(request: NextRequest) {
             const ref = db.collection("lzecher_portions").doc();
             batch.set(ref, {
               id: ref.id, projectId: projectRef.id, trackType: "mishnayos",
+              claimMode: "exclusive",
               reference: `${m.name} ${p}`, displayName: `${m.name} Chapter ${p}`,
               displayNameHebrew: `${m.nameHebrew} פרק ${p}`,
               order, status: "available", seder: m.seder, masechet: m.name, perek: p,
@@ -143,6 +144,7 @@ export async function POST(request: NextRequest) {
           const ref = db.collection("lzecher_portions").doc();
           batch.set(ref, {
             id: ref.id, projectId: projectRef.id, trackType: "tehillim",
+            claimMode: "exclusive",
             reference: `Tehillim ${mz.number}`, displayName: `Psalm ${mz.number}`,
             displayNameHebrew: `תהילים ${mz.number}`,
             order, status: "available", mizmor: mz.number,
@@ -156,41 +158,61 @@ export async function POST(request: NextRequest) {
           const ref = db.collection("lzecher_portions").doc();
           batch.set(ref, {
             id: ref.id, projectId: projectRef.id, trackType: "shnayim_mikra",
+            claimMode: "inclusive",
             reference: `Parshas ${p.name}`, displayName: `Parshas ${p.name}`,
             displayNameHebrew: `פרשת ${p.nameHebrew}`,
             order, status: "available", parsha: p.name,
+            currentClaimerCount: 0,
           });
           totalPortions++;
         }
       }
       if (tracks.includes("mussar")) {
+        // One portion per sefer (inclusive — users commit to the whole sefer)
         for (const sefer of MUSSAR_SEFORIM) {
-          for (let u = 1; u <= sefer.units; u++) {
-            order++;
-            const ref = db.collection("lzecher_portions").doc();
-            batch.set(ref, {
-              id: ref.id, projectId: projectRef.id, trackType: "mussar",
-              reference: sefer.units === 1 ? sefer.name : `${sefer.name} ${u}`,
-              displayName: sefer.units === 1 ? sefer.name : `${sefer.name} ${sefer.unitType.split(" ")[0]} ${u}`,
-              displayNameHebrew: sefer.units === 1 ? sefer.nameHebrew : `${sefer.nameHebrew} ${sefer.unitTypeHebrew.slice(0, -2)} ${u}`,
-              order, status: "available",
-            });
-            totalPortions++;
-          }
+          order++;
+          const ref = db.collection("lzecher_portions").doc();
+          batch.set(ref, {
+            id: ref.id, projectId: projectRef.id, trackType: "mussar",
+            claimMode: "inclusive",
+            reference: sefer.name,
+            displayName: sefer.name,
+            displayNameHebrew: sefer.nameHebrew,
+            order, status: "available",
+            currentClaimerCount: 0,
+          });
+          totalPortions++;
         }
       }
-      if (tracks.includes("mitzvot")) {
+      // 'kabalos' track (formerly 'mitzvot') — inclusive, one portion per template
+      if (tracks.includes("kabalos") || tracks.includes("mitzvot" as never)) {
         for (const mt of MITZVAH_TEMPLATES) {
           order++;
           const ref = db.collection("lzecher_portions").doc();
           batch.set(ref, {
-            id: ref.id, projectId: projectRef.id, trackType: "mitzvot",
+            id: ref.id, projectId: projectRef.id, trackType: "kabalos",
+            claimMode: "inclusive",
             reference: mt.title, displayName: mt.title,
             displayNameHebrew: mt.titleHebrew,
             order, status: "available",
+            currentClaimerCount: 0,
           });
           totalPortions++;
         }
+      }
+      if (tracks.includes("daf_yomi")) {
+        order++;
+        const ref = db.collection("lzecher_portions").doc();
+        batch.set(ref, {
+          id: ref.id, projectId: projectRef.id, trackType: "daf_yomi",
+          claimMode: "inclusive",
+          reference: "Daf Yomi commitment",
+          displayName: "Daf Yomi",
+          displayNameHebrew: "דף יומי",
+          order, status: "available",
+          currentClaimerCount: 0,
+        });
+        totalPortions++;
       }
 
       await batch.commit();

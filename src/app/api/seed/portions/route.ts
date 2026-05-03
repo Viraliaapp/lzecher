@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
             id: ref.id,
             projectId,
             trackType: "mishnayos",
+            claimMode: "exclusive",
             reference: `${masechet.name} ${p}`,
             displayName: `${masechet.name} Chapter ${p}`,
             displayNameHebrew: `${masechet.nameHebrew} פרק ${p}`,
@@ -88,6 +89,7 @@ export async function POST(request: NextRequest) {
           id: ref.id,
           projectId,
           trackType: "tehillim",
+          claimMode: "exclusive",
           reference: `Tehillim ${mizmor.number}`,
           displayName: `Psalm ${mizmor.number}`,
           displayNameHebrew: `תהילים ${mizmor.number}`,
@@ -110,20 +112,46 @@ export async function POST(request: NextRequest) {
           id: ref.id,
           projectId,
           trackType: "shnayim_mikra",
+          claimMode: "inclusive",
           reference: `Parshas ${parsha.name}`,
           displayName: `Parshas ${parsha.name}`,
           displayNameHebrew: `פרשת ${parsha.nameHebrew}`,
           order,
           status: "available",
           parsha: parsha.name,
+          currentClaimerCount: 0,
         });
         batchCount++;
         totalPortions++;
       }
     }
 
-    // Generate Mitzvot portions
-    if (tracks.includes("mitzvot")) {
+    // Generate Mussar portions (one per sefer — inclusive)
+    if (tracks.includes("mussar")) {
+      const { MUSSAR_SEFORIM } = await import("@/lib/seed-data");
+      for (const sefer of MUSSAR_SEFORIM) {
+        order++;
+        const ref = adminDb.collection("lzecher_portions").doc();
+        const currentBatch = getCurrentBatch();
+        currentBatch.set(ref, {
+          id: ref.id,
+          projectId,
+          trackType: "mussar",
+          claimMode: "inclusive",
+          reference: sefer.name,
+          displayName: sefer.name,
+          displayNameHebrew: sefer.nameHebrew,
+          order,
+          status: "available",
+          currentClaimerCount: 0,
+        });
+        batchCount++;
+        totalPortions++;
+      }
+    }
+
+    // Generate Kabalos portions (formerly 'mitzvot') — inclusive, one per template
+    if (tracks.includes("kabalos") || tracks.includes("mitzvot" as never)) {
       for (const mitzvah of MITZVAH_TEMPLATES) {
         order++;
         const ref = adminDb.collection("lzecher_portions").doc();
@@ -131,16 +159,39 @@ export async function POST(request: NextRequest) {
         currentBatch.set(ref, {
           id: ref.id,
           projectId,
-          trackType: "mitzvot",
+          trackType: "kabalos",
+          claimMode: "inclusive",
           reference: mitzvah.title,
           displayName: mitzvah.title,
           displayNameHebrew: mitzvah.titleHebrew,
           order,
           status: "available",
+          currentClaimerCount: 0,
         });
         batchCount++;
         totalPortions++;
       }
+    }
+
+    // Generate Daf Yomi portion (single inclusive commitment)
+    if (tracks.includes("daf_yomi")) {
+      order++;
+      const ref = adminDb.collection("lzecher_portions").doc();
+      const currentBatch = getCurrentBatch();
+      currentBatch.set(ref, {
+        id: ref.id,
+        projectId,
+        trackType: "daf_yomi",
+        claimMode: "inclusive",
+        reference: "Daf Yomi commitment",
+        displayName: "Daf Yomi",
+        displayNameHebrew: "דף יומי",
+        order,
+        status: "available",
+        currentClaimerCount: 0,
+      });
+      batchCount++;
+      totalPortions++;
     }
 
     // Commit all batches

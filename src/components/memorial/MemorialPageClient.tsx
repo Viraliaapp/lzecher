@@ -43,7 +43,8 @@ const TRACK_ICONS: Record<TrackType, typeof BookOpen> = {
   tehillim: Music,
   shnayim_mikra: ScrollText,
   mussar: BookOpen,
-  mitzvot: Heart,
+  kabalos: Heart,
+  daf_yomi: BookOpen,
 };
 
 const SEDER_BADGE: Record<string, string> = {

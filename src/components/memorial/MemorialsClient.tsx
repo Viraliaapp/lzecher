@@ -92,7 +92,7 @@ export function MemorialsClient({ memorials }: Props) {
                     <div className="flex flex-wrap justify-center gap-1 mb-3">
                       {m.tracks.map((track) => (
                         <span key={track} className="text-[10px] px-2 py-0.5 rounded-full bg-gold/10 text-gold-deep font-medium">
-                          {track === "mishnayos" ? "משניות" : track === "tehillim" ? "תהילים" : track === "shnayim_mikra" ? "שניים מקרא" : track === "mussar" ? "מוסר" : "מצוות"}
+                          {track === "mishnayos" ? "משניות" : track === "tehillim" ? "תהילים" : track === "shnayim_mikra" ? "שניים מקרא" : track === "mussar" ? "מוסר" : track === "kabalos" ? "קבלות" : track === "daf_yomi" ? "דף יומי" : "קבלות"}
                         </span>
                       ))}
                     </div>

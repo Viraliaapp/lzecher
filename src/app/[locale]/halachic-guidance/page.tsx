@@ -9,7 +9,7 @@ const SECTIONS = [
   { key: "mishnayos", icon: BookOpen, color: "bg-moed/10 text-moed" },
   { key: "tehillim", icon: Music, color: "bg-kodashim/10 text-kodashim" },
   { key: "shnayimMikra", icon: ScrollText, color: "bg-zeraim/10 text-zeraim" },
-  { key: "mitzvot", icon: Heart, color: "bg-nashim/10 text-nashim" },
+  { key: "kabalos", icon: Heart, color: "bg-nashim/10 text-nashim" },
 ] as const;
 
 export async function generateMetadata({

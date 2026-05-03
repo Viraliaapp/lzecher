@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
-import { BookOpen, Check, Clock, ChevronRight, ChevronDown } from "lucide-react";
+import { BookOpen, Check, Clock, ChevronRight, ChevronDown, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Portion } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -58,7 +58,12 @@ export function TrackHierarchy({
   if (trackType === "tehillim") return <TehillimHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
   if (trackType === "shnayim_mikra") return <ShnayimMikraHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
 
-  // Default flat grid for mussar/mitzvot (smaller counts)
+  // Inclusive tracks (mussar, kabalos, daf_yomi): show commitment cards
+  if (trackType === "mussar" || trackType === "kabalos" || trackType === "daf_yomi") {
+    return <InclusiveGrid {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
+  }
+
+  // Default flat grid fallback
   return <FlatGrid {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
 }
 
@@ -279,6 +284,51 @@ function ShnayimMikraHierarchy({ portions, onClaim, onComplete, claimingId, comp
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function InclusiveGrid({ portions, onClaim, claimingId, t }: any) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+      {(portions as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((p) => (
+        <Card key={p.id} className="transition-all hover:shadow-sm hover:-translate-y-0.5">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <div>
+                <p className="font-medium text-navy text-sm" dir="rtl">
+                  {p.displayNameHebrew || p.displayName}
+                </p>
+                {p.displayName && p.displayNameHebrew && (
+                  <p className="text-xs text-muted">{p.displayName}</p>
+                )}
+              </div>
+              {(p.currentClaimerCount || 0) > 0 && (
+                <div className="flex items-center gap-1 text-xs text-gold-deep bg-gold/10 px-2 py-0.5 rounded-full shrink-0">
+                  <Users className="h-3 w-3" />
+                  <span>{p.currentClaimerCount}</span>
+                </div>
+              )}
+            </div>
+            <Button
+              size="sm"
+              className="w-full h-8 text-xs"
+              onClick={() => onClaim(p)}
+              disabled={claimingId === p.id}
+            >
+              {claimingId === p.id ? (
+                <Spinner className="h-3 w-3" />
+              ) : (
+                <>
+                  <Users className="h-3 w-3" />
+                  {t("joinCommitment")}
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

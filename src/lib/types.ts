@@ -27,6 +27,10 @@ export interface MemorialProject {
   allowAnonymous: boolean;
   status: "active" | "completed" | "archived" | "pending_moderation" | "hidden";
 
+  // Completion target
+  completionTargetDate?: number | null;
+  completionTargetType?: "shloshim" | "year" | "yahrzeit" | "custom" | "open";
+
   // Tracks enabled
   tracks: TrackType[];
 
@@ -42,7 +46,23 @@ export type TrackType =
   | "tehillim"
   | "shnayim_mikra"
   | "mussar"
-  | "mitzvot";
+  | "kabalos"
+  | "daf_yomi";
+
+export type ClaimMode = "exclusive" | "inclusive";
+
+export type CommitmentDuration =
+  | "oneTime"
+  | "daily"
+  | "weekly"
+  | "untilDate"
+  | "indefinite";
+
+export interface TrackConfig {
+  trackType: TrackType;
+  claimMode: ClaimMode;
+  defaultDuration?: CommitmentDuration;
+}
 
 /* ── Track Portions ── */
 export interface Portion {
@@ -53,6 +73,11 @@ export interface Portion {
   displayName: string;
   displayNameHebrew: string;
   order: number;
+
+  // Claim mode
+  claimMode?: ClaimMode;
+  maxClaimers?: number | null;
+  currentClaimerCount?: number;
 
   // Claim status
   status: "available" | "claimed" | "completed";
@@ -103,6 +128,32 @@ export interface Claim {
   completedAt?: number;
   deadline?: number;
   status: "active" | "completed" | "expired";
+}
+
+export interface InclusiveClaim {
+  id: string;
+  projectId: string;
+  portionId: string;
+  trackType: TrackType;
+  reference: string;
+  userId: string;
+  userName: string;
+  userEmail?: string | null;
+  claimedAt: number;
+  status: "active" | "completed" | "expired";
+  // Duration fields
+  duration: CommitmentDuration;
+  durationValue?: number | null;
+  durationEndDate?: number | null;
+  specificItem?: string | null;
+  // Progress tracking for daily/weekly
+  progress?: { completed: number; total: number };
+  lastCheckIn?: number | null;
+  // Streak
+  currentStreak?: number;
+  longestStreak?: number;
+  // Reminders
+  reminderPreferences?: string[];
 }
 
 /* ── Mishnayos Data ── */

@@ -24,7 +24,7 @@ const TRACKS = [
     accent: "border-zeraim/20",
   },
   {
-    key: "mitzvot",
+    key: "kabalos",
     icon: Heart,
     color: "bg-nashim/10 text-nashim",
     accent: "border-nashim/20",
