@@ -23,7 +23,9 @@ export function MemorialsClient({ memorials }: Props) {
     const q = search.toLowerCase();
     return (
       m.nameHebrew.toLowerCase().includes(q) ||
-      (m.nameEnglish?.toLowerCase().includes(q) ?? false)
+      (m.familyNameHebrew?.toLowerCase().includes(q) ?? false) ||
+      (m.nameEnglish?.toLowerCase().includes(q) ?? false) ||
+      (m.familyNameEnglish?.toLowerCase().includes(q) ?? false)
     );
   });
 
@@ -80,10 +82,12 @@ export function MemorialsClient({ memorials }: Props) {
                     </div>
                     <p className="text-xs text-gold font-medium mb-1">{honorific}</p>
                     <h3 className="font-heading text-lg font-bold text-navy mb-1" dir="rtl">
-                      {m.nameHebrew}
+                      {`${m.nameHebrew} ${m.familyNameHebrew || ""}`.trim()}
                     </h3>
-                    {m.nameEnglish && (
-                      <p className="font-serif italic text-muted text-sm mb-3">{m.nameEnglish}</p>
+                    {(m.nameEnglish || m.familyNameEnglish) && (
+                      <p className="font-serif italic text-muted text-sm mb-3">
+                        {`${m.nameEnglish || ""} ${m.familyNameEnglish || ""}`.trim()}
+                      </p>
                     )}
                     <div className="flex flex-wrap justify-center gap-1 mb-3">
                       {m.tracks.map((track) => (

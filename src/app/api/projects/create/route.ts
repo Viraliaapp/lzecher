@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
     const {
       idToken,
       nameHebrew,
+      familyNameHebrew,
       nameEnglish,
+      familyNameEnglish,
       fatherNameHebrew,
       motherNameHebrew,
       gender,
@@ -40,6 +42,9 @@ export async function POST(request: NextRequest) {
     }
     if (!nameHebrew?.trim()) {
       return NextResponse.json({ error: "Hebrew name is required" }, { status: 400 });
+    }
+    if (!familyNameHebrew?.trim()) {
+      return NextResponse.json({ error: "Hebrew family name is required" }, { status: 400 });
     }
     if (!tracks || tracks.length === 0) {
       return NextResponse.json(
@@ -81,7 +86,9 @@ export async function POST(request: NextRequest) {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       nameHebrew: nameHebrew.trim(),
+      familyNameHebrew: familyNameHebrew.trim(),
       nameEnglish: nameEnglish?.trim() || null,
+      familyNameEnglish: familyNameEnglish?.trim() || null,
       nameSpanish: body.nameSpanish?.trim() || null,
       nameFrench: body.nameFrench?.trim() || null,
       fatherNameHebrew: fatherNameHebrew?.trim() || null,

@@ -8,7 +8,9 @@ export interface MemorialProject {
 
   // Niftar details
   nameHebrew: string;
+  familyNameHebrew?: string;
   nameEnglish?: string;
+  familyNameEnglish?: string;
   nameSpanish?: string;
   nameFrench?: string;
   fatherNameHebrew?: string;

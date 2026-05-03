@@ -29,8 +29,10 @@ import {
   Check,
   Clock,
   Flag,
+  Camera,
 } from "lucide-react";
 import { ReportModal } from "./ReportModal";
+import { PhotoUploadModal } from "@/components/photo/PhotoUploadModal";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Portion, TrackType } from "@/lib/types";
@@ -83,6 +85,8 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const [claimerName, setClaimerName] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [photoUploadOpen, setPhotoUploadOpen] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(project.photoURL || null);
 
   const totalPortions = portions.length;
   const claimed = portions.filter((p) => p.status !== "available").length;
@@ -102,9 +106,10 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const honorific = (project as MemorialProject & { honorific?: string }).honorific ||
     (project.gender === "female" ? "ע״ה" : "ז״ל");
 
+  const hebrewFirstLast = `${project.nameHebrew} ${project.familyNameHebrew || ""}`.trim();
   const fullName = project.fatherNameHebrew
-    ? `${project.nameHebrew} ${project.gender === "male" ? "בן" : "בת"} ${project.fatherNameHebrew}`
-    : project.nameHebrew;
+    ? `${hebrewFirstLast} ${project.gender === "male" ? "בן" : "בת"} ${project.fatherNameHebrew}`
+    : hebrewFirstLast;
 
   const displayNameWithHonorific = `${fullName} ${honorific}`;
 
@@ -211,6 +216,19 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       <div className="bg-navy text-cream">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <div className="text-center">
+            {/* Photo (if exists) */}
+            {photoUrl && (
+              <div className="flex justify-center mb-6">
+                <div className="h-48 w-48 rounded-full overflow-hidden border-4 border-gold/30 shadow-lg">
+                  <img
+                    src={photoUrl}
+                    alt={project.nameHebrew}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Yahrzeit Candle */}
             <div className="flex justify-center mb-6">
               <YahrzeitCandle size="lg" />
@@ -227,8 +245,10 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             </h1>
 
             {/* English/secondary name */}
-            {project.nameEnglish && (
-              <p className="font-serif italic text-cream/60 text-lg mb-2">{project.nameEnglish}</p>
+            {(project.nameEnglish || project.familyNameEnglish) && (
+              <p className="font-serif italic text-cream/60 text-lg mb-2">
+                {`${project.nameEnglish || ""} ${project.familyNameEnglish || ""}`.trim()}
+              </p>
             )}
 
             {/* Dates */}
@@ -265,12 +285,23 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
               <Progress value={pct} className="h-2 bg-cream/10" indicatorClassName="bg-gold" />
             </div>
 
-            {/* Share + Report */}
+            {/* Share + Report + Add Photo */}
             <div className="mt-6 flex items-center justify-center gap-3">
               <Button variant="outline" size="sm" className="border-cream/20 text-cream hover:bg-cream/10" onClick={shareLink}>
                 <Share2 className="h-4 w-4" />
                 {t("share")}
               </Button>
+              {!photoUrl && user && (user.uid === (project as MemorialProject & { createdBy: string }).createdBy) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-cream/20 text-cream hover:bg-cream/10"
+                  onClick={() => setPhotoUploadOpen(true)}
+                >
+                  <Camera className="h-4 w-4" />
+                  {t("addPhoto")}
+                </Button>
+              )}
               <button
                 onClick={() => setReportOpen(true)}
                 className="text-xs text-cream/30 hover:text-cream/60 transition-colors"
@@ -388,6 +419,12 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       </Dialog>
 
       <ReportModal slug={project.slug} open={reportOpen} onOpenChange={setReportOpen} />
+      <PhotoUploadModal
+        open={photoUploadOpen}
+        onOpenChange={setPhotoUploadOpen}
+        projectId={project.id}
+        onUploadComplete={(url) => setPhotoUrl(url)}
+      />
     </div>
   );
 }

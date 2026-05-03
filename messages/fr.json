@@ -108,10 +108,14 @@
     "stepOf": "Etape {current} sur {total}",
     "step1Title": "Details de la personne honoree",
     "step1Subtitle": "Parlez-nous de la personne que vous honorez.",
-    "nameHebrew": "Nom en hebreu",
-    "nameHebrewPlaceholder": "השם בעברית",
-    "nameEnglish": "Nom en anglais",
-    "nameEnglishPlaceholder": "Translitteration en anglais (optionnel)",
+    "nameHebrew": "Prenom en hebreu",
+    "nameHebrewPlaceholder": "השם הפרטי",
+    "familyNameHebrew": "Nom de famille en hebreu",
+    "familyNameHebrewPlaceholder": "שם המשפחה",
+    "nameEnglish": "Prenom en anglais",
+    "nameEnglishPlaceholder": "Prenom en anglais (optionnel)",
+    "familyNameEnglish": "Nom de famille en anglais",
+    "familyNameEnglishPlaceholder": "Nom de famille en anglais (optionnel)",
     "fatherName": "Nom du pere en hebreu",
     "fatherNamePlaceholder": "שם האב בעברית",
     "motherName": "Nom de la mere en hebreu",
@@ -227,7 +231,8 @@
     "tribute": "Hommage",
     "claimPortions": "Reserver des portions",
     "noPortions": "Les portions sont en cours de preparation. Revenez bientot.",
-    "psalms": "Psaumes"
+    "psalms": "Psaumes",
+    "addPhoto": "Ajouter une photo"
   },
   "memorials": {
     "title": "Tous les memoriaux",
@@ -373,6 +378,22 @@
     "general_title": "La puissance de l'etude communautaire",
     "general_content": "Le merite de l'etude communautaire de la Torah est considere comme particulierement puissant. Lorsque plusieurs personnes s'unissent pour etudier, le zekhout collectif est superieur a la somme de ses parties. Le Midrash enseigne que la Torah etudiee en groupe porte une dimension unique de kedoucha. Lzecher facilite cela en rendant simple la repartition et la coordination de l'etude entre de nombreux participants, permettant aux familles et aux communautes de s'unir dans ce bel acte de hessed shel emet.",
     "disclaimer": "Bien que Lzecher soit construit avec des principes halakhiques a l'esprit, il ne constitue pas une autorite halakhique. Pour des questions specifiques concernant les coutumes ou engagements de votre famille, veuillez consulter votre Rav. Nous travaillons a l'obtention de haskamot de Rabbanim eminents et les publierons ici des leur reception."
+  },
+  "photo": {
+    "title": "Ajouter une photographie",
+    "subtitle": "Telechargez un portrait respectueux pour honorer leur memoire.",
+    "dropzone": "Choisissez une photo ou glissez-deposez",
+    "formats": "JPG, PNG ou WebP jusqu'a 10 Mo",
+    "dignity": "\u05d1\u05db\u05d1\u05d5\u05d3 \u05d4\u05e8\u05d0\u05d5\u05d9 \u05dc\u05d6\u05db\u05e8\u05d5 \u00b7 Avec la dignite due a leur memoire",
+    "zoom": "Zoom",
+    "upload": "Telecharger la photo",
+    "cancel": "Annuler",
+    "invalidType": "Veuillez selectionner une image JPEG, PNG ou WebP.",
+    "tooLarge": "L'image doit etre inferieure a 10 Mo.",
+    "notAuthenticated": "Veuillez vous connecter pour telecharger une photo.",
+    "uploadError": "Echec du telechargement de la photo. Veuillez reessayer.",
+    "faceError": "Veuillez utiliser un portrait clair d'un seul visage.",
+    "addPhoto": "Ajouter une photographie"
   },
   "contact": {
     "title": "Contactez-nous",

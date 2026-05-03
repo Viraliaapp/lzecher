@@ -108,10 +108,14 @@
     "stepOf": "Step {current} of {total}",
     "step1Title": "Honoree Details",
     "step1Subtitle": "Tell us about the person being honored.",
-    "nameHebrew": "Hebrew Name",
-    "nameHebrewPlaceholder": "השם בעברית",
-    "nameEnglish": "English Name",
-    "nameEnglishPlaceholder": "English transliteration (optional)",
+    "nameHebrew": "Hebrew First Name",
+    "nameHebrewPlaceholder": "השם הפרטי",
+    "familyNameHebrew": "Hebrew Last Name",
+    "familyNameHebrewPlaceholder": "שם המשפחה",
+    "nameEnglish": "English First Name",
+    "nameEnglishPlaceholder": "English first name (optional)",
+    "familyNameEnglish": "English Last Name",
+    "familyNameEnglishPlaceholder": "English last name (optional)",
     "fatherName": "Father's Hebrew Name",
     "fatherNamePlaceholder": "שם האב בעברית",
     "motherName": "Mother's Hebrew Name",
@@ -227,7 +231,8 @@
     "tribute": "Tribute",
     "claimPortions": "Claim Portions",
     "noPortions": "Portions are being prepared. Check back soon.",
-    "psalms": "Psalms"
+    "psalms": "Psalms",
+    "addPhoto": "Add photograph"
   },
   "memorials": {
     "title": "All Memorials",
@@ -373,6 +378,22 @@
     "general_title": "The Power of Communal Learning",
     "general_content": "The merit of communal Torah learning is considered especially powerful. When multiple people join together to learn, the collective zechus is greater than the sum of its parts. The Midrash teaches that Torah learned in a group carries a unique dimension of kedusha. Lzecher facilitates this by making it simple to divide and coordinate learning among many participants, enabling families and communities to unite in this beautiful act of chessed shel emes.",
     "disclaimer": "While Lzecher is built with halachic principles in mind, it is not a halachic authority. For specific questions about your family's customs or commitments, please consult your Rav. We are working on obtaining haskamot from leading Rabbanim and will publish them here as they arrive."
+  },
+  "photo": {
+    "title": "Add a Photograph",
+    "subtitle": "Upload a respectful portrait to honor their memory.",
+    "dropzone": "Choose a photo or drag and drop",
+    "formats": "JPG, PNG, or WebP up to 10 MB",
+    "dignity": "\u05d1\u05db\u05d1\u05d5\u05d3 \u05d4\u05e8\u05d0\u05d5\u05d9 \u05dc\u05d6\u05db\u05e8\u05d5 \u00b7 With the dignity owed to their memory",
+    "zoom": "Zoom",
+    "upload": "Upload Photo",
+    "cancel": "Cancel",
+    "invalidType": "Please select a JPEG, PNG, or WebP image.",
+    "tooLarge": "Image must be under 10 MB.",
+    "notAuthenticated": "Please sign in to upload a photo.",
+    "uploadError": "Failed to upload photo. Please try again.",
+    "faceError": "Please use a clear single-face portrait.",
+    "addPhoto": "Add a photograph"
   },
   "contact": {
     "title": "Contact Us",

@@ -112,10 +112,14 @@
     "stepOf": "Paso {current} de {total}",
     "step1Title": "Datos del homenajeado",
     "step1Subtitle": "Cuentanos sobre la persona que estas honrando.",
-    "nameHebrew": "Nombre en hebreo",
-    "nameHebrewPlaceholder": "השם בעברית",
-    "nameEnglish": "Nombre en ingles",
-    "nameEnglishPlaceholder": "Transliteracion en ingles (opcional)",
+    "nameHebrew": "Nombre de pila en hebreo",
+    "nameHebrewPlaceholder": "השם הפרטי",
+    "familyNameHebrew": "Apellido en hebreo",
+    "familyNameHebrewPlaceholder": "שם המשפחה",
+    "nameEnglish": "Nombre de pila en ingles",
+    "nameEnglishPlaceholder": "Nombre de pila en ingles (opcional)",
+    "familyNameEnglish": "Apellido en ingles",
+    "familyNameEnglishPlaceholder": "Apellido en ingles (opcional)",
     "fatherName": "Nombre del padre en hebreo",
     "fatherNamePlaceholder": "שם האב בעברית",
     "motherName": "Nombre de la madre en hebreo",
@@ -232,7 +236,8 @@
     "tribute": "Homenaje",
     "claimPortions": "Reclamar porciones",
     "noPortions": "Las porciones se estan preparando. Vuelva pronto.",
-    "psalms": "Salmos"
+    "psalms": "Salmos",
+    "addPhoto": "Agregar fotografia"
   },
   "memorials": {
     "title": "Todos los memoriales",
@@ -385,6 +390,22 @@
     "disclaimer": "Aunque Lzecher esta construido con principios halajicos en mente, no es una autoridad halajica. Para preguntas especificas sobre las costumbres o compromisos de su familia, consulte a su Rav. Estamos trabajando en obtener haskamot de Rabanim destacados y las publicaremos aqui a medida que lleguen."
   },
 
+  "photo": {
+    "title": "Agregar una fotografia",
+    "subtitle": "Suba un retrato respetuoso para honrar su memoria.",
+    "dropzone": "Elija una foto o arrastre y suelte",
+    "formats": "JPG, PNG o WebP hasta 10 MB",
+    "dignity": "\u05d1\u05db\u05d1\u05d5\u05d3 \u05d4\u05e8\u05d0\u05d5\u05d9 \u05dc\u05d6\u05db\u05e8\u05d5 \u00b7 Con la dignidad que merece su memoria",
+    "zoom": "Zoom",
+    "upload": "Subir foto",
+    "cancel": "Cancelar",
+    "invalidType": "Por favor seleccione una imagen JPEG, PNG o WebP.",
+    "tooLarge": "La imagen debe ser menor a 10 MB.",
+    "notAuthenticated": "Por favor inicie sesion para subir una foto.",
+    "uploadError": "Error al subir la foto. Intente nuevamente.",
+    "faceError": "Por favor use un retrato claro de un solo rostro.",
+    "addPhoto": "Agregar una fotografia"
+  },
   "contact": {
     "title": "Contactenos",
     "subtitle": "Nos encantaria saber de usted. Ya sea que tenga una pregunta, comentario o necesite asistencia, no dude en comunicarse.",

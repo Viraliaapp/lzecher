@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "check:encoding": "node scripts/check-encoding.js",
+    "build": "node scripts/check-encoding.js && next build",
     "start": "next start",
     "lint": "eslint",
+    "fix:encoding": "dotenv -e .env.local -- node scripts/fix-hebrew-encoding.js",
     "admin:list": "dotenv -e .env.local -- node scripts/list-users.js",
     "admin:grant": "dotenv -e .env.local -- node scripts/grant-admin.js",
     "admin:grant-super": "dotenv -e .env.local -- node scripts/grant-super-admin.js"

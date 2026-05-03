@@ -75,7 +75,9 @@ export default function CreateMemorialPage() {
 
   // Step 1: Honoree
   const [nameHebrew, setNameHebrew] = useState("");
+  const [familyNameHebrew, setFamilyNameHebrew] = useState("");
   const [nameEnglish, setNameEnglish] = useState("");
+  const [familyNameEnglish, setFamilyNameEnglish] = useState("");
   const [fatherNameHebrew, setFatherNameHebrew] = useState("");
   const [motherNameHebrew, setMotherNameHebrew] = useState("");
   const [gender, setGender] = useState<"male" | "female">("male");
@@ -114,6 +116,7 @@ export default function CreateMemorialPage() {
     if (
       !user ||
       !nameHebrew.trim() ||
+      !familyNameHebrew.trim() ||
       selectedTracks.length === 0
     ) {
       toast.error(t("fillRequired"));
@@ -133,7 +136,9 @@ export default function CreateMemorialPage() {
       const payload = {
         idToken,
         nameHebrew: nameHebrew.trim(),
+        familyNameHebrew: familyNameHebrew.trim(),
         nameEnglish: nameEnglish.trim() || null,
+        familyNameEnglish: familyNameEnglish.trim() || null,
         fatherNameHebrew: fatherNameHebrew.trim() || null,
         motherNameHebrew: motherNameHebrew.trim() || null,
         gender,
@@ -178,7 +183,7 @@ export default function CreateMemorialPage() {
   function canProceed(): boolean {
     switch (step) {
       case 0:
-        return !!nameHebrew.trim();
+        return !!nameHebrew.trim() && !!familyNameHebrew.trim();
       case 1:
         return true; // dates optional
       case 2:
@@ -275,6 +280,20 @@ export default function CreateMemorialPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-navy mb-1 block">
+                  {t("familyNameHebrew")} *
+                </label>
+                <Input
+                  dir="rtl"
+                  placeholder={t("familyNameHebrewPlaceholder")}
+                  value={familyNameHebrew}
+                  onChange={(e) => setFamilyNameHebrew(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-navy mb-1 block">
                   {t("nameEnglish")}
                   <span className="text-muted font-normal ml-1">({t("optional")})</span>
                 </label>
@@ -282,6 +301,17 @@ export default function CreateMemorialPage() {
                   placeholder={t("nameEnglishPlaceholder")}
                   value={nameEnglish}
                   onChange={(e) => setNameEnglish(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-navy mb-1 block">
+                  {t("familyNameEnglish")}
+                  <span className="text-muted font-normal ml-1">({t("optional")})</span>
+                </label>
+                <Input
+                  placeholder={t("familyNameEnglishPlaceholder")}
+                  value={familyNameEnglish}
+                  onChange={(e) => setFamilyNameEnglish(e.target.value)}
                 />
               </div>
             </div>
@@ -671,9 +701,13 @@ export default function CreateMemorialPage() {
               editLabel={t("edit")}
             >
               <p className="font-heading text-navy" dir="rtl">
-                {nameHebrew} {honorific}
+                {nameHebrew} {familyNameHebrew} {honorific}
               </p>
-              {nameEnglish && <p className="text-sm text-muted">{nameEnglish}</p>}
+              {(nameEnglish || familyNameEnglish) && (
+                <p className="text-sm text-muted">
+                  {`${nameEnglish} ${familyNameEnglish}`.trim()}
+                </p>
+              )}
               {fatherNameHebrew && (
                 <p className="text-xs text-muted" dir="rtl">
                   {gender === "male" ? "בן" : "בת"} {fatherNameHebrew}

@@ -9,6 +9,40 @@ import { Menu, X, BookOpen } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
+function NavLink({
+  href,
+  isLanding,
+  isActive,
+  children,
+  onClick,
+  className,
+}: {
+  href: string;
+  isLanding: boolean;
+  isActive: boolean;
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+}) {
+  return (
+    <Link
+      href={href as "/memorials"}
+      className={cn(
+        "text-sm font-medium transition-colors hover:text-gold relative",
+        isLanding ? "text-cream/80" : "text-muted",
+        isActive && "text-gold",
+        className
+      )}
+      onClick={onClick}
+    >
+      {children}
+      {isActive && (
+        <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gold rounded-full" />
+      )}
+    </Link>
+  );
+}
+
 export function Navbar() {
   const t = useTranslations("common");
   const { user, loading } = useAuth();
@@ -16,6 +50,13 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isLanding = pathname === "/";
+  const isAdmin = !!(user as unknown as { customClaims?: { isAdmin?: boolean } })?.customClaims?.isAdmin;
+
+  const navLinks = [
+    { href: "/memorials", label: t("memorials") },
+    { href: "/about", label: t("about") },
+    { href: "/halachic-guidance", label: t("halachicGuidance") },
+  ];
 
   return (
     <nav
@@ -55,32 +96,26 @@ export function Navbar() {
 
             {/* Desktop nav items */}
             <div className="hidden md:flex items-center gap-4">
-              <Link
-                href="/memorials"
-                className={cn(
-                  "text-sm font-medium transition-colors hover:text-gold",
-                  isLanding ? "text-cream/80" : "text-muted"
-                )}
-              >
-                {t("memorials")}
-              </Link>
-              <Link
-                href="/about"
-                className={cn(
-                  "text-sm font-medium transition-colors hover:text-gold",
-                  isLanding ? "text-cream/80" : "text-muted"
-                )}
-              >
-                {t("about")}
-              </Link>
+              {navLinks.map((link) => (
+                <NavLink
+                  key={link.href}
+                  href={link.href}
+                  isLanding={isLanding}
+                  isActive={pathname === link.href}
+                >
+                  {link.label}
+                </NavLink>
+              ))}
               {!loading && (
                 <>
                   {user ? (
-                    <Link href="/dashboard">
-                      <Button variant={isLanding ? "default" : "secondary"} size="sm">
-                        {t("dashboard")}
-                      </Button>
-                    </Link>
+                    <>
+                      <Link href="/dashboard">
+                        <Button variant={isLanding ? "default" : "secondary"} size="sm">
+                          {t("dashboard")}
+                        </Button>
+                      </Link>
+                    </>
                   ) : (
                     <Link href="/login">
                       <Button variant="default" size="sm">
@@ -110,26 +145,20 @@ export function Navbar() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="md:hidden pb-4 space-y-3 border-t border-navy/10 pt-3">
-            <Link
-              href="/memorials"
-              className={cn(
-                "block py-2 text-sm font-medium",
-                isLanding ? "text-cream/80" : "text-muted"
-              )}
-              onClick={() => setMobileOpen(false)}
-            >
-              {t("memorials")}
-            </Link>
-            <Link
-              href="/about"
-              className={cn(
-                "block py-2 text-sm font-medium",
-                isLanding ? "text-cream/80" : "text-muted"
-              )}
-              onClick={() => setMobileOpen(false)}
-            >
-              {t("about")}
-            </Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href as "/memorials"}
+                className={cn(
+                  "block py-2 text-sm font-medium",
+                  isLanding ? "text-cream/80" : "text-muted",
+                  pathname === link.href && "text-gold"
+                )}
+                onClick={() => setMobileOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
             {!loading && (
               <>
                 {user ? (

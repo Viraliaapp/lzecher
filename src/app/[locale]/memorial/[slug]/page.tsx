@@ -1,5 +1,7 @@
 import { getAdminDb } from "@/lib/firebase/admin";
 import { notFound } from "next/navigation";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 import { MemorialPageClient } from "@/components/memorial/MemorialPageClient";
 import type { MemorialProject, Portion } from "@/lib/types";
 import type { Metadata } from "next";
@@ -85,7 +87,9 @@ export default async function MemorialPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <Navbar />
       <MemorialPageClient project={project} portions={portions} />
+      <Footer />
     </>
   );
 }
