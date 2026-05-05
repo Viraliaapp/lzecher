@@ -90,6 +90,8 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const [reportOpen, setReportOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [photoUploadOpen, setPhotoUploadOpen] = useState(false);
+  const [bulkClaimScope, setBulkClaimScope] = useState<{ scope: string; scopeId: string; scopeName: string } | null>(null);
+  const [bulkClaiming, setBulkClaiming] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(project.photoURL || null);
   const [softLoginOpen, setSoftLoginOpen] = useState(false);
   const [chizukMessage, setChizukMessage] = useState<{ he: string; en: string; es: string; fr: string } | null>(null);
@@ -236,6 +238,48 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     const url = `${window.location.origin}/${locale}/memorial/${project.slug}`;
     navigator.clipboard.writeText(url);
     toast.success(t("linkCopied"));
+  }
+
+  function handleBulkClaim(scope: string, scopeId: string, scopeName: string) {
+    if (!user) {
+      setSoftLoginOpen(true);
+      return;
+    }
+    setBulkClaimScope({ scope, scopeId, scopeName });
+  }
+
+  async function confirmBulkClaim() {
+    if (!bulkClaimScope) return;
+    setBulkClaiming(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/claims/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: project.id,
+          scope: bulkClaimScope.scope,
+          scopeId: bulkClaimScope.scopeId,
+          claimerName: user?.displayName || user?.email || "Anonymous",
+          idToken,
+          claimerEmail: user?.email || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || t("claimError"));
+        return;
+      }
+      // Refresh portions
+      const portionsRes = await fetch(`/api/claims/preview-bulk?projectId=${project.id}&scope=${bulkClaimScope.scope}&scopeId=${bulkClaimScope.scopeId || ""}`);
+      // Just reload to get fresh data
+      window.location.reload();
+    } catch {
+      toast.error(t("claimError"));
+    } finally {
+      setBulkClaiming(false);
+      setBulkClaimScope(null);
+    }
   }
 
   return (
@@ -412,6 +456,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                       trackType={track}
                       onClaim={handleClaimClick}
                       onComplete={handleComplete}
+                      onBulkClaim={handleBulkClaim}
                       claimingId={claimingId}
                       completing={completing}
                       currentUserId={user?.uid}
@@ -527,6 +572,27 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         onAuthenticated={handleAuthenticated}
         onAnonymousClaim={handleAnonymousClaim}
       />
+
+      {/* Bulk Claim Confirmation */}
+      <Dialog open={!!bulkClaimScope} onOpenChange={() => setBulkClaimScope(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{bulkClaimScope?.scopeName}</DialogTitle>
+            <DialogDescription>
+              {t("confirmClaimDesc", { reference: bulkClaimScope?.scopeName || "" })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-center py-4">
+            <p className="text-sm text-muted">{t("confirmClaim")}</p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setBulkClaimScope(null)}>{t("cancel")}</Button>
+            <Button onClick={confirmBulkClaim} disabled={bulkClaiming}>
+              {bulkClaiming ? <Spinner className="h-4 w-4" /> : t("confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ReportModal slug={project.slug} open={reportOpen} onOpenChange={setReportOpen} />
       <PhotoUploadModal

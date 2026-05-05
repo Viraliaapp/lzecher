@@ -438,6 +438,24 @@
     "orAnonymous": "או קבל חלק בעילום שם ללא תזכורות",
     "anonymousNote": "ניתן לסגור את הדפדפן — הקישור יישאר תקף כשתהיה מוכן."
   },
+  "bulkClaim": {
+    "takeWholeShas": "קח את כל הש״ס לעילוי נשמתם",
+    "takeWholeShasSubtext": "525 פרקים, 6 סדרים",
+    "takeEntireSeder": "קח את כל סדר {sederName}",
+    "takeEntireMasechta": "קח את כל מסכת {masechtaName}",
+    "takeAllTehillim": "קח את כל התהילים",
+    "takeTehillimBook": "קח ספר {bookNumber} של תהילים",
+    "confirmTitle": "קח את {scopeName} לעילוי נשמתם",
+    "previewLine": "{available} מתוך {total} חלקים זמינים ({taken} כבר נלקחו)",
+    "exclusiveNote": "לאחר הלקיחה, חלקים אלה שמורים לך בלבד.",
+    "inclusiveNote": "זוהי קבלה אישית. אחרים יכולים גם לקחת על עצמם — כל קבלה מוסיפה זכות.",
+    "confirmButton": "כן, אני לוקח על עצמי",
+    "successCount": "נלקחו {count} חלקים בהצלחה",
+    "partialSuccess": "נלקחו {claimed} חלקים. {alreadyTaken} כבר נלקחו על ידי אחרים.",
+    "releaseClaim": "שחרר לקיחה",
+    "releaseConfirm": "לשחרר את {scopeName}? כל החלקים יחזרו להיות זמינים.",
+    "markAllComplete": "סמן הכל כנלמד"
+  },
   "siyum": {
     "eligible": "כל הלימוד הושלם — ניתן לערוך סיום.",
     "hadranTitle": "הדרן",

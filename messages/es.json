@@ -449,6 +449,24 @@
     "orAnonymous": "O reclamar anonimamente sin recordatorios",
     "anonymousNote": "Puedes cerrar esta pestana — el enlace seguira funcionando cuando estes listo."
   },
+  "bulkClaim": {
+    "takeWholeShas": "Tomar todo el Shas en su memoria",
+    "takeWholeShasSubtext": "525 perakim en 6 sedarim",
+    "takeEntireSeder": "Tomar todo el Seder {sederName}",
+    "takeEntireMasechta": "Tomar toda la Masejta {masechtaName}",
+    "takeAllTehillim": "Tomar todo Tehilim",
+    "takeTehillimBook": "Tomar Libro {bookNumber} de Tehilim",
+    "confirmTitle": "Tomar {scopeName} en su memoria",
+    "previewLine": "{available} de {total} disponibles ({taken} ya tomadas)",
+    "exclusiveNote": "Una vez tomadas, estas porciones quedan reservadas para ti.",
+    "inclusiveNote": "Es un compromiso personal. Otros tambien pueden asumirlo — cada compromiso suma zejut.",
+    "confirmButton": "Si, lo asumo",
+    "successCount": "Se tomaron {count} porciones",
+    "partialSuccess": "Se tomaron {claimed} porciones. {alreadyTaken} ya estaban tomadas.",
+    "releaseClaim": "Liberar compromiso",
+    "releaseConfirm": "Liberar {scopeName}? Las porciones volveran a estar disponibles.",
+    "markAllComplete": "Marcar todo como aprendido"
+  },
   "siyum": {
     "eligible": "Todo el estudio esta completo — este memorial es elegible para un siyum.",
     "hadranTitle": "Hadran",

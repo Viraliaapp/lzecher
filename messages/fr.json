@@ -425,6 +425,24 @@
     "faceError": "Veuillez utiliser un portrait clair d'un seul visage.",
     "addPhoto": "Ajouter une photographie"
   },
+  "bulkClaim": {
+    "takeWholeShas": "Prendre tout le Chass a leur memoire",
+    "takeWholeShasSubtext": "525 perakim dans 6 sedarim",
+    "takeEntireSeder": "Prendre tout le Seder {sederName}",
+    "takeEntireMasechta": "Prendre toute la Masekhet {masechtaName}",
+    "takeAllTehillim": "Prendre tout le Tehilim",
+    "takeTehillimBook": "Prendre le Livre {bookNumber} du Tehilim",
+    "confirmTitle": "Prendre {scopeName} a leur memoire",
+    "previewLine": "{available} sur {total} disponibles ({taken} deja prises)",
+    "exclusiveNote": "Une fois prises, ces portions sont reservees pour vous seul.",
+    "inclusiveNote": "C'est un engagement personnel. D'autres peuvent aussi le prendre — chaque engagement ajoute une zekhouth.",
+    "confirmButton": "Oui, je m'engage",
+    "successCount": "{count} portions prises",
+    "partialSuccess": "{claimed} portions prises. {alreadyTaken} deja prises par d'autres.",
+    "releaseClaim": "Liberer l'engagement",
+    "releaseConfirm": "Liberer {scopeName} ? Les portions redeviendront disponibles.",
+    "markAllComplete": "Tout marquer comme etudie"
+  },
   "siyum": {
     "eligible": "Toute l'etude est terminee — ce memorial est eligible pour un siyoum.",
     "hadranTitle": "Hadran",

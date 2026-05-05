@@ -44,18 +44,20 @@ interface Props {
   trackType: string;
   onClaim: (portion: Portion) => void;
   onComplete: (portion: Portion) => void;
+  onBulkClaim?: (scope: string, scopeId: string, scopeName: string) => void;
   claimingId: string | null;
   completing: boolean;
   currentUserId?: string;
 }
 
 export function TrackHierarchy({
-  portions, trackType, onClaim, onComplete, claimingId, completing, currentUserId,
+  portions, trackType, onClaim, onComplete, onBulkClaim, claimingId, completing, currentUserId,
 }: Props) {
   const t = useTranslations("memorial");
+  const bt = useTranslations("bulkClaim");
   const locale = useLocale();
 
-  if (trackType === "mishnayos") return <MishnayosHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
+  if (trackType === "mishnayos") return <MishnayosHierarchy {...{ portions, onClaim, onComplete, onBulkClaim, claimingId, completing, currentUserId, t, bt, locale }} />;
   if (trackType === "tehillim") return <TehillimHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
   if (trackType === "shnayim_mikra") return <ShnayimMikraHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
 
@@ -69,7 +71,7 @@ export function TrackHierarchy({
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function MishnayosHierarchy({ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }: any) {
+function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkClaim, claimingId, completing, currentUserId, t, bt, locale }: any) {
   const [expandedSeder, setExpandedSeder] = useState<string | null>(null);
   const [expandedMasechta, setExpandedMasechta] = useState<string | null>(null);
 
@@ -106,8 +108,21 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, claimingId, complet
     return { masechtotInSeder: groups, hebrewMasechtaNames: hebrewNames };
   }, [expandedSeder, sedarim]);
 
+  const totalAvailable = portions.filter((p: Portion) => p.status === "available").length;
+
   return (
     <div className="space-y-3 mt-4">
+      {/* Take entire Shas button */}
+      {onBulkClaim && totalAvailable > 0 && (
+        <button
+          onClick={() => onBulkClaim("shas", "shas", locale === "he" ? "כל הש״ס" : "the entire Shas")}
+          className="w-full p-4 rounded-xl border-2 border-gold/30 bg-gold/5 hover:bg-gold/10 transition-all text-center"
+        >
+          <p className="font-heading text-sm font-bold text-navy">{bt("takeWholeShas")}</p>
+          <p className="text-xs text-muted mt-1">{bt("takeWholeShasSubtext")}</p>
+        </button>
+      )}
+
       {/* Level 1: Sedarim */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {SEDER_ORDER.map((seder) => {
@@ -149,7 +164,18 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, claimingId, complet
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3 bg-cream-warm rounded-xl">
+            {/* Take entire Seder button */}
+            {onBulkClaim && expandedSeder && (
+              <div className="p-3 bg-cream-warm rounded-t-xl">
+                <button
+                  onClick={() => onBulkClaim("seder", expandedSeder, locale === "he" ? `סדר ${SEDER_HEBREW[expandedSeder]}` : `Seder ${expandedSeder}`)}
+                  className="w-full py-2 px-3 rounded-lg border border-gold/30 bg-gold/5 hover:bg-gold/10 transition-all text-center"
+                >
+                  <p className="text-xs font-medium text-navy">{bt("takeEntireSeder", { sederName: locale === "he" ? SEDER_HEBREW[expandedSeder] : expandedSeder })}</p>
+                </button>
+              </div>
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3 bg-cream-warm rounded-b-xl">
               {Object.entries(masechtotInSeder).map(([name, mp]) => {
                 const done = (mp as Portion[]).filter((p) => p.status === "completed").length;
                 const isExp = expandedMasechta === name;
@@ -179,10 +205,26 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, claimingId, complet
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden mt-2"
                 >
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3 bg-white rounded-xl border border-navy/5">
-                    {(masechtotInSeder[expandedMasechta] as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((portion) => (
-                      <PortionCard key={portion.id} portion={portion} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} compact />
-                    ))}
+                  <div className="p-3 bg-white rounded-xl border border-navy/5">
+                    {/* Take entire Masechta button */}
+                    {onBulkClaim && (masechtotInSeder[expandedMasechta] as Portion[]).some(p => p.status === "available") && (
+                      <button
+                        onClick={() => {
+                          const mName = locale === "he" ? (hebrewMasechtaNames[expandedMasechta] || expandedMasechta) : expandedMasechta;
+                          onBulkClaim("masechta", expandedMasechta, locale === "he" ? `מסכת ${mName}` : `Masechta ${mName}`);
+                        }}
+                        className="w-full mb-3 py-2 px-3 rounded-lg border border-gold/30 bg-gold/5 hover:bg-gold/10 transition-all text-center"
+                      >
+                        <p className="text-xs font-medium text-navy">
+                          {bt("takeEntireMasechta", { masechtaName: locale === "he" ? (hebrewMasechtaNames[expandedMasechta] || expandedMasechta) : expandedMasechta })}
+                        </p>
+                      </button>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {(masechtotInSeder[expandedMasechta] as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((portion) => (
+                        <PortionCard key={portion.id} portion={portion} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} compact />
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}

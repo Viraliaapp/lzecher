@@ -30,7 +30,10 @@ export type ChizukScenario =
   | 'daf_yomi_checkin'
   | 'generic_complete'
   | 'generic_checkin'
-  | 'missed_day_encouragement';
+  | 'missed_day_encouragement'
+  | 'bulk_masechta'
+  | 'bulk_seder'
+  | 'bulk_shas';
 
 export const CHIZUK_MESSAGES: ChizukMessage[] = [
   // ── first_mishna ──────────────────────────────────────────────────────────
@@ -603,6 +606,84 @@ export const CHIZUK_MESSAGES: ChizukMessage[] = [
     en: 'You showed up again. That is not to be taken for granted — and it is exactly what {name}\'s neshama needs.',
     es: 'Volviste a aparecer. Eso no debe darse por sentado, y es exactamente lo que la neshama de {name} necesita.',
     fr: 'Vous etes revenu. Cela ne va pas de soi — et c\'est exactement ce dont la neshama de {name} a besoin.',
+  },
+
+  // ── bulk_masechta ─────────────────────────────────────────────────────────
+  {
+    id: 'bulk_masechta_1',
+    scenario: 'bulk_masechta',
+    he: 'מסכת שלמה לעילוי נשמת {name} — מתנה רוחנית עצומה.',
+    en: 'An entire masechta l\'iluy nishmas {name} — an immense spiritual gift.',
+    es: 'Una masejta completa l\'iluy nishmas {name} — un regalo espiritual inmenso.',
+    fr: 'Une massekhet entiere l\'iluy nishmas {name} — un don spirituel immense.',
+  },
+  {
+    id: 'bulk_masechta_2',
+    scenario: 'bulk_masechta',
+    he: 'לקחת על עצמך מסכת שלמה. הנשמה של {name} מתעלה עם כל פרק שתלמד.',
+    en: 'You took on an entire masechta. {name}\'s neshama rises with every perek you learn.',
+    es: 'Asumiste una masejta completa. La neshama de {name} asciende con cada perek que aprendes.',
+    fr: 'Vous avez pris en charge une massekhet entiere. La neshama de {name} s\'eleve a chaque perek que vous etudiez.',
+  },
+  {
+    id: 'bulk_masechta_3',
+    scenario: 'bulk_masechta',
+    he: 'מסכת שלמה — כל מילה, כל סוגיה, כל פרק — זכות לנשמת {name}.',
+    en: 'A whole masechta — every word, every sugya, every perek — zechus for {name}\'s neshama.',
+    es: 'Una masejta completa — cada palabra, cada sugya, cada perek — zechus para la neshama de {name}.',
+    fr: 'Une massekhet entiere — chaque mot, chaque sugya, chaque perek — zekhout pour la neshama de {name}.',
+  },
+
+  // ── bulk_seder ────────────────────────────────────────────────────────────
+  {
+    id: 'bulk_seder_1',
+    scenario: 'bulk_seder',
+    he: 'סדר שלם בש״ס — אורות גדולים נפתחים בנשמת {name}.',
+    en: 'An entire seder of Shas — great lights open for {name}\'s neshama.',
+    es: 'Un seder completo del Shas — grandes luces se abren para la neshama de {name}.',
+    fr: 'Un seder entier du Chas — de grandes lumieres s\'ouvrent pour la neshama de {name}.',
+  },
+  {
+    id: 'bulk_seder_2',
+    scenario: 'bulk_seder',
+    he: 'קיבלת על עצמך סדר שלם. המעשה הזה מהדהד בעולמות עליונים לזכות {name}.',
+    en: 'You took on a full seder. This act echoes in the upper worlds as zechus for {name}.',
+    es: 'Asumiste un seder completo. Este acto resuena en los mundos superiores como zechus para {name}.',
+    fr: 'Vous avez pris en charge un seder complet. Cet acte resonne dans les mondes superieurs comme zekhout pour {name}.',
+  },
+  {
+    id: 'bulk_seder_3',
+    scenario: 'bulk_seder',
+    he: 'סדר שלם של משניות — לימוד שמלווה את {name} בכל יום ויום.',
+    en: 'A complete seder of Mishnayos — learning that accompanies {name} every single day.',
+    es: 'Un seder completo de Mishnayot — estudio que acompana a {name} cada dia.',
+    fr: 'Un seder complet de Mishnayot — un etude qui accompagne {name} chaque jour.',
+  },
+
+  // ── bulk_shas ─────────────────────────────────────────────────────────────
+  {
+    id: 'bulk_shas_1',
+    scenario: 'bulk_shas',
+    he: 'כל הש״ס לעילוי נשמת {name} — אין מתנה רוחנית גדולה מזו.',
+    en: 'The entire Shas l\'iluy nishmas {name} — there is no greater spiritual gift than this.',
+    es: 'El Shas completo l\'iluy nishmas {name} — no hay regalo espiritual mas grande que este.',
+    fr: 'Tout le Chas l\'iluy nishmas {name} — il n\'y a pas de cadeau spirituel plus grand que cela.',
+  },
+  {
+    id: 'bulk_shas_2',
+    scenario: 'bulk_shas',
+    he: 'ששה סדרים, 525 פרקים — כולם לזכות נשמת {name}. הנשמה מתעלה לאין ערוך.',
+    en: 'Six sedarim, 525 perakim — all as zechus for {name}\'s neshama. The neshama is elevated beyond measure.',
+    es: 'Seis sedarim, 525 perakim — todos como zechus para la neshama de {name}. La neshama asciende de manera inconmensurable.',
+    fr: 'Six sedarim, 525 perakim — tout comme zekhout pour la neshama de {name}. La neshama est elevee au-dela de toute mesure.',
+  },
+  {
+    id: 'bulk_shas_3',
+    scenario: 'bulk_shas',
+    he: 'קיבלת על עצמך את כל הש״ס. {name} ז״ל זוכה לאור תורה שאין כמותו.',
+    en: 'You took upon yourself the entire Shas. {name} merits a light of Torah unlike any other.',
+    es: 'Asumiste la responsabilidad de todo el Shas. {name} merece una luz de Tora como ninguna otra.',
+    fr: 'Vous avez pris sur vous la totalite du Chas. {name} merite une lumiere de Torah sans pareille.',
   },
 
   // ── missed_day_encouragement ──────────────────────────────────────────────

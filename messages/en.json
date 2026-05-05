@@ -438,6 +438,24 @@
     "orAnonymous": "Or claim anonymously without reminders",
     "anonymousNote": "You can close this tab — your sign-in link will still work when you're ready."
   },
+  "bulkClaim": {
+    "takeWholeShas": "Take the entire Shas in their memory",
+    "takeWholeShasSubtext": "525 perakim across 6 sedarim",
+    "takeEntireSeder": "Take entire Seder {sederName}",
+    "takeEntireMasechta": "Take entire Masechta {masechtaName}",
+    "takeAllTehillim": "Take all of Tehillim",
+    "takeTehillimBook": "Take Book {bookNumber} of Tehillim",
+    "confirmTitle": "Take {scopeName} in their memory",
+    "previewLine": "{available} of {total} portions available ({taken} already taken)",
+    "exclusiveNote": "Once claimed, these portions are reserved for you alone.",
+    "inclusiveNote": "This is a personal commitment. Others can also take this on — every commitment adds zechus.",
+    "confirmButton": "Yes, take this on",
+    "successCount": "Claimed {count} portions successfully",
+    "partialSuccess": "Claimed {claimed} portions. {alreadyTaken} were already taken by others.",
+    "releaseClaim": "Release this claim",
+    "releaseConfirm": "Release {scopeName}? All portions will return to available.",
+    "markAllComplete": "Mark all as learned"
+  },
   "siyum": {
     "eligible": "All learning is complete — this memorial is siyum-eligible.",
     "hadranTitle": "Hadran",
