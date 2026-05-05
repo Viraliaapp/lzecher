@@ -7,8 +7,10 @@ const SECTIONS = [
   "accounts",
   "content",
   "conduct",
+  "moderation",
   "termination",
   "liability",
+  "governing",
   "changes",
   "contact",
 ] as const;

@@ -61,7 +61,7 @@ export function TrackHierarchy({
 
   // Inclusive tracks (mussar, kabalos, daf_yomi): show commitment cards
   if (trackType === "mussar" || trackType === "kabalos" || trackType === "daf_yomi") {
-    return <InclusiveGrid {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
+    return <InclusiveGrid {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
   }
 
   // Default flat grid fallback
@@ -303,19 +303,22 @@ function ShnayimMikraHierarchy({ portions, onClaim, onComplete, claimingId, comp
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function InclusiveGrid({ portions, onClaim, claimingId, t }: any) {
+function InclusiveGrid({ portions, onClaim, claimingId, t, locale }: any) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-      {(portions as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((p) => (
+      {(portions as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((p) => {
+        const primaryName = locale === "he" ? (p.displayNameHebrew || p.displayName) : (p.displayName || p.displayNameHebrew);
+        const secondaryName = locale === "he" ? (p.displayName !== p.displayNameHebrew ? p.displayName : null) : (p.displayNameHebrew !== p.displayName ? p.displayNameHebrew : null);
+        return (
         <Card key={p.id} className="transition-all hover:shadow-sm hover:-translate-y-0.5">
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-2 mb-3">
               <div>
-                <p className="font-medium text-navy text-sm" dir="rtl">
-                  {p.displayNameHebrew || p.displayName}
+                <p className="font-medium text-navy text-sm" dir={locale === "he" ? "rtl" : "ltr"}>
+                  {primaryName}
                 </p>
-                {p.displayName && p.displayNameHebrew && (
-                  <p className="text-xs text-muted">{p.displayName}</p>
+                {secondaryName && (
+                  <p className="text-xs text-muted" dir={locale === "he" ? "ltr" : "rtl"}>{secondaryName}</p>
                 )}
               </div>
               {(p.currentClaimerCount || 0) > 0 && (
@@ -342,7 +345,8 @@ function InclusiveGrid({ portions, onClaim, claimingId, t }: any) {
             </Button>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 }

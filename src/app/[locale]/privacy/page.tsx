@@ -6,6 +6,7 @@ const SECTIONS = [
   "collection",
   "use",
   "sharing",
+  "retention",
   "security",
   "rights",
   "contact",

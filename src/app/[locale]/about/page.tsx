@@ -28,7 +28,7 @@ export default function AboutPage() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10">
                   <Heart className="h-5 w-5 text-gold-deep" />
                 </div>
-                <h2 className="font-heading text-2xl font-bold text-navy">Our Mission</h2>
+                <h2 className="font-heading text-2xl font-bold text-navy">{t("missionTitle")}</h2>
               </div>
               <p className="text-muted leading-relaxed">{t("mission")}</p>
             </section>
@@ -38,7 +38,7 @@ export default function AboutPage() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10">
                   <Globe className="h-5 w-5 text-gold-deep" />
                 </div>
-                <h2 className="font-heading text-2xl font-bold text-navy">Our Vision</h2>
+                <h2 className="font-heading text-2xl font-bold text-navy">{t("visionTitle")}</h2>
               </div>
               <p className="text-muted leading-relaxed">{t("vision")}</p>
             </section>
