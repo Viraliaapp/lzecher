@@ -189,7 +189,7 @@
     "edit": "Editar",
     "createMemorial": "Crear memorial",
     "fillRequired": "Por favor completa todos los campos requeridos.",
-    "projectCreated": "Memorial creado exitosamente! Sera revisado antes de publicarse.",
+    "projectCreated": "Tu memorial esta publicado y listo para compartir.",
     "errorCreating": "Error al crear el memorial. Intentalo de nuevo.",
     "optional": "opcional",
     "gregorianLabel": "Gregoriano",
@@ -251,9 +251,19 @@
     "checkIn": "Registrar para hoy",
     "streakDays": "Racha de {count} dias",
     "chizukTitle": "Yasher Koach",
+    "continue": "Continuar",
+    "siyumEligible": "Todo el estudio completo — este memorial es elegible para un siyum.",
     "completionTarget": "Meta de finalizacion",
     "daysRemaining": "{count} dias restantes",
-    "targetPassed": "La fecha objetivo paso — el estudio continua"
+    "targetPassed": "La fecha objetivo paso — el estudio continua",
+    "yourEmail": "Tu correo (para recordatorios)",
+    "emailPlaceholder": "tu@ejemplo.com",
+    "reminderPrefs": "Preferencias de recordatorio",
+    "reminderConfirmation": "Correo de confirmacion ahora",
+    "reminderSevenDays": "7 dias antes del plazo",
+    "reminderThreeDays": "3 dias antes del plazo",
+    "reminderOneDay": "1 dia antes del plazo",
+    "reminderNote": "Solo enviamos lo que eliges. Cancela cuando quieras."
   },
   "memorials": {
     "title": "Todos los memoriales",
@@ -401,6 +411,8 @@
     "shnayimMikra_content": "La obligacion de leer la porcion semanal de la Tora dos veces en el texto original y una vez en la traduccion aramea (o con el comentario de Rashi) tiene su raiz en la Guemara (Berajot 8a), que ensena que una persona siempre debe completar sus parashiot con la comunidad. Esta es una obligacion halajica bien establecida que los judios cumplen cada semana. Dedicar este estudio semanal como merito para un ser querido anade una hermosa dimension de jesed shel emet — bondad verdadera realizada para quienes no pueden retribuirla. Al organizar las 54 parashiot entre los participantes, Lzecher permite un ano completo de dedicacion de Shnaim Mikra.",
     "mitzvot_title": "Estudio de las 613 Mitzvot",
     "mitzvot_content": "La Guemara en Kidushin (40b) ensena que estudiar Tora sobre una mitzva se considera como si uno la hubiera cumplido. Cuando este estudio se dedica l'iluy nishmas, conlleva una profunda significacion espiritual, generando merito para la neshama como si el difunto mismo se hubiera dedicado al estudio. El estudio de las 613 mitzvot proporciona una conexion integral con la totalidad de los mandamientos de la Tora, y cuando se divide entre muchos participantes, crea un poderoso merito colectivo.",
+    "kabalos_title": "Kabalot Personales",
+    "kabalos_content": "Las kabalot personales son compromisos que cada uno asume como zejut para el neshama del difunto. A diferencia del estudio de Tora que se divide en unidades especificas, las kabalot son compromisos personales que cualquier numero de participantes puede asumir simultaneamente — cuantos mas se comprometan, mayor sera el zejut para el neshama. Ejemplos incluyen: shemirat halashon, tzedaka diaria, hakarat hatov a Hashem, encendido de velas de Shabat, hafrashath jala, bikur jolim, o cualquier kabala personal. La Guemara en Kidushin (40b) ensena que la aceptacion de un compromiso de mitzva es considerada como si ya se hubiera cumplido, creando merito espiritual inmediato.",
     "general_title": "El Poder del Estudio Comunitario",
     "general_content": "El merito del estudio comunitario de Tora se considera especialmente poderoso. Cuando multiples personas se unen para estudiar, el zechus colectivo es mayor que la suma de sus partes. El Midrash ensena que la Tora estudiada en grupo tiene una dimension unica de kedusha. Lzecher facilita esto al hacer sencillo dividir y coordinar el estudio entre muchos participantes, permitiendo que familias y comunidades se unan en este hermoso acto de jesed shel emet.",
     "disclaimer": "Aunque Lzecher esta construido con principios halajicos en mente, no es una autoridad halajica. Para preguntas especificas sobre las costumbres o compromisos de su familia, consulte a su Rav. Estamos trabajando en obtener haskamot de Rabanim destacados y las publicaremos aqui a medida que lleguen."

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,7 @@ const STEPS = [
 
 export default function CreateMemorialPage() {
   const t = useTranslations("create");
+  const locale = useLocale();
   const router = useRouter();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
@@ -222,7 +223,7 @@ export default function CreateMemorialPage() {
             variant="outline"
             size="lg"
             onClick={() => {
-              const url = `${window.location.origin}/memorial/${createdSlug}`;
+              const url = `${window.location.origin}/${locale}/memorial/${createdSlug}`;
               navigator.clipboard.writeText(url);
               toast.success(t("linkCopied"));
             }}

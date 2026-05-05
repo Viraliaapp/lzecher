@@ -250,7 +250,15 @@
     "siyumEligible": "All learning complete — this memorial is siyum-eligible.",
     "completionTarget": "Target completion",
     "daysRemaining": "{count} days remaining",
-    "targetPassed": "Target date passed — learning continues"
+    "targetPassed": "Target date passed — learning continues",
+    "yourEmail": "Your email (for reminders)",
+    "emailPlaceholder": "you@example.com",
+    "reminderPrefs": "Reminder preferences",
+    "reminderConfirmation": "Confirmation email now",
+    "reminderSevenDays": "7 days before deadline",
+    "reminderThreeDays": "3 days before deadline",
+    "reminderOneDay": "1 day before deadline",
+    "reminderNote": "We only send what you choose. Unsubscribe anytime."
   },
   "memorials": {
     "title": "All Memorials",
@@ -393,6 +401,8 @@
     "shnayimMikra_content": "The obligation to read the weekly Torah portion twice in the original text and once in Aramaic translation (or with Rashi's commentary) is rooted in the Gemara (Berachos 8a), which teaches that a person should always complete their parshiyos with the community. This is a well-established halachic obligation that Jews fulfill every week. Dedicating this weekly learning as a merit for a loved one adds a beautiful dimension of chessed shel emes — true kindness performed for those who cannot repay it. By organizing the 54 parshiyos among participants, Lzecher enables a full year of Shnayim Mikra dedication.",
     "mitzvot_title": "Studying the 613 Mitzvot",
     "mitzvot_content": "The Gemara in Kiddushin (40b) teaches that studying Torah about a mitzvah is considered as if one has performed it. When this study is dedicated l'iluy nishmas, it carries profound spiritual significance, generating merit for the neshama as though the departed themselves had engaged in the learning. Studying the 613 mitzvot provides a comprehensive connection to the entirety of the Torah's commandments, and when divided among many participants, it creates a powerful collective merit.",
+    "kabalos_title": "Personal Kabalos",
+    "kabalos_content": "Personal kabalos are commitments individuals take upon themselves as a zechus for the neshama of the departed. Unlike Torah learning which is divided into discrete units, kabalos are personal commitments that any number of participants can take on simultaneously — the more who commit, the greater the zechus for the neshama. Examples include shemiras halashon, daily tzedakah, hakaras hatov to Hashem, lighting Shabbos candles, hafrashas challah, bikur cholim, or any personal kabalah. The Gemara in Kiddushin (40b) teaches that the acceptance of a mitzvah commitment is itself considered as if one has performed it, creating immediate spiritual merit.",
     "general_title": "The Power of Communal Learning",
     "general_content": "The merit of communal Torah learning is considered especially powerful. When multiple people join together to learn, the collective zechus is greater than the sum of its parts. The Midrash teaches that Torah learned in a group carries a unique dimension of kedusha. Lzecher facilitates this by making it simple to divide and coordinate learning among many participants, enabling families and communities to unite in this beautiful act of chessed shel emes.",
     "disclaimer": "While Lzecher is built with halachic principles in mind, it is not a halachic authority. For specific questions about your family's customs or commitments, please consult your Rav. We are working on obtaining haskamot from leading Rabbanim and will publish them here as they arrive."

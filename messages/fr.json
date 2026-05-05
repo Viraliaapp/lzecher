@@ -185,7 +185,7 @@
     "edit": "Modifier",
     "createMemorial": "Creer le memorial",
     "fillRequired": "Veuillez remplir tous les champs obligatoires.",
-    "projectCreated": "Memorial cree avec succes ! Il sera examine avant sa mise en ligne.",
+    "projectCreated": "Votre memorial est en ligne et pret a partager.",
     "errorCreating": "Erreur lors de la creation du memorial. Veuillez reessayer.",
     "optional": "optionnel",
     "gregorianLabel": "Gregorien",
@@ -246,9 +246,19 @@
     "checkIn": "Enregistrement pour aujourd'hui",
     "streakDays": "Serie de {count} jours",
     "chizukTitle": "Yasher Koach",
+    "continue": "Continuer",
+    "siyumEligible": "Tout l'etude est terminee — ce memorial est eligible pour un siyoum.",
     "completionTarget": "Objectif d'achevement",
     "daysRemaining": "{count} jours restants",
-    "targetPassed": "La date cible est passee — l'etude continue"
+    "targetPassed": "La date cible est passee — l'etude continue",
+    "yourEmail": "Votre e-mail (pour les rappels)",
+    "emailPlaceholder": "vous@exemple.com",
+    "reminderPrefs": "Preferences de rappel",
+    "reminderConfirmation": "E-mail de confirmation maintenant",
+    "reminderSevenDays": "7 jours avant l'echeance",
+    "reminderThreeDays": "3 jours avant l'echeance",
+    "reminderOneDay": "1 jour avant l'echeance",
+    "reminderNote": "Nous n'envoyons que ce que vous choisissez. Desabonnez-vous a tout moment."
   },
   "memorials": {
     "title": "Tous les memoriaux",
@@ -391,6 +401,8 @@
     "shnayimMikra_content": "L'obligation de lire la paracha hebdomadaire deux fois dans le texte original et une fois dans la traduction arameenne (ou avec le commentaire de Rachi) est enracinee dans la Guemara (Berakhot 8a), qui enseigne qu'une personne doit toujours completer ses parachiot avec la communaute. C'est une obligation halakhique bien etablie que les Juifs accomplissent chaque semaine. Dedier cette etude hebdomadaire comme merite pour un etre cher ajoute une belle dimension de hessed shel emet — une bonte veritable accomplie pour ceux qui ne peuvent la rendre. En organisant les 54 parachiot entre les participants, Lzecher permet une annee complete de dedication de Chnayim Mikra.",
     "mitzvot_title": "L'etude des 613 Mitsvot",
     "mitzvot_content": "La Guemara dans Kiddouchin (40b) enseigne que l'etude de la Torah concernant une mitsva est consideree comme si on l'avait accomplie. Lorsque cette etude est dediee l'iluy nishmas, elle porte une signification spirituelle profonde, generant du merite pour la neshama comme si le defunt lui-meme s'etait engage dans l'etude. L'etude des 613 mitsvot offre un lien complet avec l'ensemble des commandements de la Torah, et lorsqu'elle est repartie entre de nombreux participants, elle cree un puissant merite collectif.",
+    "kabalos_title": "Kabalot Personnelles",
+    "kabalos_content": "Les kabalot personnelles sont des engagements que chacun prend sur soi comme zekhouth pour la nechama du defunt. Contrairement a l'etude de la Torah qui se divise en unites specifiques, les kabalot sont des engagements personnels que tout nombre de participants peut prendre simultanement — plus ils sont nombreux, plus grand est le zekhouth pour la nechama. Exemples : chmirat halachone, tsedaka quotidienne, hakarat hatov envers Hachem, allumage des bougies de Chabbat, hafrachat hala, bikour holim, ou toute autre kabala personnelle. La Guemara dans Kiddouchin (40b) enseigne que l'acceptation d'un engagement de mitsva est consideree comme son accomplissement, creant un merite spirituel immediat.",
     "general_title": "La puissance de l'etude communautaire",
     "general_content": "Le merite de l'etude communautaire de la Torah est considere comme particulierement puissant. Lorsque plusieurs personnes s'unissent pour etudier, le zekhout collectif est superieur a la somme de ses parties. Le Midrash enseigne que la Torah etudiee en groupe porte une dimension unique de kedoucha. Lzecher facilite cela en rendant simple la repartition et la coordination de l'etude entre de nombreux participants, permettant aux familles et aux communautes de s'unir dans ce bel acte de hessed shel emet.",
     "disclaimer": "Bien que Lzecher soit construit avec des principes halakhiques a l'esprit, il ne constitue pas une autorite halakhique. Pour des questions specifiques concernant les coutumes ou engagements de votre famille, veuillez consulter votre Rav. Nous travaillons a l'obtention de haskamot de Rabbanim eminents et les publierons ici des leur reception."

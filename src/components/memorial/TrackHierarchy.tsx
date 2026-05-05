@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,10 +53,11 @@ export function TrackHierarchy({
   portions, trackType, onClaim, onComplete, claimingId, completing, currentUserId,
 }: Props) {
   const t = useTranslations("memorial");
+  const locale = useLocale();
 
-  if (trackType === "mishnayos") return <MishnayosHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
+  if (trackType === "mishnayos") return <MishnayosHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
   if (trackType === "tehillim") return <TehillimHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
-  if (trackType === "shnayim_mikra") return <ShnayimMikraHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
+  if (trackType === "shnayim_mikra") return <ShnayimMikraHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
 
   // Inclusive tracks (mussar, kabalos, daf_yomi): show commitment cards
   if (trackType === "mussar" || trackType === "kabalos" || trackType === "daf_yomi") {
@@ -68,7 +69,7 @@ export function TrackHierarchy({
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function MishnayosHierarchy({ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }: any) {
+function MishnayosHierarchy({ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }: any) {
   const [expandedSeder, setExpandedSeder] = useState<string | null>(null);
   const [expandedMasechta, setExpandedMasechta] = useState<string | null>(null);
 
@@ -82,15 +83,27 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, claimingId, complet
     return groups;
   }, [portions]);
 
-  const masechtotInSeder = useMemo(() => {
-    if (!expandedSeder || !sedarim[expandedSeder]) return {};
+  // groups: { englishName -> Portion[] }
+  // hebrewNames: { englishName -> hebrewName } derived from the first portion's displayNameHebrew
+  const { masechtotInSeder, hebrewMasechtaNames } = useMemo(() => {
+    if (!expandedSeder || !sedarim[expandedSeder]) return { masechtotInSeder: {}, hebrewMasechtaNames: {} };
     const groups: Record<string, Portion[]> = {};
     for (const p of sedarim[expandedSeder]) {
       const m = p.masechet || p.displayName?.split(" ")[0] || "Other";
       if (!groups[m]) groups[m] = [];
       groups[m].push(p);
     }
-    return groups;
+    // Extract Hebrew masechta name by stripping " פרק N" suffix from displayNameHebrew
+    const hebrewNames: Record<string, string> = {};
+    for (const [eng, ps] of Object.entries(groups)) {
+      const first = (ps as Portion[])[0];
+      if (first?.displayNameHebrew) {
+        hebrewNames[eng] = first.displayNameHebrew.replace(/\s+פרק\s+\d+$/, "").trim();
+      } else {
+        hebrewNames[eng] = eng;
+      }
+    }
+    return { masechtotInSeder: groups, hebrewMasechtaNames: hebrewNames };
   }, [expandedSeder, sedarim]);
 
   return (
@@ -119,7 +132,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, claimingId, complet
                 </Badge>
                 {isExpanded ? <ChevronDown className="h-4 w-4 text-gold" /> : <ChevronRight className="h-4 w-4 text-muted" />}
               </div>
-              <p className="font-heading text-sm font-semibold text-navy">{seder}</p>
+              <p className="font-heading text-sm font-semibold text-navy">{locale === "he" ? SEDER_HEBREW[seder] : seder}</p>
               <p className="text-xs text-muted mt-0.5">{claimed}/{sp.length}</p>
               <Progress value={pct} className="h-1 mt-2" />
             </button>
@@ -140,6 +153,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, claimingId, complet
               {Object.entries(masechtotInSeder).map(([name, mp]) => {
                 const done = (mp as Portion[]).filter((p) => p.status === "completed").length;
                 const isExp = expandedMasechta === name;
+                const displayName = locale === "he" ? (hebrewMasechtaNames[name] || name) : name;
                 return (
                   <button
                     key={name}
@@ -149,7 +163,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, claimingId, complet
                       isExp ? "border-gold bg-white shadow-sm" : "border-navy/5 bg-white hover:border-navy/10"
                     )}
                   >
-                    <p className="font-medium text-navy truncate">{name}</p>
+                    <p className="font-medium text-navy truncate">{displayName}</p>
                     <p className="text-xs text-muted">{done}/{(mp as Portion[]).length}</p>
                   </button>
                 );
@@ -233,7 +247,7 @@ function TehillimHierarchy({ portions, onClaim, onComplete, claimingId, completi
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ShnayimMikraHierarchy({ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }: any) {
+function ShnayimMikraHierarchy({ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }: any) {
   const [expandedBook, setExpandedBook] = useState<string | null>(null);
 
   const books = useMemo(() => {
@@ -265,7 +279,7 @@ function ShnayimMikraHierarchy({ portions, onClaim, onComplete, claimingId, comp
               )}
             >
               <div className="flex justify-between items-center">
-                <p className="font-heading text-sm font-semibold text-navy">{eng} / <span dir="rtl">{heb}</span></p>
+                <p className="font-heading text-sm font-semibold text-navy">{locale === "he" ? <span dir="rtl">{heb}</span> : <>{eng} / <span dir="rtl">{heb}</span></>}</p>
                 <p className="text-xs text-muted">{done}/{bp.length}</p>
               </div>
               <Progress value={bp.length ? Math.round((done / bp.length) * 100) : 0} className="h-1 mt-2" />
