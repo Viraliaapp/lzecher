@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -24,7 +24,7 @@ import { BookOpen, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
+import { db, auth } from "@/lib/firebase/config";
 
 export default function LoginPage() {
   const t = useTranslations("auth");
@@ -57,21 +57,30 @@ export default function LoginPage() {
     }
   }
 
-  // Handle magic link completion
+  // Handle magic link completion — ref guard prevents StrictMode double-invoke
+  const signInAttemptedRef = useRef(false);
   useEffect(() => {
+    if (signInAttemptedRef.current) return;
     if (!searchParams.get("finishSignIn")) return;
     if (!isMagicLinkSignIn(window.location.href)) return;
+    signInAttemptedRef.current = true;
 
     const storedEmail = window.localStorage.getItem("lzecher_email_for_signin") || "";
     if (!storedEmail) {
       // Cross-browser: user clicked link in a different browser — ask for email
       const enteredEmail = window.prompt(t("enterEmailPrompt"));
-      if (!enteredEmail) return;
+      if (!enteredEmail) {
+        signInAttemptedRef.current = false;
+        return;
+      }
       window.localStorage.setItem("lzecher_email_for_signin", enteredEmail);
     }
 
     const emailToUse = window.localStorage.getItem("lzecher_email_for_signin") || "";
-    if (!emailToUse) return;
+    if (!emailToUse) {
+      signInAttemptedRef.current = false;
+      return;
+    }
 
     setCompleting(true);
     completeMagicLinkSignIn(emailToUse, window.location.href)
@@ -81,9 +90,9 @@ export default function LoginPage() {
       })
       .catch((err) => {
         console.error("Magic link verify failed:", err);
-        if (err?.code === "auth/invalid-action-code") {
-          toast.error(t("linkExpired"));
-        } else {
+        // Only show error if user is NOT authenticated (second StrictMode call may fail
+        // with invalid-action-code even though first call succeeded)
+        if (!auth.currentUser) {
           toast.error(t("linkExpired"));
         }
         setCompleting(false);

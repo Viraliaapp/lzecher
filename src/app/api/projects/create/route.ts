@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     // Auto-generate portions for the project
     try {
-      const { MASECHTOS, TEHILLIM, PARSHIYOT, MITZVAH_TEMPLATES, MUSSAR_SEFORIM } = await import("@/lib/seed-data");
+      const { MASECHTOS, TEHILLIM, PARSHIYOT, MITZVAH_TEMPLATES } = await import("@/lib/seed-data");
       let order = 0;
       let totalPortions = 0;
       const batch = db.batch();
@@ -162,23 +162,6 @@ export async function POST(request: NextRequest) {
             reference: `Parshas ${p.name}`, displayName: `Parshas ${p.name}`,
             displayNameHebrew: `פרשת ${p.nameHebrew}`,
             order, status: "available", parsha: p.name,
-            currentClaimerCount: 0,
-          });
-          totalPortions++;
-        }
-      }
-      if (tracks.includes("mussar")) {
-        // One portion per sefer (inclusive — users commit to the whole sefer)
-        for (const sefer of MUSSAR_SEFORIM) {
-          order++;
-          const ref = db.collection("lzecher_portions").doc();
-          batch.set(ref, {
-            id: ref.id, projectId: projectRef.id, trackType: "mussar",
-            claimMode: "inclusive",
-            reference: sefer.name,
-            displayName: sefer.name,
-            displayNameHebrew: sefer.nameHebrew,
-            order, status: "available",
             currentClaimerCount: 0,
           });
           totalPortions++;

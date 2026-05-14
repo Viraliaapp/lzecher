@@ -38,7 +38,10 @@
     "errorDesc": "Ocurrio un error inesperado. Por favor, intente de nuevo.",
     "tryAgain": "Intentar de nuevo",
     "loadingMessage": "Preparando su experiencia...",
-    "memorials": "Memoriales"
+    "memorials": "Memoriales",
+    "signIn": "Ingresar",
+    "profile": "Perfil",
+    "admin": "Admin"
   },
 
   "landing": {
@@ -46,7 +49,7 @@
     "heroLine1": "Aprendemos juntos,",
     "heroLine2": "en su memoria.",
     "heroHebrew": "לומדים יחד, לעילוי נשמתם",
-    "heroDescription": "Una plataforma gratuita para que las familias honren a un ser querido a traves del estudio colectivo de Tora. Crea un memorial, invita a tu comunidad y comprometanse juntos al estudio de Mishna, Salmos, Shnayim Mikra, Musar o mitzvot personales — a su propio ritmo, en cuatro idiomas.",
+    "heroDescription": "Honra a un ser querido a traves del estudio colectivo de la Tora.",
     "createMemorial": "Crear un memorial",
     "viewMemorials": "Ver memoriales",
     "pullQuote": "El alma del hombre es la lampara del Senor",
@@ -69,7 +72,9 @@
     "statFree": "gratis, para siempre, para cada alma",
     "ctaLine1": "Honra una memoria. Comienza",
     "ctaAccent": "hoy.",
-    "ctaSubtitle": "Crea un memorial y une a tu comunidad en el estudio."
+    "ctaSubtitle": "Crea un memorial y une a tu comunidad en el estudio.",
+    "searchPlaceholder": "Buscar por nombre...",
+    "noResults": "No se encontraron memoriales que coincidan con su busqueda."
   },
 
   "auth": {
@@ -101,11 +106,20 @@
     "createFirst": "Crear mi primer memorial",
     "progress": "Progreso",
     "portions": "porciones",
-    "participants": "participantes",
-    "myClaims": "Mis reclamos",
+    "participants": "{count, plural, one {1 participante} other {# participantes}}",
+    "yourLearningJourney": "Tu camino de estudio",
+    "myClaims": "Tu camino de estudio",
     "inProgress": "En progreso",
     "view": "Ver",
-    "linkCopied": "Enlace copiado!"
+    "linkCopied": "Enlace copiado!",
+    "status_active": "Activo",
+    "status_completed": "Completado",
+    "status_archived": "Archivado",
+    "checkInToday": "Registrar para hoy",
+    "checkedInToday": "Registrado hoy",
+    "currentStreak": "{count} dias de constancia. El zechus se acumula para la neshama de {name}.",
+    "longestStreak": "Mejor racha: {count} dias",
+    "streakBroken": "Ayer paso, pero el zechus continua. Sigamos desde hoy."
   },
 
   "create": {
@@ -164,8 +178,6 @@
     "track_kabalos_desc": "Compromisos espirituales personales l'iluy nishmas",
     "track_daf_yomi": "Daf Yomi",
     "track_daf_yomi_desc": "Ciclo diario de estudio de Gemara",
-    "track_mussar": "Mussar",
-    "track_mussar_desc": "Estudio diario de mussar de sefarim clasicos",
     "sharingTitle": "Compartir y privacidad",
     "sharingSubtitle": "Controla quien puede ver y participar en este memorial.",
     "publicProject": "Memorial publico",
@@ -213,16 +225,16 @@
     "completed": "Completadas",
     "progress": "Progreso",
     "share": "Compartir",
-    "claimPortion": "Reclamar",
+    "claimPortion": "Tomo este capitulo",
     "claimedBy": "Reclamado por {name}",
     "someone": "alguien",
     "markComplete": "Marcar como completado",
     "completedBy": "Completado por {name}",
-    "confirmClaim": "Confirmar reclamo",
+    "confirmClaim": "Asumo este compromiso",
     "yourName": "Su nombre",
     "namePlaceholder": "Ingrese su nombre",
     "cancel": "Cancelar",
-    "confirm": "Confirmar",
+    "confirm": "Me comprometo",
     "claimSuccess": "Porcion reclamada exitosamente!",
     "claimError": "Error al reclamar la porcion. Intente de nuevo.",
     "completedSuccess": "Porcion marcada como completada!",
@@ -232,7 +244,6 @@
     "track_tehillim": "Tehilim",
     "track_shnayim_mikra": "Shnaim Mikra",
     "track_kabalos": "Kabalot",
-    "track_mussar": "Mussar",
     "confirmClaimDesc": "Ingrese su nombre para reclamar esta porcion. Usted sera responsable de completarla.",
     "report": "Reportar",
     "tribute": "Homenaje",
@@ -240,7 +251,7 @@
     "noPortions": "Las porciones se estan preparando. Vuelva pronto.",
     "psalms": "Salmos",
     "addPhoto": "Agregar fotografia",
-    "joinCommitment": "Unirse a este compromiso",
+    "joinCommitment": "Asumo este compromiso",
     "committed": "{count} comprometidos",
     "duration_oneTime": "Una vez",
     "duration_daily": "Diario por {count} dias",
@@ -256,14 +267,29 @@
     "completionTarget": "Meta de finalizacion",
     "daysRemaining": "{count} dias restantes",
     "targetPassed": "La fecha objetivo paso — el estudio continua",
-    "yourEmail": "Tu correo (para recordatorios)",
+    "yourEmail": "Tu email para recordatorios (opcional)",
     "emailPlaceholder": "tu@ejemplo.com",
     "reminderPrefs": "Preferencias de recordatorio",
     "reminderConfirmation": "Correo de confirmacion ahora",
     "reminderSevenDays": "7 dias antes del plazo",
     "reminderThreeDays": "3 dias antes del plazo",
     "reminderOneDay": "1 dia antes del plazo",
-    "reminderNote": "Solo enviamos lo que eliges. Cancela cuando quieras."
+    "reminderNote": "Solo enviamos lo que eliges. Cancela cuando quieras.",
+    "reminderToggle": "Enviarme recordatorios para ayudarme a mantener el compromiso",
+    "reminderFrequency": "Con que frecuencia?",
+    "reminderPresetConfirmation": "Solo una confirmacion ahora",
+    "reminderPresetLight": "Suave — recomendado",
+    "reminderPresetLightDesc": "Mitad, 1 semana antes, 1 dia antes",
+    "reminderPresetDaily": "Diario — para compromisos diarios",
+    "reminderPresetWeekly": "Resumen semanal",
+    "reminderCustomize": "Personalizar",
+    "reminderHalfway": "Recordatorio a mitad de camino",
+    "reminderDaily": "Recordatorio diario",
+    "iLearnedThis": "Ya lo estudie",
+    "confirmCompletePage": "Gracias",
+    "confirmCompleteMessage": "Tu estudio es un zechus para la neshama. El merito es eterno.",
+    "alreadyCompleted": "Ya marcado como completo — el zechus continua.",
+    "tokenExpired": "Abre tu panel para marcar esto como completo."
   },
   "memorials": {
     "title": "Todos los memoriales",
@@ -352,7 +378,7 @@
     "vision": "Creemos que la tecnologia puede servir a los propositos mas elevados. Al proporcionar una plataforma moderna e intuitiva, eliminamos las barreras logisticas que a menudo dificultan la coordinacion del estudio comunitario. Sin mas hojas de calculo, sin mas llamadas telefonicas, solo una experiencia limpia y sencilla que permite a las personas concentrarse en lo que mas importa: el estudio en si.",
     "howItHelps": "Lzecher soporta cuatro vias de estudio — Mishnayot, Tehilim, Shnaim Mikra y Mitzvot — en cuatro idiomas: hebreo, ingles, espanol y frances. Un familiar puede crear una pagina conmemorativa en minutos, elegir sus vias de estudio y compartir un enlace con familiares, amigos y miembros de la comunidad en todo el mundo. Los participantes reclaman sus porciones y las marcan como completadas, y todos pueden ver el progreso colectivo en tiempo real.",
     "community": "Lzecher esta construido para Klal Israel. Es completamente gratuito y abierto a todos los que deseen participar en esta hermosa mitzva. Estamos comprometidos a mantener los mas altos estandares de respeto, precision e integridad halajica. Sin tarifas, sin anuncios, sin compromisos — solo estudio de Tora como zechus para las neshamot de nuestros seres queridos.",
-    "dedication": "Que la Tora estudiada a traves de esta plataforma sea un zechus para todas las neshamot en cuya memoria se dedica, y que sus familias encuentren consuelo en la unidad y devocion de quienes estudian en su nombre."
+    "dedication": "La Tora estudiada a traves de esta plataforma esta dedicada l'iluy nishmas de nuestros seres queridos. Sus familias encuentran consuelo en la unidad y devocion de quienes estudian en su nombre."
   },
 
   "privacy": {

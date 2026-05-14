@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, browserLocalPersistence, setPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import {
@@ -40,5 +40,11 @@ if (typeof window !== "undefined") {
 }
 
 export const auth = getAuth(app);
+
+// Persist auth state in localStorage so sessions survive browser restarts
+if (typeof window !== "undefined") {
+  setPersistence(auth, browserLocalPersistence).catch(() => {});
+}
+
 export const db = getFirestore(app);
 export const storage = getStorage(app);

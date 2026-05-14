@@ -30,13 +30,6 @@ export const TRACK_CONFIGS: Record<TrackType, TrackConfiguration> = {
     supportsDaily: false,
     defaultDuration: "weekly",
   },
-  mussar: {
-    trackType: "mussar",
-    claimMode: "inclusive",
-    label: { en: "Mussar", he: "מוסר" },
-    supportsDaily: true,
-    defaultDuration: "daily",
-  },
   kabalos: {
     trackType: "kabalos",
     claimMode: "inclusive",

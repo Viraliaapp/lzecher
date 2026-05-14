@@ -5,9 +5,10 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { Menu, X, BookOpen } from "lucide-react";
-import { useState } from "react";
+import { Menu, X, BookOpen, LogIn, LogOut, LayoutDashboard, Shield } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { logout } from "@/lib/firebase/auth";
 
 function NavLink({
   href,
@@ -45,18 +46,32 @@ function NavLink({
 
 export function Navbar() {
   const t = useTranslations("common");
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileDropdown, setProfileDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isLanding = pathname === "/";
-  const isAdmin = !!(user as unknown as { customClaims?: { isAdmin?: boolean } })?.customClaims?.isAdmin;
+  const isAdmin = profile?.isAdmin;
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setProfileDropdown(false);
+      }
+    }
+    if (profileDropdown) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [profileDropdown]);
 
   const navLinks = [
-    { href: "/memorials", label: t("memorials") },
     { href: "/about", label: t("about") },
     { href: "/halachic-guidance", label: t("halachicGuidance") },
   ];
+
+  const userInitial = (profile?.displayName || user?.email || "?")[0].toUpperCase();
 
   return (
     <nav
@@ -89,9 +104,9 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Right side: Language switcher (ALWAYS visible) + Desktop nav + Mobile hamburger */}
+          {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Language switcher — always visible on all screen sizes */}
+            {/* Language switcher — always visible */}
             <LanguageSwitcher isLanding={isLanding} />
 
             {/* Desktop nav items */}
@@ -106,26 +121,78 @@ export function Navbar() {
                   {link.label}
                 </NavLink>
               ))}
-              {!loading && (
-                <>
-                  {user ? (
-                    <>
-                      <Link href="/dashboard">
-                        <Button variant={isLanding ? "default" : "secondary"} size="sm">
-                          {t("dashboard")}
-                        </Button>
-                      </Link>
-                    </>
-                  ) : (
-                    <Link href="/login">
-                      <Button variant="default" size="sm">
-                        {t("login")}
-                      </Button>
-                    </Link>
-                  )}
-                </>
-              )}
             </div>
+
+            {/* Auth button — ALWAYS visible (not behind hamburger) */}
+            {!loading && (
+              <>
+                {user ? (
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setProfileDropdown(!profileDropdown)}
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-gold text-white font-heading font-bold text-sm hover:bg-gold-deep transition-colors"
+                      aria-label={t("profile")}
+                    >
+                      {user.photoURL ? (
+                        <img src={user.photoURL} alt="" className="h-9 w-9 rounded-full object-cover" />
+                      ) : (
+                        userInitial
+                      )}
+                    </button>
+                    {profileDropdown && (
+                      <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg border border-navy/10 py-2 z-50">
+                        <div className="px-4 py-2 border-b border-navy/5">
+                          <p className="text-sm font-medium text-navy truncate">
+                            {profile?.displayName || user.email}
+                          </p>
+                        </div>
+                        <Link
+                          href="/dashboard"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-muted hover:bg-cream hover:text-navy transition-colors"
+                          onClick={() => setProfileDropdown(false)}
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          {t("dashboard")}
+                        </Link>
+                        {isAdmin && (
+                          <Link
+                            href="/admin"
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-muted hover:bg-cream hover:text-navy transition-colors"
+                            onClick={() => setProfileDropdown(false)}
+                          >
+                            <Shield className="h-4 w-4" />
+                            {t("admin")}
+                          </Link>
+                        )}
+                        <button
+                          onClick={async () => {
+                            setProfileDropdown(false);
+                            await logout();
+                          }}
+                          className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-muted hover:bg-cream hover:text-navy transition-colors"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          {t("logout")}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link href="/login">
+                    <Button
+                      variant={isLanding ? "outline" : "default"}
+                      size="sm"
+                      className={cn(
+                        isLanding && "border-cream/30 text-cream hover:bg-cream/10"
+                      )}
+                    >
+                      <LogIn className="h-4 w-4" />
+                      <span className="hidden sm:inline">{t("signIn")}</span>
+                    </Button>
+                  </Link>
+                )}
+              </>
+            )}
 
             {/* Mobile hamburger */}
             <button
@@ -159,19 +226,28 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {!loading && (
+            {user && (
               <>
-                {user ? (
-                  <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
-                    <Button variant="default" size="sm" className="w-full">
-                      {t("dashboard")}
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link href="/login" onClick={() => setMobileOpen(false)}>
-                    <Button variant="default" size="sm" className="w-full">
-                      {t("login")}
-                    </Button>
+                <Link
+                  href="/dashboard"
+                  className={cn(
+                    "block py-2 text-sm font-medium",
+                    isLanding ? "text-cream/80" : "text-muted"
+                  )}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {t("dashboard")}
+                </Link>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className={cn(
+                      "block py-2 text-sm font-medium",
+                      isLanding ? "text-cream/80" : "text-muted"
+                    )}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {t("admin")}
                   </Link>
                 )}
               </>

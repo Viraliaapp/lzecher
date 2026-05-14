@@ -11,9 +11,11 @@ export type ChizukScenario =
   | 'first_mishna'
   | 'first_tehillim'
   | 'first_checkin'
+  | 'streak_3'
   | 'streak_7'
   | 'streak_30'
   | 'streak_100'
+  | 'streak_broken_returning'
   | 'masechta_complete'
   | 'tehillim_book_complete'
   | 'tehillim_all_complete'
@@ -710,6 +712,34 @@ export const CHIZUK_MESSAGES: ChizukMessage[] = [
     en: 'A life of Torah cannot be measured by a single day. What you have built until now exists — and can be continued.',
     es: 'Una vida de Tora no puede medirse por un solo dia. Lo que has construido hasta ahora existe y puede continuarse.',
     fr: 'Une vie de Torah ne peut se mesurer a un seul jour. Ce que vous avez bati jusqu\'a maintenant existe — et peut etre continue.',
+  },
+
+  // ── streak_3 ──────────────────────────────────────────────────────────
+  {
+    id: 'streak_3_1',
+    scenario: 'streak_3',
+    he: '3 ימים של התמדה. כל יום שלמדת בנה שכבה נוספת של זכות לנשמת {name}.',
+    en: '3 days of consistency. Each day you learned built another layer of merit for {name}\'s neshama.',
+    es: '3 dias de constancia. Cada dia que estudiaste construyo otra capa de merito para la neshama de {name}.',
+    fr: '3 jours de perseverance. Chaque jour d\'etude a ajoute une couche de merite pour la neshama de {name}.',
+  },
+
+  // ── streak_broken_returning ───────────────────────────────────────────
+  {
+    id: 'streak_broken_returning_1',
+    scenario: 'streak_broken_returning',
+    he: 'אתמול חלף, אבל הזכות ממשיכה. כל יום הוא התחלה חדשה לעילוי נשמת {name}.',
+    en: 'Yesterday slipped by, but the zechus continues. Every day is a fresh start l\'iluy nishmas {name}.',
+    es: 'Ayer paso, pero el zechus continua. Cada dia es un nuevo comienzo l\'iluy nishmas {name}.',
+    fr: 'Hier est passe, mais le zekhout continue. Chaque jour est un nouveau depart l\'iluy nishmas {name}.',
+  },
+  {
+    id: 'streak_broken_returning_2',
+    scenario: 'streak_broken_returning',
+    he: 'החזרה ללימוד אחרי הפסקה היא בעצמה זכות. נמשיך יחד.',
+    en: 'Returning to learning after a break is itself a merit. Let\'s continue together.',
+    es: 'Volver al estudio despues de una pausa es en si un merito. Continuemos juntos.',
+    fr: 'Reprendre l\'etude apres une pause est en soi un merite. Continuons ensemble.',
   },
 ];
 

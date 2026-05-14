@@ -61,8 +61,8 @@ export function TrackHierarchy({
   if (trackType === "tehillim") return <TehillimHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
   if (trackType === "shnayim_mikra") return <ShnayimMikraHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
 
-  // Inclusive tracks (mussar, kabalos, daf_yomi): show commitment cards
-  if (trackType === "mussar" || trackType === "kabalos" || trackType === "daf_yomi") {
+  // Inclusive tracks (kabalos, daf_yomi): show commitment cards
+  if (trackType === "kabalos" || trackType === "daf_yomi") {
     return <InclusiveGrid {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
   }
 

@@ -45,7 +45,6 @@ export type TrackType =
   | "mishnayos"
   | "tehillim"
   | "shnayim_mikra"
-  | "mussar"
   | "kabalos"
   | "daf_yomi";
 
@@ -149,6 +148,7 @@ export interface InclusiveClaim {
   // Progress tracking for daily/weekly
   progress?: { completed: number; total: number };
   lastCheckIn?: number | null;
+  lastCheckInDate?: string | null; // ISO date string (YYYY-MM-DD)
   // Streak
   currentStreak?: number;
   longestStreak?: number;

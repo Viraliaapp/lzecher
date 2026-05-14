@@ -34,13 +34,12 @@ async function getPublicMemorials(): Promise<MemorialProject[]> {
     const snap = await db
       .collection("lzecher_projects")
       .where("status", "==", "active")
-      .limit(20)
+      .limit(200)
       .get();
     return snap.docs
       .map((d) => ({ id: d.id, ...d.data() } as MemorialProject))
       .filter((p) => p.isPublic)
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-      .slice(0, 6);
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   } catch {
     return [];
   }

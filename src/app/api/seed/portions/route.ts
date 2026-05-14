@@ -126,30 +126,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate Mussar portions (one per sefer — inclusive)
-    if (tracks.includes("mussar")) {
-      const { MUSSAR_SEFORIM } = await import("@/lib/seed-data");
-      for (const sefer of MUSSAR_SEFORIM) {
-        order++;
-        const ref = adminDb.collection("lzecher_portions").doc();
-        const currentBatch = getCurrentBatch();
-        currentBatch.set(ref, {
-          id: ref.id,
-          projectId,
-          trackType: "mussar",
-          claimMode: "inclusive",
-          reference: sefer.name,
-          displayName: sefer.name,
-          displayNameHebrew: sefer.nameHebrew,
-          order,
-          status: "available",
-          currentClaimerCount: 0,
-        });
-        batchCount++;
-        totalPortions++;
-      }
-    }
-
     // Generate Kabalos portions (formerly 'mitzvot') — inclusive, one per template
     if (tracks.includes("kabalos") || tracks.includes("mitzvot" as never)) {
       for (const mitzvah of MITZVAH_TEMPLATES) {

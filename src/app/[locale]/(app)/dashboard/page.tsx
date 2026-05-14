@@ -136,7 +136,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg truncate" dir="rtl">{project.nameHebrew}</CardTitle>
                       <Badge variant={project.status === "active" ? "success" : "secondary"}>
-                        {project.status}
+                        {t(`status_${project.status}`)}
                       </Badge>
                     </div>
                     {project.nameEnglish && (
@@ -152,7 +152,7 @@ export default function DashboardPage() {
                       <Progress value={pct} />
                       <div className="flex items-center justify-between text-xs text-muted">
                         <span>{project.claimedPortions}/{project.totalPortions} {t("portions")}</span>
-                        <span>{project.participantCount || 0} {t("participants")}</span>
+                        <span>{t("participants", { count: project.participantCount || 0 })}</span>
                       </div>
                       <div className="flex gap-2 pt-2">
                         <Link href={`/memorial/${project.slug}` as "/memorial/[slug]"} className="flex-1">

@@ -20,6 +20,7 @@ export interface ReminderTemplateArgs {
   deadline?: string; // Human-readable date string
   link: string; // URL back to the claim/memorial
   unsubscribeLink?: string;
+  markCompleteLink?: string; // Signed "I learned this" one-click URL
 }
 
 export interface ReminderEmail {
@@ -90,6 +91,30 @@ function ctaButton(href: string, text: string): string {
   </table>`;
 }
 
+function secondaryButton(href: string, text: string): string {
+  return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0;">
+    <tr><td align="center">
+      <a href="${href}" style="display:inline-block;padding:10px 24px;background:#FAF6EC;color:#0F1B2D;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;font-family:system-ui,sans-serif;border:1px solid rgba(15,27,45,0.1);">
+        ${text}
+      </a>
+    </td></tr>
+  </table>`;
+}
+
+const MARK_COMPLETE_TEXT: Record<ReminderLocale, string> = {
+  en: "I learned this",
+  he: "למדתי את זה",
+  es: "Ya lo estudie",
+  fr: "J'ai etudie ceci",
+};
+
+const VIEW_MEMORIAL_TEXT: Record<ReminderLocale, string> = {
+  en: "View memorial",
+  he: "צפה בהנצחה",
+  es: "Ver memorial",
+  fr: "Voir le memorial",
+};
+
 function divider(): string {
   return `<hr style="border:none;border-top:1px solid rgba(15,27,45,0.07);margin:24px 0;" />`;
 }
@@ -130,7 +155,7 @@ const templates: Record<
 > = {
   // ── Confirmation ────────────────────────────────────────────────────────────
   confirmation: {
-    en: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink }) => ({
+    en: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink, markCompleteLink }) => ({
       subject: `Your commitment for ${honoreeName} is confirmed`,
       body: emailWrapper(
         `
@@ -138,7 +163,8 @@ const templates: Record<
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
         ${body(`Thank you for taking on this learning as a merit for <strong>${honoreeName}</strong>. Your commitment has been recorded and will be a zechus for their neshama.`)}
         ${body(`<strong>What you committed to:</strong> ${commitmentDesc}${deadline ? `<br><strong>By:</strong> ${deadline}` : ""}`)}
-        ${ctaButton(link, "View my commitment")}
+        ${markCompleteLink ? ctaButton(markCompleteLink, MARK_COMPLETE_TEXT.en) : ""}
+        ${secondaryButton(link, VIEW_MEMORIAL_TEXT.en)}
         ${divider()}
         ${body(`<em>May the Torah you learn be a source of elevation for the neshama of ${honoreeName}.</em>`)}
         `,
