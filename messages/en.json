@@ -287,7 +287,10 @@
     "confirmCompletePage": "Thank you",
     "confirmCompleteMessage": "Your learning is a zechus for the neshama. The merit is eternal.",
     "alreadyCompleted": "Already marked complete — your zechus continues.",
-    "tokenExpired": "Open your dashboard to mark this complete."
+    "tokenExpired": "Open your dashboard to mark this complete.",
+    "addEmailReminders": "+ Add email for reminders (optional)",
+    "nameRequired": "Please enter your name",
+    "completionBanner": "An enormous zechus for {name}’s neshama."
   },
   "memorials": {
     "title": "All Memorials",
@@ -443,7 +446,7 @@
     "subtitle": "Upload a respectful portrait to honor their memory.",
     "dropzone": "Choose a photo or drag and drop",
     "formats": "JPG, PNG, or WebP up to 10 MB",
-    "dignity": "\u05d1\u05db\u05d1\u05d5\u05d3 \u05d4\u05e8\u05d0\u05d5\u05d9 \u05dc\u05d6\u05db\u05e8\u05d5 \u00b7 With the dignity owed to their memory",
+    "dignity": "בכבוד הראוי לזכרו · With the dignity owed to their memory",
     "zoom": "Zoom",
     "upload": "Upload Photo",
     "cancel": "Cancel",

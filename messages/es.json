@@ -43,7 +43,6 @@
     "profile": "Perfil",
     "admin": "Admin"
   },
-
   "landing": {
     "heroEyebrow": "— Una iniciativa gratuita para cada alma —",
     "heroLine1": "Aprendemos juntos,",
@@ -76,7 +75,6 @@
     "searchPlaceholder": "Buscar por nombre...",
     "noResults": "No se encontraron memoriales que coincidan con su busqueda."
   },
-
   "auth": {
     "signInTitle": "Iniciar sesion",
     "signInSubtitle": "Ingresa tu correo electronico para recibir un enlace de acceso.",
@@ -92,7 +90,6 @@
     "linkExpired": "Este enlace ha caducado. Solicita uno nuevo.",
     "enterEmailPrompt": "Ingresa el correo que usaste para solicitar este enlace:"
   },
-
   "dashboard": {
     "title": "Panel de control",
     "welcome": "Bienvenido, {name}",
@@ -123,7 +120,6 @@
     "longestStreak": "Mejor racha: {count} dias",
     "streakBroken": "Ayer paso, pero el zechus continua. Sigamos desde hoy."
   },
-
   "create": {
     "stepOf": "Paso {current} de {total}",
     "step1Title": "Datos del homenajeado",
@@ -220,7 +216,6 @@
     "shareLink": "Copiar enlace",
     "linkCopied": "Enlace copiado!"
   },
-
   "memorial": {
     "lIluyNishmas": "L'iluy Nishmas",
     "claimed": "Reclamadas",
@@ -292,7 +287,10 @@
     "confirmCompletePage": "Gracias",
     "confirmCompleteMessage": "Tu estudio es un zechus para la neshama. El merito es eterno.",
     "alreadyCompleted": "Ya marcado como completo — el zechus continua.",
-    "tokenExpired": "Abre tu panel para marcar esto como completo."
+    "tokenExpired": "Abre tu panel para marcar esto como completo.",
+    "addEmailReminders": "+ Añadir correo para recordatorios (opcional)",
+    "nameRequired": "Por favor ingrese su nombre",
+    "completionBanner": "Un enorme mérito (zejut) para el alma de {name}."
   },
   "memorials": {
     "title": "Todos los memoriales",
@@ -302,7 +300,6 @@
     "emptyState": "El primer memorial se encendera pronto. Se el primero en honrar la memoria de alguien.",
     "createFirst": "Crear un memorial"
   },
-
   "admin": {
     "title": "Panel de administracion",
     "subtitle": "Revisar y moderar los proyectos conmemorativos pendientes.",
@@ -371,7 +368,6 @@
     "thankYouDesc": "Tu opinion ayuda a cada familia que usa Lzecher.",
     "error": "No se pudo enviar la opinion."
   },
-
   "about": {
     "title": "Acerca de Lzecher",
     "subtitle": "Un regalo gratuito para Klal Israel — honrando la memoria a traves del poder eterno del estudio de Tora.",
@@ -383,7 +379,6 @@
     "community": "Lzecher esta construido para Klal Israel. Es completamente gratuito y abierto a todos los que deseen participar en esta hermosa mitzva. Estamos comprometidos a mantener los mas altos estandares de respeto, precision e integridad halajica. Sin tarifas, sin anuncios, sin compromisos — solo estudio de Tora como zechus para las neshamot de nuestros seres queridos.",
     "dedication": "La Tora estudiada a traves de esta plataforma esta dedicada l'iluy nishmas de nuestros seres queridos. Sus familias encuentran consuelo en la unidad y devocion de quienes estudian en su nombre."
   },
-
   "privacy": {
     "title": "Politica de Privacidad",
     "lastUpdated": "Ultima actualizacion: 28 de abril de 2026",
@@ -403,7 +398,6 @@
     "contact_title": "Contactenos",
     "contact_content": "Si tiene preguntas sobre esta Politica de Privacidad, contactenos en support@lzecher.com."
   },
-
   "terms": {
     "title": "Terminos de Servicio",
     "lastUpdated": "Ultima actualizacion: 28 de abril de 2026",
@@ -429,7 +423,6 @@
     "contact_title": "Contactenos",
     "contact_content": "Si tiene preguntas sobre estos Terminos de Servicio, contactenos en support@lzecher.com."
   },
-
   "halachicGuidance": {
     "title": "Guia Halajica",
     "subtitle": "Fuentes y perspectivas de la Tora sobre el estudio como merito para los fallecidos.",
@@ -448,13 +441,12 @@
     "general_content": "El merito del estudio comunitario de Tora se considera especialmente poderoso. Cuando multiples personas se unen para estudiar, el zechus colectivo es mayor que la suma de sus partes. El Midrash ensena que la Tora estudiada en grupo tiene una dimension unica de kedusha. Lzecher facilita esto al hacer sencillo dividir y coordinar el estudio entre muchos participantes, permitiendo que familias y comunidades se unan en este hermoso acto de jesed shel emet.",
     "disclaimer": "Aunque Lzecher esta construido con principios halajicos en mente, no es una autoridad halajica. Para preguntas especificas sobre las costumbres o compromisos de su familia, consulte a su Rav. Estamos trabajando en obtener haskamot de Rabanim destacados y las publicaremos aqui a medida que lleguen."
   },
-
   "photo": {
     "title": "Agregar una fotografia",
     "subtitle": "Suba un retrato respetuoso para honrar su memoria.",
     "dropzone": "Elija una foto o arrastre y suelte",
     "formats": "JPG, PNG o WebP hasta 10 MB",
-    "dignity": "\u05d1\u05db\u05d1\u05d5\u05d3 \u05d4\u05e8\u05d0\u05d5\u05d9 \u05dc\u05d6\u05db\u05e8\u05d5 \u00b7 Con la dignidad que merece su memoria",
+    "dignity": "בכבוד הראוי לזכרו · Con la dignidad que merece su memoria",
     "zoom": "Zoom",
     "upload": "Subir foto",
     "cancel": "Cancelar",

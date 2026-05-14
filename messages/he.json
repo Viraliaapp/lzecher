@@ -287,7 +287,10 @@
     "confirmCompletePage": "תודה רבה",
     "confirmCompleteMessage": "הלימוד שלך הוא זכות לנשמה. הזכות נצחית.",
     "alreadyCompleted": "כבר סומן כהושלם — הזכות ממשיכה.",
-    "tokenExpired": "פתח את לוח הבקרה כדי לסמן כהושלם."
+    "tokenExpired": "פתח את לוח הבקרה כדי לסמן כהושלם.",
+    "addEmailReminders": "+ הוסף אימייל לתזכורות (אופציונלי)",
+    "nameRequired": "אנא הזן את שמך",
+    "completionBanner": "זכות עצומה לנשמת {name}."
   },
   "memorials": {
     "title": "כל ההנצחות",

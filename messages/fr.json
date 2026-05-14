@@ -287,7 +287,10 @@
     "confirmCompletePage": "Merci",
     "confirmCompleteMessage": "Votre etude est un zekhout pour la neshama. Le merite est eternel.",
     "alreadyCompleted": "Deja marque comme termine — le zekhout continue.",
-    "tokenExpired": "Ouvrez votre tableau de bord pour marquer ceci comme termine."
+    "tokenExpired": "Ouvrez votre tableau de bord pour marquer ceci comme termine.",
+    "addEmailReminders": "+ Ajouter un e-mail pour les rappels (facultatif)",
+    "nameRequired": "Veuillez saisir votre nom",
+    "completionBanner": "Un immense mérite (zekhout) pour la neshama de {name}."
   },
   "memorials": {
     "title": "Tous les memoriaux",
@@ -443,7 +446,7 @@
     "subtitle": "Telechargez un portrait respectueux pour honorer leur memoire.",
     "dropzone": "Choisissez une photo ou glissez-deposez",
     "formats": "JPG, PNG ou WebP jusqu'a 10 Mo",
-    "dignity": "\u05d1\u05db\u05d1\u05d5\u05d3 \u05d4\u05e8\u05d0\u05d5\u05d9 \u05dc\u05d6\u05db\u05e8\u05d5 \u00b7 Avec la dignite due a leur memoire",
+    "dignity": "בכבוד הראוי לזכרו · Avec la dignite due a leur memoire",
     "zoom": "Zoom",
     "upload": "Telecharger la photo",
     "cancel": "Annuler",

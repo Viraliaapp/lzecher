@@ -97,6 +97,8 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderPreset, setReminderPreset] = useState<'confirmation' | 'light' | 'daily' | 'weekly' | 'custom'>('light');
   const [showCustomReminders, setShowCustomReminders] = useState(false);
+  const [showEmailSection, setShowEmailSection] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   function getResolvedReminderPrefs(): string[] {
     if (!claimerEmail || !reminderEnabled) return [];
@@ -159,26 +161,50 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     setReminderPreset('light');
     setShowCustomReminders(false);
     setReminderPrefs([]);
+    setShowEmailSection(Boolean(user.email)); // pre-show only if user already has email
+    setSubmitting(false);
     setConfirmDialogOpen(true);
   }
 
   function handleAuthenticated() {
     setSoftLoginOpen(false);
     setClaimerName(user?.displayName || "");
+    setClaimerEmail(user?.email || "");
+    setShowEmailSection(Boolean(user?.email));
+    setSubmitting(false);
     setConfirmDialogOpen(true);
   }
 
   function handleAnonymousClaim() {
     setSoftLoginOpen(false);
     setClaimerName("");
+    setClaimerEmail("");
+    setShowEmailSection(false); // anonymous → name-only by default
+    setReminderEnabled(false);
+    setReminderPrefs([]);
+    setSubmitting(false);
     setConfirmDialogOpen(true);
   }
 
   async function confirmClaim() {
-    if (!selectedPortion || !claimerName.trim()) return;
+    if (!selectedPortion) {
+      console.error("[claim] confirmClaim called with no selectedPortion");
+      toast.error(t("claimError"));
+      return;
+    }
+    if (!claimerName.trim()) {
+      toast.error(t("nameRequired") || "Please enter your name");
+      return;
+    }
+    setSubmitting(true);
     setClaimingId(selectedPortion.id);
+    let claimSucceeded = false;
     try {
-      const idToken = await auth.currentUser?.getIdToken().catch(() => null);
+      const idToken = await auth.currentUser?.getIdToken().catch((e) => {
+        console.warn("[claim] could not get id token:", e);
+        return null;
+      });
+      const resolvedPrefs = getResolvedReminderPrefs();
       const res = await fetch("/api/claims", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -188,14 +214,16 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           claimerName: claimerName.trim(),
           idToken,
           claimerEmail: claimerEmail || undefined,
-          reminderPreferences: getResolvedReminderPrefs().length > 0 ? getResolvedReminderPrefs() : undefined,
+          reminderPreferences: resolvedPrefs.length > 0 ? resolvedPrefs : undefined,
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        console.error("[claim] API error", res.status, data);
         toast.error(data.error || t("claimError"));
         return;
       }
+      claimSucceeded = true;
       setPortions((prev) =>
         prev.map((p) =>
           p.id === selectedPortion.id
@@ -204,12 +232,16 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         )
       );
       toast.success(t("claimSuccess"));
-    } catch {
+    } catch (err) {
+      console.error("[claim] network/exception during claim:", err);
       toast.error(t("claimError"));
     } finally {
       setClaimingId(null);
-      setConfirmDialogOpen(false);
-      setSelectedPortion(null);
+      setSubmitting(false);
+      if (claimSucceeded) {
+        setConfirmDialogOpen(false);
+        setSelectedPortion(null);
+      }
     }
   }
 
@@ -269,14 +301,26 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     setReminderPreset('light');
     setShowCustomReminders(false);
     setReminderPrefs([]);
+    setShowEmailSection(Boolean(user.email));
     setBulkClaimScope({ scope, scopeId, scopeName });
   }
 
   async function confirmBulkClaim() {
-    if (!bulkClaimScope || !claimerName.trim()) return;
+    if (!bulkClaimScope) {
+      console.error("[bulk-claim] called with no scope");
+      toast.error(t("claimError"));
+      return;
+    }
+    if (!claimerName.trim()) {
+      toast.error(t("nameRequired") || "Please enter your name");
+      return;
+    }
     setBulkClaiming(true);
     try {
-      const idToken = await auth.currentUser?.getIdToken();
+      const idToken = await auth.currentUser?.getIdToken().catch((e) => {
+        console.warn("[bulk-claim] could not get id token:", e);
+        return null;
+      });
       const resolvedPrefs = getResolvedReminderPrefs();
       const res = await fetch("/api/claims/bulk", {
         method: "POST",
@@ -291,20 +335,20 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           reminderPreferences: resolvedPrefs.length > 0 ? resolvedPrefs : undefined,
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        console.error("[bulk-claim] API error", res.status, data);
         toast.error(data.error || t("claimError"));
         return;
       }
-      // Refresh portions
-      const portionsRes = await fetch(`/api/claims/preview-bulk?projectId=${project.id}&scope=${bulkClaimScope.scope}&scopeId=${bulkClaimScope.scopeId || ""}`);
-      // Just reload to get fresh data
+      // Reload to get fresh portion state
       window.location.reload();
-    } catch {
+    } catch (err) {
+      console.error("[bulk-claim] network/exception:", err);
       toast.error(t("claimError"));
     } finally {
       setBulkClaiming(false);
-      setBulkClaimScope(null);
+      // Only clear scope on success — failure leaves modal open so user can retry
     }
   }
 
@@ -416,8 +460,8 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       {pct === 100 && totalPortions > 0 && (
         <div className="bg-gradient-to-r from-gold/20 via-gold/10 to-gold/20 border-b border-gold/20">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 py-6 text-center">
-            <h2 className="font-heading text-xl font-bold text-navy mb-2">{t("siyumEligible") || "All learning complete"}</h2>
-            <p className="text-sm text-muted mb-3">{t("completionBanner" as never)?.replace("{name}", hebrewFirstLast) || `An enormous zechus for ${hebrewFirstLast}'s neshama.`}</p>
+            <h2 className="font-heading text-xl font-bold text-navy mb-2">{t("siyumEligible")}</h2>
+            <p className="text-sm text-muted mb-3">{t("completionBanner", { name: hebrewFirstLast })}</p>
             <p className="font-heading text-navy text-sm leading-relaxed" dir="rtl">
               הדרן עלך ועלן דעתך. לא נתנשי מינך ולא תתנשי מינן, לא בעלמא הדין ולא בעלמא דאתי.
             </p>
@@ -522,94 +566,107 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 value={claimerName}
                 onChange={(e) => setClaimerName(e.target.value)}
                 placeholder={t("namePlaceholder")}
+                autoFocus
               />
             </div>
-            {/* Email for reminders */}
-            <div>
-              <label className="text-sm font-medium text-navy mb-1 block">{t("yourEmail") || "Your email (for reminders)"}</label>
-              <Input
-                type="email"
-                value={claimerEmail}
-                onChange={(e) => setClaimerEmail(e.target.value)}
-                placeholder={t("emailPlaceholder") || "you@example.com"}
-              />
-            </div>
-            {/* Reminder preferences — smart defaults */}
-            {claimerEmail && (
-              <div className="border-t border-navy/5 pt-3 mt-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={reminderEnabled}
-                    onChange={(e) => setReminderEnabled(e.target.checked)}
-                    className="rounded border-navy/20"
+            {/* Email section — collapsed by default; expands on click */}
+            {!showEmailSection ? (
+              <button
+                type="button"
+                onClick={() => setShowEmailSection(true)}
+                className="text-xs text-navy/60 hover:text-navy underline underline-offset-2 transition-colors"
+              >
+                {t("addEmailReminders") || "+ Add email for reminders (optional)"}
+              </button>
+            ) : (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-navy mb-1 block">{t("yourEmail") || "Your email for reminders (optional)"}</label>
+                  <Input
+                    type="email"
+                    value={claimerEmail}
+                    onChange={(e) => setClaimerEmail(e.target.value)}
+                    placeholder={t("emailPlaceholder") || "you@example.com"}
                   />
-                  <span className="text-sm font-medium text-navy">{t("reminderToggle") || "Send me reminders to help me stay on track"}</span>
-                </label>
-                {reminderEnabled && (
-                  <div className="mt-3 space-y-2 pl-6">
-                    {([
-                      { value: 'confirmation' as const, label: t("reminderPresetConfirmation") || "Just a confirmation now" },
-                      { value: 'light' as const, label: t("reminderPresetLight") || "Light touch — recommended", desc: t("reminderPresetLightDesc") || "Halfway, 1 week before, 1 day before" },
-                      { value: 'daily' as const, label: t("reminderPresetDaily") || "Daily — for daily commitments" },
-                      { value: 'weekly' as const, label: t("reminderPresetWeekly") || "Weekly digest" },
-                    ]).map(({ value, label, desc }) => (
-                      <label key={value} className="flex items-start gap-2 text-xs text-muted cursor-pointer">
-                        <input
-                          type="radio"
-                          name="reminderPreset"
-                          checked={reminderPreset === value}
-                          onChange={() => { setReminderPreset(value); setShowCustomReminders(false); }}
-                          className="mt-0.5"
-                        />
-                        <span>
-                          {label}
-                          {desc && <span className="block text-[10px] text-muted/70">{desc}</span>}
-                        </span>
-                      </label>
-                    ))}
-                    <button
-                      type="button"
-                      className="text-xs text-navy/60 hover:text-navy underline mt-1"
-                      onClick={() => { setReminderPreset('custom'); setShowCustomReminders(!showCustomReminders); }}
-                    >
-                      {t("reminderCustomize") || "Customize"}
-                    </button>
-                    {showCustomReminders && reminderPreset === 'custom' && (
-                      <div className="space-y-2 mt-2">
-                        {[
-                          { key: "confirmation", label: t("reminderConfirmation") || "Confirmation email now" },
-                          { key: "sevenDays", label: t("reminderSevenDays") || "7 days before deadline" },
-                          { key: "threeDays", label: t("reminderThreeDays") || "3 days before deadline" },
-                          { key: "oneDay", label: t("reminderOneDay") || "1 day before deadline" },
-                          { key: "halfway", label: t("reminderHalfway") || "Halfway reminder" },
-                          { key: "daily", label: t("reminderDaily") || "Daily reminder" },
-                        ].map(({ key, label }) => (
-                          <label key={key} className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+                </div>
+                {/* Reminder preferences — only when email present */}
+                {claimerEmail && (
+                  <div className="border-t border-navy/5 pt-3 mt-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reminderEnabled}
+                        onChange={(e) => setReminderEnabled(e.target.checked)}
+                        className="rounded border-navy/20"
+                      />
+                      <span className="text-sm font-medium text-navy">{t("reminderToggle") || "Send me reminders to help me stay on track"}</span>
+                    </label>
+                    {reminderEnabled && (
+                      <div className="mt-3 space-y-2 pl-6">
+                        {([
+                          { value: 'confirmation' as const, label: t("reminderPresetConfirmation") || "Just a confirmation now" },
+                          { value: 'light' as const, label: t("reminderPresetLight") || "Light touch — recommended", desc: t("reminderPresetLightDesc") || "Halfway, 1 week before, 1 day before" },
+                          { value: 'daily' as const, label: t("reminderPresetDaily") || "Daily — for daily commitments" },
+                          { value: 'weekly' as const, label: t("reminderPresetWeekly") || "Weekly digest" },
+                        ]).map(({ value, label, desc }) => (
+                          <label key={value} className="flex items-start gap-2 text-xs text-muted cursor-pointer">
                             <input
-                              type="checkbox"
-                              checked={reminderPrefs.includes(key)}
-                              onChange={(e) => {
-                                if (e.target.checked) setReminderPrefs(p => [...p, key]);
-                                else setReminderPrefs(p => p.filter(x => x !== key));
-                              }}
-                              className="rounded border-navy/20"
+                              type="radio"
+                              name="reminderPreset"
+                              checked={reminderPreset === value}
+                              onChange={() => { setReminderPreset(value); setShowCustomReminders(false); }}
+                              className="mt-0.5"
                             />
-                            {label}
+                            <span>
+                              {label}
+                              {desc && <span className="block text-[10px] text-muted/70">{desc}</span>}
+                            </span>
                           </label>
                         ))}
+                        <button
+                          type="button"
+                          className="text-xs text-navy/60 hover:text-navy underline mt-1"
+                          onClick={() => { setReminderPreset('custom'); setShowCustomReminders(!showCustomReminders); }}
+                        >
+                          {t("reminderCustomize") || "Customize"}
+                        </button>
+                        {showCustomReminders && reminderPreset === 'custom' && (
+                          <div className="space-y-2 mt-2">
+                            {[
+                              { key: "confirmation", label: t("reminderConfirmation") || "Confirmation email now" },
+                              { key: "sevenDays", label: t("reminderSevenDays") || "7 days before deadline" },
+                              { key: "threeDays", label: t("reminderThreeDays") || "3 days before deadline" },
+                              { key: "oneDay", label: t("reminderOneDay") || "1 day before deadline" },
+                              { key: "halfway", label: t("reminderHalfway") || "Halfway reminder" },
+                              { key: "daily", label: t("reminderDaily") || "Daily reminder" },
+                            ].map(({ key, label }) => (
+                              <label key={key} className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={reminderPrefs.includes(key)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setReminderPrefs(p => [...p, key]);
+                                    else setReminderPrefs(p => p.filter(x => x !== key));
+                                  }}
+                                  className="rounded border-navy/20"
+                                />
+                                {label}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-[10px] text-muted mt-2">{t("reminderNote") || "We only send what you choose. Unsubscribe anytime."}</p>
                       </div>
                     )}
-                    <p className="text-[10px] text-muted mt-2">{t("reminderNote") || "We only send what you choose. Unsubscribe anytime."}</p>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setConfirmDialogOpen(false)}>{t("cancel")}</Button>
-            <Button onClick={confirmClaim} disabled={!claimerName.trim()}>
-              {t("confirm")}
+            <Button variant="ghost" onClick={() => setConfirmDialogOpen(false)} disabled={submitting}>{t("cancel")}</Button>
+            <Button onClick={confirmClaim} disabled={!claimerName.trim() || submitting}>
+              {submitting ? <Spinner className="h-4 w-4" /> : t("confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -662,91 +719,104 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 value={claimerName}
                 onChange={(e) => setClaimerName(e.target.value)}
                 placeholder={t("namePlaceholder")}
+                autoFocus
               />
             </div>
-            <div>
-              <label className="text-sm font-medium text-navy mb-1 block">{t("yourEmail") || "Your email (for reminders)"}</label>
-              <Input
-                type="email"
-                value={claimerEmail}
-                onChange={(e) => setClaimerEmail(e.target.value)}
-                placeholder={t("emailPlaceholder") || "you@example.com"}
-              />
-            </div>
-            {/* Reminder preferences — smart defaults */}
-            {claimerEmail && (
-              <div className="border-t border-navy/5 pt-3 mt-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={reminderEnabled}
-                    onChange={(e) => setReminderEnabled(e.target.checked)}
-                    className="rounded border-navy/20"
+            {/* Email section — collapsed by default */}
+            {!showEmailSection ? (
+              <button
+                type="button"
+                onClick={() => setShowEmailSection(true)}
+                className="text-xs text-navy/60 hover:text-navy underline underline-offset-2 transition-colors"
+              >
+                {t("addEmailReminders") || "+ Add email for reminders (optional)"}
+              </button>
+            ) : (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-navy mb-1 block">{t("yourEmail") || "Your email for reminders (optional)"}</label>
+                  <Input
+                    type="email"
+                    value={claimerEmail}
+                    onChange={(e) => setClaimerEmail(e.target.value)}
+                    placeholder={t("emailPlaceholder") || "you@example.com"}
                   />
-                  <span className="text-sm font-medium text-navy">{t("reminderToggle") || "Send me reminders to help me stay on track"}</span>
-                </label>
-                {reminderEnabled && (
-                  <div className="mt-3 space-y-2 pl-6">
-                    {([
-                      { value: 'confirmation' as const, label: t("reminderPresetConfirmation") || "Just a confirmation now" },
-                      { value: 'light' as const, label: t("reminderPresetLight") || "Light touch — recommended", desc: t("reminderPresetLightDesc") || "Halfway, 1 week before, 1 day before" },
-                      { value: 'daily' as const, label: t("reminderPresetDaily") || "Daily — for daily commitments" },
-                      { value: 'weekly' as const, label: t("reminderPresetWeekly") || "Weekly digest" },
-                    ]).map(({ value, label, desc }) => (
-                      <label key={value} className="flex items-start gap-2 text-xs text-muted cursor-pointer">
-                        <input
-                          type="radio"
-                          name="bulkReminderPreset"
-                          checked={reminderPreset === value}
-                          onChange={() => { setReminderPreset(value); setShowCustomReminders(false); }}
-                          className="mt-0.5"
-                        />
-                        <span>
-                          {label}
-                          {desc && <span className="block text-[10px] text-muted/70">{desc}</span>}
-                        </span>
-                      </label>
-                    ))}
-                    <button
-                      type="button"
-                      className="text-xs text-navy/60 hover:text-navy underline mt-1"
-                      onClick={() => { setReminderPreset('custom'); setShowCustomReminders(!showCustomReminders); }}
-                    >
-                      {t("reminderCustomize") || "Customize"}
-                    </button>
-                    {showCustomReminders && reminderPreset === 'custom' && (
-                      <div className="space-y-2 mt-2">
-                        {[
-                          { key: "confirmation", label: t("reminderConfirmation") || "Confirmation email now" },
-                          { key: "sevenDays", label: t("reminderSevenDays") || "7 days before deadline" },
-                          { key: "threeDays", label: t("reminderThreeDays") || "3 days before deadline" },
-                          { key: "oneDay", label: t("reminderOneDay") || "1 day before deadline" },
-                          { key: "halfway", label: t("reminderHalfway") || "Halfway reminder" },
-                          { key: "daily", label: t("reminderDaily") || "Daily reminder" },
-                        ].map(({ key, label }) => (
-                          <label key={key} className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+                </div>
+                {claimerEmail && (
+                  <div className="border-t border-navy/5 pt-3 mt-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reminderEnabled}
+                        onChange={(e) => setReminderEnabled(e.target.checked)}
+                        className="rounded border-navy/20"
+                      />
+                      <span className="text-sm font-medium text-navy">{t("reminderToggle") || "Send me reminders to help me stay on track"}</span>
+                    </label>
+                    {reminderEnabled && (
+                      <div className="mt-3 space-y-2 pl-6">
+                        {([
+                          { value: 'confirmation' as const, label: t("reminderPresetConfirmation") || "Just a confirmation now" },
+                          { value: 'light' as const, label: t("reminderPresetLight") || "Light touch — recommended", desc: t("reminderPresetLightDesc") || "Halfway, 1 week before, 1 day before" },
+                          { value: 'daily' as const, label: t("reminderPresetDaily") || "Daily — for daily commitments" },
+                          { value: 'weekly' as const, label: t("reminderPresetWeekly") || "Weekly digest" },
+                        ]).map(({ value, label, desc }) => (
+                          <label key={value} className="flex items-start gap-2 text-xs text-muted cursor-pointer">
                             <input
-                              type="checkbox"
-                              checked={reminderPrefs.includes(key)}
-                              onChange={(e) => {
-                                if (e.target.checked) setReminderPrefs(p => [...p, key]);
-                                else setReminderPrefs(p => p.filter(x => x !== key));
-                              }}
-                              className="rounded border-navy/20"
+                              type="radio"
+                              name="bulkReminderPreset"
+                              checked={reminderPreset === value}
+                              onChange={() => { setReminderPreset(value); setShowCustomReminders(false); }}
+                              className="mt-0.5"
                             />
-                            {label}
+                            <span>
+                              {label}
+                              {desc && <span className="block text-[10px] text-muted/70">{desc}</span>}
+                            </span>
                           </label>
                         ))}
+                        <button
+                          type="button"
+                          className="text-xs text-navy/60 hover:text-navy underline mt-1"
+                          onClick={() => { setReminderPreset('custom'); setShowCustomReminders(!showCustomReminders); }}
+                        >
+                          {t("reminderCustomize") || "Customize"}
+                        </button>
+                        {showCustomReminders && reminderPreset === 'custom' && (
+                          <div className="space-y-2 mt-2">
+                            {[
+                              { key: "confirmation", label: t("reminderConfirmation") || "Confirmation email now" },
+                              { key: "sevenDays", label: t("reminderSevenDays") || "7 days before deadline" },
+                              { key: "threeDays", label: t("reminderThreeDays") || "3 days before deadline" },
+                              { key: "oneDay", label: t("reminderOneDay") || "1 day before deadline" },
+                              { key: "halfway", label: t("reminderHalfway") || "Halfway reminder" },
+                              { key: "daily", label: t("reminderDaily") || "Daily reminder" },
+                            ].map(({ key, label }) => (
+                              <label key={key} className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={reminderPrefs.includes(key)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setReminderPrefs(p => [...p, key]);
+                                    else setReminderPrefs(p => p.filter(x => x !== key));
+                                  }}
+                                  className="rounded border-navy/20"
+                                />
+                                {label}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-[10px] text-muted mt-2">{t("reminderNote") || "We only send what you choose. Unsubscribe anytime."}</p>
                       </div>
                     )}
-                    <p className="text-[10px] text-muted mt-2">{t("reminderNote") || "We only send what you choose. Unsubscribe anytime."}</p>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setBulkClaimScope(null)}>{t("cancel")}</Button>
+            <Button variant="ghost" onClick={() => setBulkClaimScope(null)} disabled={bulkClaiming}>{t("cancel")}</Button>
             <Button onClick={confirmBulkClaim} disabled={bulkClaiming || !claimerName.trim()}>
               {bulkClaiming ? <Spinner className="h-4 w-4" /> : t("confirm")}
             </Button>
