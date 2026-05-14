@@ -94,10 +94,12 @@ export default function CreateMemorialPage() {
   // Step 3: Tribute
   const [biography, setBiography] = useState("");
 
-  // Step 4: Tracks
+  // Step 4: Tracks — Kabalos is on by default along with Mishnayos because most
+  // family members will commit to one mitzvah even if they can't take a perek.
   const [projectType, setProjectType] = useState<string>("permanent");
   const [selectedTracks, setSelectedTracks] = useState<TrackType[]>([
     "mishnayos",
+    "kabalos",
   ]);
 
   // Step 5: Sharing

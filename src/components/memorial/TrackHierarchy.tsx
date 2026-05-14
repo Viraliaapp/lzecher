@@ -11,6 +11,17 @@ import { BookOpen, Check, Clock, ChevronRight, ChevronDown, Users } from "lucide
 import { cn } from "@/lib/utils";
 import type { Portion } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
+import { toHebrewNumeral } from "@/lib/hebrew-numerals";
+
+/**
+ * Localize a display name for the active locale. In Hebrew, trailing Arabic
+ * digits are converted to gematria letters (e.g. "תהילים 147" → "תהילים קמ״ז",
+ * "נדרים פרק 4" → "נדרים פרק ד׳"). Other locales pass through unchanged.
+ */
+function localizedDisplay(name: string, locale: string): string {
+  if (locale !== "he" || !name) return name;
+  return name.replace(/\s(\d{1,3})\s*$/, (_m, num) => " " + toHebrewNumeral(parseInt(num, 10)));
+}
 
 const SEDER_ORDER = ["Zeraim", "Moed", "Nashim", "Nezikin", "Kodashim", "Tahorot"];
 const SEDER_HEBREW: Record<string, string> = {
@@ -58,7 +69,7 @@ export function TrackHierarchy({
   const locale = useLocale();
 
   if (trackType === "mishnayos") return <MishnayosHierarchy {...{ portions, onClaim, onComplete, onBulkClaim, claimingId, completing, currentUserId, t, bt, locale }} />;
-  if (trackType === "tehillim") return <TehillimHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
+  if (trackType === "tehillim") return <TehillimHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
   if (trackType === "shnayim_mikra") return <ShnayimMikraHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
 
   // Inclusive tracks (kabalos, daf_yomi): show commitment cards
@@ -67,7 +78,7 @@ export function TrackHierarchy({
   }
 
   // Default flat grid fallback
-  return <FlatGrid {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }} />;
+  return <FlatGrid {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -222,7 +233,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkClaim, claimi
                     )}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                       {(masechtotInSeder[expandedMasechta] as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((portion) => (
-                        <PortionCard key={portion.id} portion={portion} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} compact />
+                        <PortionCard key={portion.id} portion={portion} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} locale={locale} compact />
                       ))}
                     </div>
                   </div>
@@ -237,7 +248,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkClaim, claimi
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function TehillimHierarchy({ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }: any) {
+function TehillimHierarchy({ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }: any) {
   const [expandedBook, setExpandedBook] = useState<number | null>(null);
 
   return (
@@ -274,7 +285,7 @@ function TehillimHierarchy({ portions, onClaim, onComplete, claimingId, completi
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-3 mt-1 bg-cream-warm rounded-xl">
                       {bp.sort((a: Portion, b: Portion) => (a.order || 0) - (b.order || 0)).map((p: Portion) => (
-                        <PortionCard key={p.id} portion={p} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} compact />
+                        <PortionCard key={p.id} portion={p} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} locale={locale} compact />
                       ))}
                     </div>
                   </motion.div>
@@ -331,7 +342,7 @@ function ShnayimMikraHierarchy({ portions, onClaim, onComplete, claimingId, comp
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 mt-1 bg-cream-warm rounded-xl">
                     {bp.sort((a, b) => (a.order || 0) - (b.order || 0)).map((p) => (
-                      <PortionCard key={p.id} portion={p} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} />
+                      <PortionCard key={p.id} portion={p} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} locale={locale} />
                     ))}
                   </div>
                 </motion.div>
@@ -394,19 +405,22 @@ function InclusiveGrid({ portions, onClaim, claimingId, t, locale }: any) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function FlatGrid({ portions, onClaim, onComplete, claimingId, completing, currentUserId, t }: any) {
+function FlatGrid({ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }: any) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
       {(portions as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((p) => (
-        <PortionCard key={p.id} portion={p} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} />
+        <PortionCard key={p.id} portion={p} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} locale={locale} />
       ))}
     </div>
   );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function PortionCard({ portion, onClaim, onComplete, claimingId, completing, currentUserId, t, compact }: any) {
+function PortionCard({ portion, onClaim, onComplete, claimingId, completing, currentUserId, t, compact, locale }: any) {
   const p = portion as Portion;
+  const displayName = locale === "he"
+    ? localizedDisplay(p.displayNameHebrew || p.displayName, "he")
+    : (p.displayNameHebrew || p.displayName);
   return (
     <Card className={cn(
       "transition-all",
@@ -417,15 +431,30 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, completing, cur
       <CardContent className={cn("p-3", compact && "p-2")}>
         <div className="flex items-center justify-between gap-1 mb-1">
           <p className={cn("font-medium text-navy truncate", compact ? "text-xs" : "text-sm")}>
-            {p.displayNameHebrew || p.displayName}
+            {displayName}
           </p>
           {p.status === "completed" && <Check className="h-3 w-3 text-emerald-500 shrink-0" />}
           {p.status === "claimed" && <Clock className="h-3 w-3 text-gold shrink-0" />}
         </div>
 
         {p.status === "available" && (
-          <Button size="sm" className="w-full mt-1 h-7 text-xs" onClick={() => onClaim(p)} disabled={claimingId === p.id}>
-            {claimingId === p.id ? <Spinner className="h-3 w-3" /> : <><BookOpen className="h-3 w-3" />{t("claimPortion")}</>}
+          <Button
+            size="sm"
+            className={cn(
+              "w-full mt-1 h-7 overflow-hidden",
+              compact ? "text-[10px] px-1.5 gap-1" : "text-xs"
+            )}
+            onClick={() => onClaim(p)}
+            disabled={claimingId === p.id}
+          >
+            {claimingId === p.id ? (
+              <Spinner className="h-3 w-3" />
+            ) : (
+              <>
+                {!compact && <BookOpen className="h-3 w-3 shrink-0" />}
+                <span className="truncate">{t("claimPortion")}</span>
+              </>
+            )}
           </Button>
         )}
 
