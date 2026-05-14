@@ -451,16 +451,19 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, completing, cur
             size="sm"
             className={cn(
               "w-full mt-1 h-7 overflow-hidden",
-              compact ? "text-[10px] px-1.5 gap-1" : "text-xs"
+              compact ? "text-[9px] px-1 gap-0" : "text-xs"
             )}
             onClick={() => onClaim(p)}
             disabled={claimingId === p.id}
           >
             {claimingId === p.id ? (
               <Spinner className="h-3 w-3" />
+            ) : compact ? (
+              // Compact: short label only, no icon, single text
+              <span className="truncate">{locale === "he" ? "אני לוקח" : t("claimPortion")}</span>
             ) : (
               <>
-                {!compact && <BookOpen className="h-3 w-3 shrink-0" />}
+                <BookOpen className="h-3 w-3 shrink-0" />
                 <span className="truncate">{t("claimPortion")}</span>
               </>
             )}
