@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
@@ -6,29 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { CheckCircle } from "lucide-react";
 
-export default function ConfirmCompletePage({
+export default async function ConfirmCompletePage({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string; name?: string }>;
 }) {
-  return <ConfirmCompleteContent searchParamsPromise={searchParams} />;
-}
-
-function ConfirmCompleteContent({
-  searchParamsPromise,
-}: {
-  searchParamsPromise: Promise<{ status?: string; name?: string }>;
-}) {
-  // Use React.use() via server component
-  return <ConfirmCompleteInner searchParamsPromise={searchParamsPromise} />;
-}
-
-async function ConfirmCompleteInner({
-  searchParamsPromise,
-}: {
-  searchParamsPromise: Promise<{ status?: string; name?: string }>;
-}) {
-  const params = await searchParamsPromise;
+  const params = await searchParams;
   const status = params.status || "success";
   const name = params.name || "";
 
@@ -42,11 +25,58 @@ async function ConfirmCompleteInner({
               <YahrzeitCandle size="md" />
             </div>
 
-            {status === "success" && <SuccessContent name={name} />}
-            {status === "already_complete" && <AlreadyCompleteContent name={name} />}
-            {status === "expired" && <ExpiredContent />}
-            {status === "not_found" && <NotFoundContent />}
-            {status === "error" && <ErrorContent />}
+            {status === "success" && (
+              <>
+                <div className="flex justify-center mb-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+                <h1 className="font-heading text-2xl font-bold text-navy mb-2">
+                  <ConfirmTitle status="success" />
+                </h1>
+                {name && <p className="text-sm text-muted mb-2">{name}</p>}
+                <p className="text-muted leading-relaxed">
+                  <ConfirmMessage status="success" />
+                </p>
+              </>
+            )}
+            {status === "already_complete" && (
+              <>
+                <div className="flex justify-center mb-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gold/10">
+                    <CheckCircle className="h-6 w-6 text-gold-deep" />
+                  </div>
+                </div>
+                <h1 className="font-heading text-2xl font-bold text-navy mb-2">
+                  <ConfirmTitle status="already" />
+                </h1>
+                {name && <p className="text-sm text-muted mb-2">{name}</p>}
+                <p className="text-muted leading-relaxed">
+                  <ConfirmMessage status="already" />
+                </p>
+              </>
+            )}
+            {status === "expired" && (
+              <>
+                <h1 className="font-heading text-2xl font-bold text-navy mb-2">
+                  <ConfirmTitle status="expired" />
+                </h1>
+                <p className="text-muted leading-relaxed">
+                  <ConfirmMessage status="expired" />
+                </p>
+              </>
+            )}
+            {(status === "not_found" || status === "error") && (
+              <>
+                <h1 className="font-heading text-2xl font-bold text-navy mb-2">
+                  <ConfirmTitle status="error" />
+                </h1>
+                <p className="text-muted leading-relaxed">
+                  <ConfirmMessage status="error" />
+                </p>
+              </>
+            )}
 
             <div className="flex items-center justify-center gap-3 my-6">
               <div className="h-px flex-1 bg-gold/20" />
@@ -56,10 +86,14 @@ async function ConfirmCompleteInner({
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/">
-                <Button variant="outline" size="sm">View memorials</Button>
+                <Button variant="outline" size="sm">
+                  <ConfirmCTA type="memorials" />
+                </Button>
               </Link>
               <Link href="/dashboard">
-                <Button size="sm">My dashboard</Button>
+                <Button size="sm">
+                  <ConfirmCTA type="dashboard" />
+                </Button>
               </Link>
             </div>
           </div>
@@ -70,74 +104,24 @@ async function ConfirmCompleteInner({
   );
 }
 
-function SuccessContent({ name }: { name: string }) {
-  return (
-    <>
-      <div className="flex justify-center mb-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-          <CheckCircle className="h-6 w-6 text-green-600" />
-        </div>
-      </div>
-      <h1 className="font-heading text-2xl font-bold text-navy mb-2">Yasher Koach</h1>
-      {name && (
-        <p className="text-sm text-muted mb-2">{name}</p>
-      )}
-      <p className="text-muted leading-relaxed">
-        Your learning has been marked complete. The zechus is eternal — each word of Torah creates
-        light for the neshama.
-      </p>
-    </>
-  );
+async function ConfirmTitle({ status }: { status: string }) {
+  const t = await getTranslations("memorial");
+  if (status === "success") return <>{t("chizukTitle")}</>;
+  if (status === "already") return <>{t("alreadyCompleted")}</>;
+  if (status === "expired") return <>{t("tokenExpired")}</>;
+  return <>{t("completeError")}</>;
 }
 
-function AlreadyCompleteContent({ name }: { name: string }) {
-  return (
-    <>
-      <div className="flex justify-center mb-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gold/10">
-          <CheckCircle className="h-6 w-6 text-gold-deep" />
-        </div>
-      </div>
-      <h1 className="font-heading text-2xl font-bold text-navy mb-2">Already Complete</h1>
-      {name && (
-        <p className="text-sm text-muted mb-2">{name}</p>
-      )}
-      <p className="text-muted leading-relaxed">
-        This has already been marked as complete. Your zechus continues.
-      </p>
-    </>
-  );
+async function ConfirmMessage({ status }: { status: string }) {
+  const t = await getTranslations("memorial");
+  if (status === "success") return <>{t("confirmCompleteMessage")}</>;
+  if (status === "already") return <>{t("alreadyCompleted")}</>;
+  if (status === "expired") return <>{t("tokenExpired")}</>;
+  return <>{t("completeError")}</>;
 }
 
-function ExpiredContent() {
-  return (
-    <>
-      <h1 className="font-heading text-2xl font-bold text-navy mb-2">Link Expired</h1>
-      <p className="text-muted leading-relaxed">
-        This link has expired. Please open your dashboard to mark this learning as complete.
-      </p>
-    </>
-  );
-}
-
-function NotFoundContent() {
-  return (
-    <>
-      <h1 className="font-heading text-2xl font-bold text-navy mb-2">Not Found</h1>
-      <p className="text-muted leading-relaxed">
-        This claim could not be found. It may have been removed.
-      </p>
-    </>
-  );
-}
-
-function ErrorContent() {
-  return (
-    <>
-      <h1 className="font-heading text-2xl font-bold text-navy mb-2">Something Went Wrong</h1>
-      <p className="text-muted leading-relaxed">
-        We couldn't process this request. Please try again from your dashboard.
-      </p>
-    </>
-  );
+async function ConfirmCTA({ type }: { type: string }) {
+  const t = await getTranslations("common");
+  if (type === "memorials") return <>{t("memorials")}</>;
+  return <>{t("dashboard")}</>;
 }
