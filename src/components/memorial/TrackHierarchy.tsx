@@ -283,7 +283,7 @@ function TehillimHierarchy({ portions, onClaim, onComplete, claimingId, completi
               <AnimatePresence>
                 {isExp && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-3 mt-1 bg-cream-warm rounded-xl">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3 mt-1 bg-cream-warm rounded-xl">
                       {bp.sort((a: Portion, b: Portion) => (a.order || 0) - (b.order || 0)).map((p: Portion) => (
                         <PortionCard key={p.id} portion={p} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} locale={locale} compact />
                       ))}
@@ -418,9 +418,18 @@ function FlatGrid({ portions, onClaim, onComplete, claimingId, completing, curre
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function PortionCard({ portion, onClaim, onComplete, claimingId, completing, currentUserId, t, compact, locale }: any) {
   const p = portion as Portion;
-  const displayName = locale === "he"
-    ? localizedDisplay(p.displayNameHebrew || p.displayName, "he")
-    : (p.displayNameHebrew || p.displayName);
+  let displayName: string = p.displayNameHebrew || p.displayName;
+  if (locale === "he") {
+    // For Tehillim compact cards, drop the "תהילים" prefix so the gematria fits.
+    // The book grouping above already provides Tehillim context.
+    if (compact && p.trackType === "tehillim" && p.displayNameHebrew) {
+      const m = p.displayNameHebrew.match(/^תהילים\s+(\d+)/);
+      if (m) displayName = "פרק " + toHebrewNumeral(parseInt(m[1], 10));
+      else displayName = localizedDisplay(p.displayNameHebrew, "he");
+    } else {
+      displayName = localizedDisplay(p.displayNameHebrew || p.displayName, "he");
+    }
+  }
   return (
     <Card className={cn(
       "transition-all",
