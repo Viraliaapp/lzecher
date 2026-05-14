@@ -65,38 +65,57 @@ export default function LoginPage() {
     if (!isMagicLinkSignIn(window.location.href)) return;
     signInAttemptedRef.current = true;
 
-    const storedEmail = window.localStorage.getItem("lzecher_email_for_signin") || "";
-    if (!storedEmail) {
-      // Cross-browser: user clicked link in a different browser — ask for email
-      const enteredEmail = window.prompt(t("enterEmailPrompt"));
-      if (!enteredEmail) {
-        signInAttemptedRef.current = false;
-        return;
+    (async () => {
+      // Strategy: the magic-link redirect URL embeds a signed token (?e=...) carrying
+      // the requesting email. Verify it server-side and use that email to complete
+      // sign-in without prompting the user. Falls back to localStorage, then to
+      // a prompt only if both are absent (truly cross-device with no token).
+      let emailToUse = "";
+
+      const tokenE = searchParams.get("e");
+      if (tokenE) {
+        try {
+          const r = await fetch("/api/auth/verify-email-token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: tokenE }),
+          });
+          if (r.ok) {
+            const data = await r.json();
+            if (data.email) emailToUse = data.email;
+          }
+        } catch (e) {
+          console.warn("[login] could not verify embedded email token:", e);
+        }
       }
-      window.localStorage.setItem("lzecher_email_for_signin", enteredEmail);
-    }
 
-    const emailToUse = window.localStorage.getItem("lzecher_email_for_signin") || "";
-    if (!emailToUse) {
-      signInAttemptedRef.current = false;
-      return;
-    }
+      if (!emailToUse) {
+        emailToUse = window.localStorage.getItem("lzecher_email_for_signin") || "";
+      }
 
-    setCompleting(true);
-    completeMagicLinkSignIn(emailToUse, window.location.href)
-      .then(async (cred) => {
+      if (!emailToUse) {
+        // Last-resort: ask. Should now be very rare (only if token was stripped
+        // AND user is on a different browser).
+        emailToUse = window.prompt(t("enterEmailPrompt")) || "";
+        if (!emailToUse) {
+          signInAttemptedRef.current = false;
+          return;
+        }
+      }
+
+      setCompleting(true);
+      try {
+        const cred = await completeMagicLinkSignIn(emailToUse, window.location.href);
         await ensureUserDoc(cred.user.uid, cred.user.email);
         toast.success(t("welcomeBack"));
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Magic link verify failed:", err);
-        // Only show error if user is NOT authenticated (second StrictMode call may fail
-        // with invalid-action-code even though first call succeeded)
         if (!auth.currentUser) {
           toast.error(t("linkExpired"));
         }
         setCompleting(false);
-      });
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 

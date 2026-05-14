@@ -6,6 +6,7 @@ import {
   type ReminderType,
   type ReminderLocale,
 } from "@/lib/reminder-templates";
+import { signToken, TTL } from "@/lib/signed-tokens";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -178,7 +179,18 @@ async function buildTemplateArgs(
     unsubscribeLink = `${baseUrl}/${locale}/unsubscribe?token=${token}`;
   }
 
-  return { honoreeName, commitmentDesc, deadline, link, unsubscribeLink };
+  // Auto-signin link to dashboard (for anon claimers who provided email).
+  // The signed token lets them open the dashboard with one click, signed in.
+  let dashboardLink: string | undefined;
+  if (data.toEmail) {
+    const dashToken = signToken(
+      { purpose: "auto_signin", email: data.toEmail, locale, redirect: `/${locale}/dashboard` },
+      TTL.AUTO_SIGNIN
+    );
+    dashboardLink = `${baseUrl}/${locale}/auto-signin?token=${dashToken}`;
+  }
+
+  return { honoreeName, commitmentDesc, deadline, link, unsubscribeLink, dashboardLink };
 }
 
 // ── HMAC helper (same as unsubscribe page) ────────────────────────────────────

@@ -88,7 +88,11 @@
     "errorSendingLink": "לא ניתן לשלוח את קישור ההתחברות. נסה שוב.",
     "welcomeBack": "ברוך הבא!",
     "linkExpired": "הקישור פג תוקף. בקש קישור חדש.",
-    "enterEmailPrompt": "הזן את כתובת האימייל שבה ביקשת את קישור ההתחברות:"
+    "enterEmailPrompt": "הזן את כתובת האימייל שבה ביקשת את קישור ההתחברות:",
+    "autoSigninWorking": "מחבר אותך…",
+    "autoSigninSuccess": "מעביר אותך ללוח…",
+    "autoSigninFailed": "לא ניתן לחבר אותך",
+    "autoSigninNoToken": "לא סופק טוקן כניסה"
   },
   "dashboard": {
     "title": "לוח בקרה",
@@ -290,7 +294,9 @@
     "tokenExpired": "פתח את לוח הבקרה כדי לסמן כהושלם.",
     "addEmailReminders": "+ הוסף אימייל לתזכורות (אופציונלי)",
     "nameRequired": "אנא הזן את שמך",
-    "completionBanner": "זכות עצומה לנשמת {name}."
+    "completionBanner": "זכות עצומה לנשמת {name}.",
+    "markCompleteConfirm": "לסמן את הפרק הזה כנלמד?",
+    "markCompleteAccountability": "סימון השלמה הוא קבלה אישית בינך לבין הקדוש ברוך הוא. הנשמה נהנית מלימוד אמיתי."
   },
   "memorials": {
     "title": "כל ההנצחות",

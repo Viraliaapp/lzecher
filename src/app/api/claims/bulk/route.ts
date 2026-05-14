@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { queueRemindersForClaim } from "@/lib/queue-reminders";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { projectId, scope, scopeId, claimerName, idToken, claimerEmail, reminderPreferences } = body;
+    const { projectId, scope, scopeId, claimerName, idToken, claimerEmail, reminderPreferences, locale: claimLocale } = body;
+    const locale = (typeof claimLocale === "string" && ["en", "he", "es", "fr"].includes(claimLocale)) ? claimLocale : "en";
 
     if (!projectId || !scope || !claimerName?.trim()) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -103,6 +105,7 @@ export async function POST(request: NextRequest) {
       userId: uid,
       userName: claimerName.trim(),
       userEmail: email,
+      locale,
       claimedAt: now,
       status: "active",
       duration: "oneTime",
@@ -144,6 +147,7 @@ export async function POST(request: NextRequest) {
           userId: uid,
           userName: claimerName.trim(),
           userEmail: email,
+          locale,
           claimedAt: now,
           status: "active",
           scope: "single",
@@ -159,12 +163,36 @@ export async function POST(request: NextRequest) {
     // Update project stats
     const projectRef = db.collection("lzecher_projects").doc(projectId);
     const projectSnap = await projectRef.get();
+    let projectSlug: string | null = null;
+    let honoreeName: string | undefined;
     if (projectSnap.exists) {
       const proj = projectSnap.data()!;
+      projectSlug = proj.slug || null;
+      honoreeName = `${proj.nameHebrew || ""} ${proj.familyNameHebrew || ""}`.trim() || undefined;
       await projectRef.update({
         claimedPortions: (proj.claimedPortions || 0) + availablePortions.length,
         participantCount: (proj.participantCount || 0) + 1,
       });
+    }
+
+    // Queue reminders for the parent claim (one set per bulk action, not per child)
+    if (email && reminderPreferences && reminderPreferences.length > 0) {
+      try {
+        await queueRemindersForClaim({
+          claimId: parentClaimRef.id,
+          projectId,
+          projectSlug,
+          userId: uid,
+          userEmail: email,
+          reminderPreferences,
+          durationEndDate: null,
+          locale,
+          honoreeName,
+          commitmentDesc: scope === "shas" ? "Shas Mishnayos" : scope === "seder" ? `Seder ${scopeId}` : `Masechta ${scopeId}`,
+        });
+      } catch (e) {
+        console.error("[bulk-claim] queue reminders failed:", e);
+      }
     }
 
     return NextResponse.json({

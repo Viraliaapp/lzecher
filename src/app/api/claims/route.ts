@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
       specificItem,
       reminderPreferences,
       claimerEmail,
+      locale: claimLocale,
     } = body;
+    const locale = (typeof claimLocale === "string" && ["en", "he", "es", "fr"].includes(claimLocale)) ? claimLocale : "en";
 
     if (!portionId || !projectId || !claimerName?.trim()) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -100,6 +102,7 @@ export async function POST(request: NextRequest) {
         userId: uid,
         userName: claimerName.trim(),
         userEmail: email,
+        locale,
         claimedAt: now,
         status: "active",
         duration: resolvedDuration,
@@ -130,6 +133,8 @@ export async function POST(request: NextRequest) {
             userEmail: email,
             reminderPreferences,
             durationEndDate: resolvedEndDate,
+            locale,
+            commitmentDesc: portionData.reference || portionData.displayName,
           });
         } catch (e) {
           console.error("Failed to queue reminders:", e);
@@ -163,6 +168,7 @@ export async function POST(request: NextRequest) {
         userId: uid,
         userName: claimerName.trim(),
         userEmail: email,
+        locale,
         claimedAt: now,
         status: "active",
         duration: resolvedDuration,
@@ -202,6 +208,8 @@ export async function POST(request: NextRequest) {
             userEmail: email,
             reminderPreferences,
             durationEndDate: resolvedEndDate,
+            locale,
+            commitmentDesc: portionData.reference || portionData.displayName,
           });
         } catch (e) {
           console.error("Failed to queue reminders:", e);

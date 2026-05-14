@@ -88,7 +88,11 @@
     "errorSendingLink": "Could not send the sign-in link. Please try again.",
     "welcomeBack": "Welcome!",
     "linkExpired": "This link has expired. Please request a new one.",
-    "enterEmailPrompt": "Please enter the email you used to request this sign-in link:"
+    "enterEmailPrompt": "Please enter the email you used to request this sign-in link:",
+    "autoSigninWorking": "Signing you in…",
+    "autoSigninSuccess": "Taking you to your dashboard…",
+    "autoSigninFailed": "Could not sign you in",
+    "autoSigninNoToken": "No sign-in token provided"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -290,7 +294,9 @@
     "tokenExpired": "Open your dashboard to mark this complete.",
     "addEmailReminders": "+ Add email for reminders (optional)",
     "nameRequired": "Please enter your name",
-    "completionBanner": "An enormous zechus for {name}’s neshama."
+    "completionBanner": "An enormous zechus for {name}’s neshama.",
+    "markCompleteConfirm": "Mark this portion as learned?",
+    "markCompleteAccountability": "Marking complete is a personal commitment between you and Hashem. The neshama benefits from honest learning."
   },
   "memorials": {
     "title": "All Memorials",

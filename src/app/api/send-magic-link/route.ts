@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth } from "@/lib/firebase/admin";
 import { Resend } from "resend";
 import { checkRateLimit as checkRL, getClientIp } from "@/lib/rate-limit";
+import { signToken, TTL } from "@/lib/signed-tokens";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -62,10 +63,17 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lzecher.com";
 
+    // Sign the email + locale into a token so the verify page can complete sign-in
+    // without re-prompting the user (works cross-device / cross-browser).
+    const emailToken = signToken(
+      { purpose: "email_signin", email: email.toLowerCase().trim(), locale },
+      TTL.EMAIL_SIGNIN
+    );
+
     // Generate the sign-in link server-side using Firebase Admin
     const adminAuth = getAdminAuth();
     const actionCodeSettings = {
-      url: `${baseUrl}/${locale}/login?finishSignIn=true`,
+      url: `${baseUrl}/${locale}/login?finishSignIn=true&e=${encodeURIComponent(emailToken)}`,
       handleCodeInApp: true,
     };
 

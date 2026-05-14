@@ -67,6 +67,7 @@ export function Navbar() {
   }, [profileDropdown]);
 
   const navLinks = [
+    { href: "/", label: t("memorials") },
     { href: "/about", label: t("about") },
     { href: "/halachic-guidance", label: t("halachicGuidance") },
   ];

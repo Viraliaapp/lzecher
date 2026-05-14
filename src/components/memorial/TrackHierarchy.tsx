@@ -432,16 +432,17 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, completing, cur
         {p.status === "claimed" && (
           <div className="mt-1">
             <p className="text-[10px] text-muted truncate">{t("claimedBy", { name: p.claimedByName || t("someone") })}</p>
-            {currentUserId && p.claimedBy === currentUserId && (
-              <Button size="sm" variant="secondary" className="w-full mt-1 h-7 text-xs" onClick={() => onComplete(p)} disabled={completing}>
-                <Check className="h-3 w-3" />{t("markComplete")}
-              </Button>
-            )}
+            {/* Mark complete is now visible to EVERYONE — anyone can confirm
+                they've learned this perek. The handler shows a name-prompt
+                modal for non-owners. */}
+            <Button size="sm" variant="secondary" className="w-full mt-1 h-7 text-xs" onClick={() => onComplete(p)} disabled={completing}>
+              <Check className="h-3 w-3" />{t("markComplete")}
+            </Button>
           </div>
         )}
 
         {p.status === "completed" && (
-          <p className="text-[10px] text-emerald-600 mt-1">{t("completedBy", { name: p.claimedByName || t("someone") })}</p>
+          <p className="text-[10px] text-emerald-600 mt-1">{t("completedBy", { name: (p as Portion & { completedByName?: string }).completedByName || p.claimedByName || t("someone") })}</p>
         )}
       </CardContent>
     </Card>

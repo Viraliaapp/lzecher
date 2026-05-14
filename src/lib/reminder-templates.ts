@@ -21,6 +21,7 @@ export interface ReminderTemplateArgs {
   link: string; // URL back to the claim/memorial
   unsubscribeLink?: string;
   markCompleteLink?: string; // Signed "I learned this" one-click URL
+  dashboardLink?: string; // Auto-signin link — opens dashboard signed-in for anon users
 }
 
 export interface ReminderEmail {
@@ -115,6 +116,13 @@ const VIEW_MEMORIAL_TEXT: Record<ReminderLocale, string> = {
   fr: "Voir le memorial",
 };
 
+const VIEW_DASHBOARD_TEXT: Record<ReminderLocale, string> = {
+  en: "View your dashboard",
+  he: "מעבר ללוח שלי",
+  es: "Ver mi panel",
+  fr: "Voir mon tableau de bord",
+};
+
 function divider(): string {
   return `<hr style="border:none;border-top:1px solid rgba(15,27,45,0.07);margin:24px 0;" />`;
 }
@@ -155,7 +163,7 @@ const templates: Record<
 > = {
   // ── Confirmation ────────────────────────────────────────────────────────────
   confirmation: {
-    en: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink, markCompleteLink }) => ({
+    en: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink, markCompleteLink, dashboardLink }) => ({
       subject: `Your commitment for ${honoreeName} is confirmed`,
       body: emailWrapper(
         `
@@ -164,6 +172,7 @@ const templates: Record<
         ${body(`Thank you for taking on this learning as a merit for <strong>${honoreeName}</strong>. Your commitment has been recorded and will be a zechus for their neshama.`)}
         ${body(`<strong>What you committed to:</strong> ${commitmentDesc}${deadline ? `<br><strong>By:</strong> ${deadline}` : ""}`)}
         ${markCompleteLink ? ctaButton(markCompleteLink, MARK_COMPLETE_TEXT.en) : ""}
+        ${dashboardLink ? secondaryButton(dashboardLink, VIEW_DASHBOARD_TEXT.en) : ""}
         ${secondaryButton(link, VIEW_MEMORIAL_TEXT.en)}
         ${divider()}
         ${body(`<em>May the Torah you learn be a source of elevation for the neshama of ${honoreeName}.</em>`)}
@@ -176,7 +185,7 @@ const templates: Record<
       ),
     }),
 
-    he: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink }) => ({
+    he: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink, markCompleteLink, dashboardLink }) => ({
       subject: `ההתחייבות שלך לעילוי נשמת ${honoreeName} אושרה`,
       body: emailWrapper(
         `
@@ -184,7 +193,9 @@ const templates: Record<
         ${badge(`לעילוי נשמת ${honoreeName}`)}
         ${body(`תודה שקיבלת על עצמך ללמוד לעילוי נשמת <strong>${honoreeName}</strong>. ההתחייבות שלך נרשמה ותהיה זכות לנשמה.`)}
         ${body(`<strong>מה שקיבלת על עצמך:</strong> ${commitmentDesc}${deadline ? `<br><strong>עד:</strong> ${deadline}` : ""}`)}
-        ${ctaButton(link, "צפה בהתחייבות שלי")}
+        ${markCompleteLink ? ctaButton(markCompleteLink, MARK_COMPLETE_TEXT.he) : ""}
+        ${dashboardLink ? secondaryButton(dashboardLink, VIEW_DASHBOARD_TEXT.he) : ""}
+        ${secondaryButton(link, VIEW_MEMORIAL_TEXT.he)}
         ${divider()}
         ${body(`<em>יהי רצון שהתורה שתלמד תהיה לעילוי נשמת ${honoreeName}.</em>`)}
         `,
@@ -196,7 +207,7 @@ const templates: Record<
       ),
     }),
 
-    es: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink }) => ({
+    es: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink, markCompleteLink, dashboardLink }) => ({
       subject: `Tu compromiso por ${honoreeName} ha sido confirmado`,
       body: emailWrapper(
         `
@@ -204,7 +215,9 @@ const templates: Record<
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
         ${body(`Gracias por asumir este estudio como merito para <strong>${honoreeName}</strong>. Tu compromiso ha sido registrado y sera una zechus para su neshama.`)}
         ${body(`<strong>Tu compromiso:</strong> ${commitmentDesc}${deadline ? `<br><strong>Fecha limite:</strong> ${deadline}` : ""}`)}
-        ${ctaButton(link, "Ver mi compromiso")}
+        ${markCompleteLink ? ctaButton(markCompleteLink, MARK_COMPLETE_TEXT.es) : ""}
+        ${dashboardLink ? secondaryButton(dashboardLink, VIEW_DASHBOARD_TEXT.es) : ""}
+        ${secondaryButton(link, VIEW_MEMORIAL_TEXT.es)}
         ${divider()}
         ${body(`<em>Que el Torah que estudies sea una fuente de elevacion para la neshama de ${honoreeName}.</em>`)}
         `,
@@ -216,7 +229,7 @@ const templates: Record<
       ),
     }),
 
-    fr: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink }) => ({
+    fr: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink, markCompleteLink, dashboardLink }) => ({
       subject: `Votre engagement pour ${honoreeName} est confirme`,
       body: emailWrapper(
         `
@@ -224,7 +237,9 @@ const templates: Record<
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
         ${body(`Merci d'avoir pris cet engagement d'etude comme merite pour <strong>${honoreeName}</strong>. Votre engagement a ete enregistre et sera une zekhout pour sa neshama.`)}
         ${body(`<strong>Votre engagement :</strong> ${commitmentDesc}${deadline ? `<br><strong>Echeance :</strong> ${deadline}` : ""}`)}
-        ${ctaButton(link, "Voir mon engagement")}
+        ${markCompleteLink ? ctaButton(markCompleteLink, MARK_COMPLETE_TEXT.fr) : ""}
+        ${dashboardLink ? secondaryButton(dashboardLink, VIEW_DASHBOARD_TEXT.fr) : ""}
+        ${secondaryButton(link, VIEW_MEMORIAL_TEXT.fr)}
         ${divider()}
         ${body(`<em>Que la Torah que vous etudiez soit une source d'elevation pour la neshama de ${honoreeName}.</em>`)}
         `,

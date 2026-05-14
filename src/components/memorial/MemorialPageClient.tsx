@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 import { ReportModal } from "./ReportModal";
 import { PhotoUploadModal } from "@/components/photo/PhotoUploadModal";
-import { SoftLoginModal } from "@/components/auth/SoftLoginModal";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Portion, TrackType } from "@/lib/types";
@@ -92,8 +91,10 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const [bulkClaimScope, setBulkClaimScope] = useState<{ scope: string; scopeId: string; scopeName: string } | null>(null);
   const [bulkClaiming, setBulkClaiming] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(project.photoURL || null);
-  const [softLoginOpen, setSoftLoginOpen] = useState(false);
   const [chizukMessage, setChizukMessage] = useState<{ he: string; en: string; es: string; fr: string } | null>(null);
+  const [completePortion, setCompletePortion] = useState<Portion | null>(null);
+  const [completerName, setCompleterName] = useState("");
+  const [completing2, setCompleting2] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderPreset, setReminderPreset] = useState<'confirmation' | 'light' | 'daily' | 'weekly' | 'custom'>('light');
   const [showCustomReminders, setShowCustomReminders] = useState(false);
@@ -149,39 +150,17 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     return hebrewDate || gregFormatted || "";
   })();
 
+  // Frictionless claim: no SoftLogin step. Anyone clicks → claim modal opens directly.
   function handleClaimClick(portion: Portion) {
     setSelectedPortion(portion);
-    if (!user) {
-      setSoftLoginOpen(true);
-      return;
-    }
-    setClaimerName(user.displayName || "");
-    setClaimerEmail(user.email || "");
+    setClaimerName(user?.displayName || "");
+    setClaimerEmail(user?.email || "");
     setReminderEnabled(false);
     setReminderPreset('light');
     setShowCustomReminders(false);
     setReminderPrefs([]);
-    setShowEmailSection(Boolean(user.email)); // pre-show only if user already has email
-    setSubmitting(false);
-    setConfirmDialogOpen(true);
-  }
-
-  function handleAuthenticated() {
-    setSoftLoginOpen(false);
-    setClaimerName(user?.displayName || "");
-    setClaimerEmail(user?.email || "");
+    // Pre-expand email section only if user is signed in WITH an email on profile
     setShowEmailSection(Boolean(user?.email));
-    setSubmitting(false);
-    setConfirmDialogOpen(true);
-  }
-
-  function handleAnonymousClaim() {
-    setSoftLoginOpen(false);
-    setClaimerName("");
-    setClaimerEmail("");
-    setShowEmailSection(false); // anonymous → name-only by default
-    setReminderEnabled(false);
-    setReminderPrefs([]);
     setSubmitting(false);
     setConfirmDialogOpen(true);
   }
@@ -215,6 +194,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           idToken,
           claimerEmail: claimerEmail || undefined,
           reminderPreferences: resolvedPrefs.length > 0 ? resolvedPrefs : undefined,
+          locale,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -245,42 +225,57 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     }
   }
 
-  async function handleComplete(portion: Portion) {
-    setCompleting(true);
+  // Open mark-complete confirmation modal. Owner gets one-click confirm;
+  // non-owner / anonymous user must type a name.
+  function handleComplete(portion: Portion) {
+    setCompletePortion(portion);
+    setCompleterName(user?.displayName || "");
+    setCompleting2(false);
+  }
+
+  async function confirmComplete() {
+    if (!completePortion) return;
+    const isOwner = user && completePortion.claimedBy === user.uid;
+    const trimmedName = completerName.trim();
+    if (!isOwner && !trimmedName) {
+      toast.error(t("nameRequired") || "Please enter your name");
+      return;
+    }
+    setCompleting2(true);
     try {
-      const idToken = await auth.currentUser?.getIdToken(true);
-      if (!idToken) {
-        toast.error(t("completeError"));
-        return;
-      }
+      const idToken = await auth.currentUser?.getIdToken(true).catch(() => null);
       const res = await fetch("/api/claims/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          portionId: portion.id,
+          portionId: completePortion.id,
           projectId: project.id,
-          idToken,
+          idToken: idToken || undefined,
+          completedByName: trimmedName || user?.displayName || undefined,
+          completedByEmail: user?.email || undefined,
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json();
+        console.error("[complete] API error", res.status, data);
         toast.error(data.error || t("completeError"));
         return;
       }
-      const data = await res.json();
-      if (data.chizuk) {
-        setChizukMessage(data.chizuk);
-      }
+      if (data.chizuk) setChizukMessage(data.chizuk);
       setPortions((prev) =>
         prev.map((p) =>
-          p.id === portion.id ? { ...p, status: "completed" as const, completedAt: Date.now() } : p
+          p.id === completePortion.id
+            ? { ...p, status: "completed" as const, completedAt: Date.now(), completedByName: trimmedName || user?.displayName || p.claimedByName }
+            : p
         )
       );
       toast.success(t("completedSuccess"));
-    } catch {
+      setCompletePortion(null);
+    } catch (err) {
+      console.error("[complete] network/exception:", err);
       toast.error(t("completeError"));
     } finally {
-      setCompleting(false);
+      setCompleting2(false);
     }
   }
 
@@ -291,17 +286,13 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   }
 
   function handleBulkClaim(scope: string, scopeId: string, scopeName: string) {
-    if (!user) {
-      setSoftLoginOpen(true);
-      return;
-    }
-    setClaimerName(user.displayName || "");
-    setClaimerEmail(user.email || "");
+    setClaimerName(user?.displayName || "");
+    setClaimerEmail(user?.email || "");
     setReminderEnabled(false);
     setReminderPreset('light');
     setShowCustomReminders(false);
     setReminderPrefs([]);
-    setShowEmailSection(Boolean(user.email));
+    setShowEmailSection(Boolean(user?.email));
     setBulkClaimScope({ scope, scopeId, scopeName });
   }
 
@@ -333,6 +324,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           idToken,
           claimerEmail: claimerEmail || undefined,
           reminderPreferences: resolvedPrefs.length > 0 ? resolvedPrefs : undefined,
+          locale,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -696,12 +688,38 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         </DialogContent>
       </Dialog>
 
-      <SoftLoginModal
-        open={softLoginOpen}
-        onOpenChange={setSoftLoginOpen}
-        onAuthenticated={handleAuthenticated}
-        onAnonymousClaim={handleAnonymousClaim}
-      />
+      {/* Mark Complete Confirmation — anyone can mark complete with a name */}
+      <Dialog open={!!completePortion} onOpenChange={(o) => { if (!o) setCompletePortion(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("markCompleteConfirm") || "Mark this portion as learned?"}</DialogTitle>
+            <DialogDescription>
+              {completePortion?.displayNameHebrew || completePortion?.displayName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium text-navy mb-1 block">{t("yourName")}</label>
+              <Input
+                value={completerName}
+                onChange={(e) => setCompleterName(e.target.value)}
+                placeholder={t("namePlaceholder")}
+                autoFocus
+              />
+            </div>
+            {/* Religious accountability message */}
+            <p className="text-xs text-muted leading-relaxed border-l-2 border-gold/30 pl-3 py-1 bg-cream-warm/40">
+              {t("markCompleteAccountability") || "Marking complete is a personal commitment between you and Hashem. The neshama benefits from honest learning."}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCompletePortion(null)} disabled={completing2}>{t("cancel")}</Button>
+            <Button onClick={confirmComplete} disabled={completing2 || !completerName.trim()}>
+              {completing2 ? <Spinner className="h-4 w-4" /> : (t("markComplete") || "Mark complete")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Bulk Claim Confirmation */}
       <Dialog open={!!bulkClaimScope} onOpenChange={() => setBulkClaimScope(null)}>

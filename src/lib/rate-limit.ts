@@ -35,6 +35,7 @@ const limiters = {
   projectCreate: () => createLimiter("proj-create", 10, 3600),
   claimCreateAnon: () => createLimiter("claim-anon", 30, 3600),
   claimCreateAuth: () => createLimiter("claim-auth", 100, 3600),
+  markCompleteAnon: () => createLimiter("complete-anon", 10, 3600),
   ogImage: () => createLimiter("og", 100, 60),
 };
 

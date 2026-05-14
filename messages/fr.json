@@ -88,7 +88,11 @@
     "errorSendingLink": "Impossible d'envoyer le lien. Veuillez reessayer.",
     "welcomeBack": "Bienvenue !",
     "linkExpired": "Ce lien a expire. Veuillez en demander un nouveau.",
-    "enterEmailPrompt": "Veuillez saisir l'adresse e-mail utilisee pour demander ce lien :"
+    "enterEmailPrompt": "Veuillez saisir l'adresse e-mail utilisee pour demander ce lien :",
+    "autoSigninWorking": "Connexion en cours…",
+    "autoSigninSuccess": "Redirection vers votre tableau de bord…",
+    "autoSigninFailed": "Impossible de vous connecter",
+    "autoSigninNoToken": "Aucun jeton fourni"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -290,7 +294,9 @@
     "tokenExpired": "Ouvrez votre tableau de bord pour marquer ceci comme termine.",
     "addEmailReminders": "+ Ajouter un e-mail pour les rappels (facultatif)",
     "nameRequired": "Veuillez saisir votre nom",
-    "completionBanner": "Un immense mérite (zekhout) pour la neshama de {name}."
+    "completionBanner": "Un immense mérite (zekhout) pour la neshama de {name}.",
+    "markCompleteConfirm": "Marquer cette portion comme apprise ?",
+    "markCompleteAccountability": "Marquer comme complete est un engagement personnel entre vous et Hachem. La nechama beneficie de l etude honnete."
   },
   "memorials": {
     "title": "Tous les memoriaux",

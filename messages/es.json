@@ -88,7 +88,11 @@
     "errorSendingLink": "No se pudo enviar el enlace. Intentalo de nuevo.",
     "welcomeBack": "Bienvenido!",
     "linkExpired": "Este enlace ha caducado. Solicita uno nuevo.",
-    "enterEmailPrompt": "Ingresa el correo que usaste para solicitar este enlace:"
+    "enterEmailPrompt": "Ingresa el correo que usaste para solicitar este enlace:",
+    "autoSigninWorking": "Iniciando sesion…",
+    "autoSigninSuccess": "Llevandote a tu panel…",
+    "autoSigninFailed": "No pudimos iniciar tu sesion",
+    "autoSigninNoToken": "No se proporciono token"
   },
   "dashboard": {
     "title": "Panel de control",
@@ -290,7 +294,9 @@
     "tokenExpired": "Abre tu panel para marcar esto como completo.",
     "addEmailReminders": "+ Añadir correo para recordatorios (opcional)",
     "nameRequired": "Por favor ingrese su nombre",
-    "completionBanner": "Un enorme mérito (zejut) para el alma de {name}."
+    "completionBanner": "Un enorme mérito (zejut) para el alma de {name}.",
+    "markCompleteConfirm": "Marcar esta porcion como aprendida?",
+    "markCompleteAccountability": "Marcar como completado es un compromiso personal entre tu y Hashem. El neshama se beneficia del estudio honesto."
   },
   "memorials": {
     "title": "Todos los memoriales",
