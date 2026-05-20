@@ -31,11 +31,30 @@ export async function POST(request: NextRequest) {
       .where("userId", "==", uid)
       .get();
 
-    const claims = claimSnap.docs
-      .map((d) => ({ id: d.id, ...d.data() }))
-      .sort((a: Record<string, unknown>, b: Record<string, unknown>) =>
-        ((b.claimedAt as number) || 0) - ((a.claimedAt as number) || 0)
-      );
+    const rawClaims = claimSnap.docs
+      .map((d) => ({ id: d.id, ...d.data() }) as Record<string, unknown>)
+      .sort((a, b) => ((b.claimedAt as number) || 0) - ((a.claimedAt as number) || 0));
+
+    // Enrich each claim with projectSlug + projectHonoree so the dashboard's
+    // hierarchical accordion can render the project header without a second
+    // round-trip per project.
+    const projectIds = Array.from(new Set(rawClaims.map((c) => c.projectId as string).filter(Boolean)));
+    const projectMap = new Map<string, { slug?: string; honoree?: string }>();
+    for (const pid of projectIds) {
+      const p = await db.collection("lzecher_projects").doc(pid).get();
+      if (p.exists) {
+        const pd = p.data()!;
+        projectMap.set(pid, {
+          slug: pd.slug,
+          honoree: `${pd.nameHebrew || ""} ${pd.familyNameHebrew || ""}`.trim() + " " + (pd.honorific || "ז״ל"),
+        });
+      }
+    }
+    const claims = rawClaims.map((c) => ({
+      ...c,
+      projectSlug: projectMap.get(c.projectId as string)?.slug,
+      projectHonoree: projectMap.get(c.projectId as string)?.honoree,
+    }));
 
     return NextResponse.json({ projects, claims });
   } catch (err) {

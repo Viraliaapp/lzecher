@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle } from "lucide-react";
+import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { collection, query, getDocs, orderBy } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase/config";
@@ -189,6 +189,9 @@ export default function AdminPage() {
                   <div className="flex items-center gap-1 shrink-0">
                     <a href={`/en/memorial/${project.slug}`} target="_blank" rel="noopener">
                       <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+                    </a>
+                    <a href={`/admin/projects/${project.id}/edit`}>
+                      <Button variant="ghost" size="icon" title="Edit"><Pencil className="h-4 w-4 text-navy/60" /></Button>
                     </a>
                     {project.status === "active" ? (
                       <Button variant="ghost" size="icon" onClick={() => { setActionId(project.id); setHideDialogOpen(true); }}>

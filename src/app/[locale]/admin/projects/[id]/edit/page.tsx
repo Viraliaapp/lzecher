@@ -1,0 +1,300 @@
+"use client";
+
+import { useEffect, useState, use } from "react";
+import { useTranslations, useLocale } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+import { auth } from "@/lib/firebase/config";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
+import type { TrackType } from "@/lib/types";
+
+const ALL_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
+
+export default function AdminEditProjectPage({ params }: { params: Promise<{ locale: string; id: string }> }) {
+  const { id } = use(params);
+  const t = useTranslations("admin");
+  const tc = useTranslations("create");
+  const router = useRouter();
+  const locale = useLocale();
+  const { profile, loading: authLoading } = useAuth();
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [project, setProject] = useState<Record<string, unknown> | null>(null);
+
+  const [nameHebrew, setNameHebrew] = useState("");
+  const [familyNameHebrew, setFamilyNameHebrew] = useState("");
+  const [nameEnglish, setNameEnglish] = useState("");
+  const [familyNameEnglish, setFamilyNameEnglish] = useState("");
+  const [fatherNameHebrew, setFatherNameHebrew] = useState("");
+  const [motherNameHebrew, setMotherNameHebrew] = useState("");
+  const [honorific, setHonorific] = useState("");
+  const [gender, setGender] = useState<"male" | "female">("male");
+  const [biography, setBiography] = useState("");
+  const [familyMessage, setFamilyMessage] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
+  const [allowAnonymous, setAllowAnonymous] = useState(true);
+
+  const [originalTracks, setOriginalTracks] = useState<TrackType[]>([]);
+  const [selectedTracks, setSelectedTracks] = useState<TrackType[]>([]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!profile?.isAdmin) {
+      router.push("/" as "/");
+      return;
+    }
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "lzecher_projects", id));
+        if (!snap.exists()) {
+          toast.error("Project not found");
+          router.push("/admin" as "/admin");
+          return;
+        }
+        const data = snap.data();
+        setProject(data);
+        setNameHebrew(data.nameHebrew || "");
+        setFamilyNameHebrew(data.familyNameHebrew || "");
+        setNameEnglish(data.nameEnglish || "");
+        setFamilyNameEnglish(data.familyNameEnglish || "");
+        setFatherNameHebrew(data.fatherNameHebrew || "");
+        setMotherNameHebrew(data.motherNameHebrew || "");
+        setHonorific(data.honorific || "ז״ל");
+        setGender(data.gender || "male");
+        setBiography(data.biography || "");
+        setFamilyMessage(data.familyMessage || "");
+        setIsPublic(data.isPublic !== false);
+        setAllowAnonymous(data.allowAnonymous !== false);
+        const tracks = Array.isArray(data.tracks) ? data.tracks : [];
+        setOriginalTracks(tracks);
+        setSelectedTracks(tracks);
+      } catch (err) {
+        console.error("[admin/edit] load failed", err);
+        toast.error("Failed to load project");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [authLoading, profile, id, router]);
+
+  function toggleTrack(track: TrackType) {
+    setSelectedTracks((prev) =>
+      prev.includes(track) ? prev.filter((t) => t !== track) : [...prev, track]
+    );
+  }
+
+  async function handleSave() {
+    if (!project) return;
+    setSaving(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      if (!idToken) {
+        toast.error("Sign in expired");
+        return;
+      }
+
+      const updates: Record<string, unknown> = {
+        nameHebrew,
+        familyNameHebrew,
+        nameEnglish: nameEnglish || null,
+        familyNameEnglish: familyNameEnglish || null,
+        fatherNameHebrew: fatherNameHebrew || null,
+        motherNameHebrew: motherNameHebrew || null,
+        honorific,
+        gender,
+        biography: biography || null,
+        familyMessage: familyMessage || null,
+        isPublic,
+        allowAnonymous,
+      };
+      const trackChanges: { add?: TrackType[]; remove?: TrackType[]; confirmDestructive?: string } = {};
+      const added = selectedTracks.filter((t) => !originalTracks.includes(t));
+      const removed = originalTracks.filter((t) => !selectedTracks.includes(t));
+      if (added.length > 0) trackChanges.add = added;
+      if (removed.length > 0) trackChanges.remove = removed;
+
+      // First attempt — server returns 409 if a removal would be destructive
+      let res = await fetch(`/api/admin/projects/${id}/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates, trackChanges, idToken }),
+      });
+      let data = await res.json().catch(() => ({}));
+
+      if (res.status === 409 && data.hasClaims) {
+        const yes = window.confirm(
+          `${t("editProject.destructiveWarning") || "DESTRUCTIVE: this removes a track with"} ${data.activeCount} active + ${data.completedCount} completed claims.\n\n` +
+            `${t("editProject.typeProjectIdToConfirm") || "Type the project ID to confirm"}: ${id}`
+        );
+        if (!yes) {
+          setSaving(false);
+          return;
+        }
+        const typed = window.prompt(`Type "${id}" to confirm destructive track removal:`);
+        if (typed !== id) {
+          toast.error(t("editProject.confirmationMismatch") || "Confirmation did not match");
+          setSaving(false);
+          return;
+        }
+        trackChanges.confirmDestructive = id;
+        res = await fetch(`/api/admin/projects/${id}/update`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updates, trackChanges, idToken }),
+        });
+        data = await res.json().catch(() => ({}));
+      }
+
+      if (!res.ok) {
+        toast.error(data.error || "Save failed");
+        return;
+      }
+      toast.success(t("editProject.saved") || "Saved");
+      router.push("/admin" as "/admin");
+    } catch (err) {
+      console.error("[admin/edit] save failed", err);
+      toast.error("Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (authLoading || loading) {
+    return <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div>;
+  }
+  if (!project) return null;
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("editProject.title") || "Edit project"}</CardTitle>
+          <CardDescription>
+            {t("editProject.slug") || "Slug"}: <code className="text-xs">{(project.slug as string) || id}</code>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-navy mb-1 block">{tc("nameHebrew")}</label>
+              <Input dir="rtl" value={nameHebrew} onChange={(e) => setNameHebrew(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-navy mb-1 block">{tc("familyNameHebrew")}</label>
+              <Input dir="rtl" value={familyNameHebrew} onChange={(e) => setFamilyNameHebrew(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-navy mb-1 block">{tc("nameEnglish")}</label>
+              <Input value={nameEnglish} onChange={(e) => setNameEnglish(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-navy mb-1 block">{tc("familyNameEnglish")}</label>
+              <Input value={familyNameEnglish} onChange={(e) => setFamilyNameEnglish(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-navy mb-1 block">{tc("fatherName")}</label>
+              <Input dir="rtl" value={fatherNameHebrew} onChange={(e) => setFatherNameHebrew(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-navy mb-1 block">{tc("motherName")}</label>
+              <Input dir="rtl" value={motherNameHebrew} onChange={(e) => setMotherNameHebrew(e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-navy mb-1 block">{tc("honorific")}</label>
+            <Input dir="rtl" value={honorific} onChange={(e) => setHonorific(e.target.value)} className="max-w-[200px]" />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-navy mb-2 block">{tc("gender")}</label>
+            <div className="flex gap-3">
+              {(["male", "female"] as const).map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setGender(g)}
+                  className={
+                    "flex-1 py-2.5 px-4 rounded-lg border-2 text-sm font-medium transition-all " +
+                    (gender === g
+                      ? "border-gold bg-gold/5 text-navy"
+                      : "border-navy/10 text-muted hover:border-navy/20")
+                  }
+                >
+                  {tc(g)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-navy mb-1 block">{tc("biography") || "Biography"}</label>
+            <Textarea value={biography} onChange={(e) => setBiography(e.target.value)} rows={4} dir={locale === "he" ? "rtl" : "ltr"} />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-navy mb-1 block">{tc("familyMessage") || "Family message"}</label>
+            <Textarea value={familyMessage} onChange={(e) => setFamilyMessage(e.target.value)} rows={2} dir={locale === "he" ? "rtl" : "ltr"} />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-navy mb-2 block">{t("editProject.tracks") || "Tracks"}</label>
+            <div className="flex flex-wrap gap-2">
+              {ALL_TRACKS.map((track) => (
+                <button
+                  key={track}
+                  type="button"
+                  onClick={() => toggleTrack(track)}
+                  className={
+                    "px-3 py-1.5 rounded-lg border-2 text-xs font-medium transition-all " +
+                    (selectedTracks.includes(track)
+                      ? "border-gold bg-gold/5 text-navy"
+                      : "border-navy/10 text-muted hover:border-navy/20")
+                  }
+                >
+                  {tc(`track_${track}` as never)}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted mt-2">
+              {t("editProject.tracksHint") || "Removing a track with active claims requires destructive confirmation."}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-navy/5 pt-4">
+            <span className="text-sm font-medium text-navy">{t("editProject.isPublic") || "Public"}</span>
+            <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-navy">{t("editProject.allowAnonymous") || "Allow anonymous claims"}</span>
+            <Switch checked={allowAnonymous} onCheckedChange={setAllowAnonymous} />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-navy/5">
+            <Button variant="ghost" onClick={() => router.push("/admin" as "/admin")} disabled={saving}>
+              {tc("cancel") || "Cancel"}
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Spinner className="h-4 w-4" /> : t("editProject.save") || "Save changes"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
