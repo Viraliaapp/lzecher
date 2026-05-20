@@ -41,6 +41,23 @@ const COLLECTIONS_TO_PRESERVE = [
 
 const STORAGE_PREFIXES_TO_WIPE = ["lzecher/photos/", "lzecher/og/"];
 
+// ── Defensive guards: hard-stop if ANY entry violates the lzecher_/lzecher
+//    prefix invariant. Protects against future typos that could accidentally
+//    target a sibling app's data (this Firebase project is shared with
+//    SiftTube, Viralia, TAG Family Safety etc.).
+for (const c of COLLECTIONS_TO_WIPE.concat(COLLECTIONS_TO_PRESERVE)) {
+  if (!c.startsWith("lzecher_")) {
+    console.error(`FATAL: collection "${c}" does not start with "lzecher_". Aborting.`);
+    process.exit(3);
+  }
+}
+for (const p of STORAGE_PREFIXES_TO_WIPE) {
+  if (!p.startsWith("lzecher/")) {
+    console.error(`FATAL: storage prefix "${p}" does not start with "lzecher/". Aborting.`);
+    process.exit(3);
+  }
+}
+
 const CONFIRMATION_PHRASE = "WIPE_ALL_LZECHER_PROJECTS";
 
 function getArg(name) {
@@ -68,6 +85,11 @@ async function ask(question) {
 }
 
 async function deleteCollection(db, name) {
+  // Belt-and-suspenders: refuse any collection name that violates the prefix
+  // invariant, even if it somehow reached this function.
+  if (!name.startsWith("lzecher_")) {
+    throw new Error(`refusing to delete collection "${name}" — does not start with lzecher_`);
+  }
   const ref = db.collection(name);
   let totalDeleted = 0;
   while (true) {
@@ -83,6 +105,9 @@ async function deleteCollection(db, name) {
 }
 
 async function deleteStoragePrefix(bucket, prefix) {
+  if (!prefix.startsWith("lzecher/")) {
+    throw new Error(`refusing to delete storage prefix "${prefix}" — does not start with lzecher/`);
+  }
   const [files] = await bucket.getFiles({ prefix });
   if (files.length === 0) return 0;
   let deleted = 0;

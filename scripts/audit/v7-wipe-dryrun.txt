@@ -1,0 +1,48 @@
+◇ injected env (14) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+==============================================================================
+LZECHER WIPE TEST PROJECTS — 2026-05-20T18-55-06-208Z
+Mode: DRY-RUN (no deletions)
+==============================================================================
+
+Collections that WILL be wiped:
+  - lzecher_projects
+  - lzecher_portions
+  - lzecher_claims
+  - lzecher_reports
+  - lzecher_feedback
+  - lzecher_scheduled_emails
+
+Collections that will be PRESERVED:
+  - lzecher_users
+  - lzecher_mitzvot_templates
+  - lzecher_admin_audit
+  - lzecher_mussar_structure
+
+Storage prefixes that WILL be wiped:
+  - lzecher/photos/*
+  - lzecher/og/*
+
+Counting current contents...
+  lzecher_projects: 6 documents
+  lzecher_portions: 2321 documents
+  lzecher_claims: 448 documents
+  lzecher_reports: 0 documents
+  lzecher_feedback: 0 documents
+  lzecher_scheduled_emails: 0 documents
+
+Preserved collection counts (for context — NOT deleted):
+  lzecher_users: 4 documents
+  lzecher_mitzvot_templates: 0 documents
+  lzecher_admin_audit: 0 documents
+  lzecher_mussar_structure: 0 documents
+
+Storage file counts:
+
+Storage check failed (continuing): The specified bucket does not exist.
+
+==============================================================================
+DRY-RUN COMPLETE — nothing was deleted.
+To actually wipe, run: node scripts\maintenance\wipe-test-projects.js --execute
+==============================================================================
+
+Audit log saved to: C:\Users\solom\lzecher\scripts\maintenance\wipe-log-2026-05-20T18-55-06-208Z.txt
