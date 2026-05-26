@@ -4,10 +4,11 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { onAuthChange, type User } from "@/lib/firebase/auth";
+import { onAuthChange, logout, type User } from "@/lib/firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 
@@ -38,34 +39,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const resolved = useRef(false);
+
+  function resolveLoading() {
+    if (!resolved.current) {
+      resolved.current = true;
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
+    // Safety timeout: if auth hasn't resolved within 5s, force logged-out state.
+    // This self-heals corrupt IndexedDB / stale token situations that previously
+    // caused an infinite spinner requiring manual cookie clearing.
+    const timeout = setTimeout(() => {
+      if (!resolved.current) {
+        console.warn("[auth] 5s timeout — forcing logged-out state");
+        setUser(null);
+        setProfile(null);
+        resolveLoading();
+        logout().catch(() => {});
+      }
+    }, 5000);
+
     const unsub = onAuthChange((firebaseUser) => {
+      clearTimeout(timeout);
       setUser(firebaseUser);
       if (!firebaseUser) {
         setProfile(null);
-        setLoading(false);
+        resolveLoading();
       }
     });
-    return unsub;
-  }, []);
+
+    return () => {
+      clearTimeout(timeout);
+      unsub();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!user) return;
 
-    const unsub = onSnapshot(doc(db, "lzecher_users", user.uid), (snap) => {
-      if (snap.exists()) {
-        setProfile({ uid: user.uid, ...snap.data() } as UserProfile);
-      } else {
-        setProfile({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-        });
+    const unsub = onSnapshot(
+      doc(db, "lzecher_users", user.uid),
+      (snap) => {
+        if (snap.exists()) {
+          setProfile({ uid: user.uid, ...snap.data() } as UserProfile);
+        } else {
+          setProfile({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+          });
+        }
+        resolveLoading();
+      },
+      (error) => {
+        // Firestore permission error = stale / invalid token → self-heal
+        console.error("[auth] Firestore profile error:", error);
+        resolveLoading();
+        if (error.code === "permission-denied" || error.code === "unauthenticated") {
+          logout().catch(() => {});
+        }
       }
-      setLoading(false);
-    });
+    );
 
     return unsub;
   }, [user]);

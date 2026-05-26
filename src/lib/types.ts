@@ -78,6 +78,9 @@ export interface Portion {
   maxClaimers?: number | null;
   currentClaimerCount?: number;
 
+  // Gendered claim verb (overrides track-level default)
+  claimVerbForm?: "masculine" | "feminine" | "both";
+
   // Claim status
   status: "available" | "claimed" | "completed";
   claimedBy?: string; // uid

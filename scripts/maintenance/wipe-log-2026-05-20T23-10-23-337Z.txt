@@ -1,0 +1,82 @@
+==============================================================================
+LZECHER WIPE TEST PROJECTS — 2026-05-20T23-10-23-337Z
+Mode: EXECUTE (will delete)
+==============================================================================
+
+Collections that WILL be wiped:
+  - lzecher_projects
+  - lzecher_portions
+  - lzecher_claims
+  - lzecher_reports
+  - lzecher_feedback
+  - lzecher_scheduled_emails
+
+Collections that will be PRESERVED:
+  - lzecher_users
+  - lzecher_mitzvot_templates
+  - lzecher_admin_audit
+  - lzecher_mussar_structure
+
+Storage prefixes that WILL be wiped:
+  - lzecher/photos/*
+  - lzecher/og/*
+
+Counting current contents...
+  lzecher_projects: 6 documents
+  lzecher_portions: 2321 documents
+  lzecher_claims: 448 documents
+  lzecher_reports: 0 documents
+  lzecher_feedback: 0 documents
+  lzecher_scheduled_emails: 0 documents
+
+Preserved collection counts (for context — NOT deleted):
+  lzecher_users: 4 documents
+  lzecher_mitzvot_templates: 0 documents
+  lzecher_admin_audit: 0 documents
+  lzecher_mussar_structure: 0 documents
+
+Storage file counts:
+
+Storage check failed (continuing): The specified bucket does not exist.
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+To proceed, type this confirmation phrase exactly: WIPE_ALL_LZECHER_PROJECTS
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Proceeding with deletion...
+
+Deleting collection: lzecher_projects
+    deleted batch of 6 from lzecher_projects (running total: 6)
+
+Deleting collection: lzecher_portions
+    deleted batch of 400 from lzecher_portions (running total: 400)
+    deleted batch of 400 from lzecher_portions (running total: 800)
+    deleted batch of 400 from lzecher_portions (running total: 1200)
+    deleted batch of 400 from lzecher_portions (running total: 1600)
+    deleted batch of 400 from lzecher_portions (running total: 2000)
+    deleted batch of 321 from lzecher_portions (running total: 2321)
+
+Deleting collection: lzecher_claims
+    deleted batch of 400 from lzecher_claims (running total: 400)
+    deleted batch of 48 from lzecher_claims (running total: 448)
+
+Deleting collection: lzecher_reports
+
+Deleting collection: lzecher_feedback
+
+Deleting collection: lzecher_scheduled_emails
+
+Deleting storage files...
+  lzecher/photos/: ERROR — The specified bucket does not exist.
+  lzecher/og/: ERROR — The specified bucket does not exist.
+
+==============================================================================
+WIPE COMPLETE
+==============================================================================
+Final tally:
+  lzecher_projects: 6
+  lzecher_portions: 2321
+  lzecher_claims: 448
+  lzecher_reports: 0
+  lzecher_feedback: 0
+  lzecher_scheduled_emails: 0

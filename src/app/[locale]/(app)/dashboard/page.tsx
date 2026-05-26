@@ -19,7 +19,7 @@ import { toHebrewNumeral } from "@/lib/hebrew-numerals";
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<MemorialProject[]>([]);
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,15 +49,34 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return; // wait for auth to resolve
+    if (!user) {
+      setLoading(false); // auth done, no user — stop spinning
+      return;
+    }
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, authLoading]);
 
-  if (loading) {
+  // Show spinner while auth is resolving OR while data is fetching
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Spinner className="h-8 w-8" />
+      </div>
+    );
+  }
+
+  // Auth resolved with no user (corrupt state — middleware should have redirected)
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-4">
+        <p className="text-muted text-sm">
+          {t("sessionExpired") || "Your session has expired."}
+        </p>
+        <Link href="/login">
+          <Button>{t("signIn") || "Sign in"}</Button>
+        </Link>
       </div>
     );
   }
@@ -129,9 +148,10 @@ export default function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((project) => {
+              // Progress is based on CLAIMED (taken), not completed
               const pct =
                 project.totalPortions > 0
-                  ? Math.round((project.completedPortions / project.totalPortions) * 100)
+                  ? Math.round((project.claimedPortions / project.totalPortions) * 100)
                   : 0;
               return (
                 <Card key={project.id} className="hover:shadow-md transition-shadow">
@@ -149,7 +169,7 @@ export default function DashboardPage() {
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted">{t("progress")}</span>
+                        <span className="text-muted">{t("taken") || "נלקחו"}</span>
                         <span className="font-medium text-navy">{pct}%</span>
                       </div>
                       <Progress value={pct} />
@@ -313,9 +333,6 @@ function ProjectSection({ projectId, claims, onRequestBulk, locale, tDash, tMem 
   tDash: ReturnType<typeof useTranslations<"dashboard">>;
   tMem: ReturnType<typeof useTranslations<"memorial">>;
 }) {
-  // Use first claim's projectName proxies — claim docs only have projectId, so
-  // show a simple header that links to the memorial. The detailed honoree name
-  // is fetched on the memorial page.
   const total = claims.length;
   const completed = claims.filter((c) => c.status === "completed").length;
   const active = claims.filter((c) => c.status === "active").length;
@@ -413,6 +430,7 @@ function TrackBlock({ projectId, track, claims, onRequestBulk, locale, tDash, tM
           <span className="text-sm font-medium text-navy">{tMem(`track_${track}` as never)}</span>
           <span className="text-xs text-muted">{completed.length}/{claims.length}</span>
         </div>
+        {/* Mark-complete in dashboard stays as quiet option */}
         {active.length > 0 && (
           <Button
             size="sm"
@@ -516,7 +534,6 @@ function PerekRow({ claim, locale, tDash }: {
   tMem: ReturnType<typeof useTranslations<"memorial">>;
 }) {
   const isDone = claim.status === "completed";
-  // Hebrew gematria for the trailing number
   let label: string = claim.reference || "";
   if (locale === "he") {
     label = label.replace(/\s(\d{1,3})\s*$/, (_m, n) => " " + toHebrewNumeral(parseInt(n, 10)));
