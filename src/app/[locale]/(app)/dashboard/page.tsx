@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
-import { Plus, BookOpen, CheckCircle, Clock, Users, Eye, Share2, ChevronDown, ChevronRight, Check } from "lucide-react";
+import { Plus, BookOpen, CheckCircle, Clock, Users, Eye, Share2, ChevronDown, ChevronRight, Check, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Claim } from "@/lib/types";
@@ -177,8 +177,8 @@ export default function DashboardPage() {
                         <span>{project.claimedPortions}/{project.totalPortions} {t("portions")}</span>
                         <span>{t("participants", { count: project.participantCount || 0 })}</span>
                       </div>
-                      <div className="flex gap-2 pt-2">
-                        <Link href={`/memorial/${project.slug}` as "/memorial/[slug]"} className="flex-1">
+                      <div className="flex gap-2 pt-2 flex-wrap">
+                        <Link href={`/memorial/${project.slug}` as "/memorial/[slug]"} className="flex-1 min-w-[80px]">
                           <Button variant="outline" size="sm" className="w-full">
                             <Eye className="h-3 w-3" />
                             {t("view")}
@@ -194,6 +194,13 @@ export default function DashboardPage() {
                         >
                           <Share2 className="h-3 w-3" />
                         </Button>
+                        {project.createdBy === user?.uid && (
+                          <Link href={`/edit/${project.id}` as never}>
+                            <Button variant="ghost" size="sm" title="ערוך הנצחה">
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </CardContent>

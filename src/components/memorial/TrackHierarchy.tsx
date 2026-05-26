@@ -65,6 +65,26 @@ export function TrackHierarchy({
   const bt = useTranslations("bulkClaim");
   const locale = useLocale();
 
+  // ── Repeating sets: group by setNumber for mishnayos / tehillim ─────────────
+  if (trackType === "mishnayos" || trackType === "tehillim") {
+    const maxSet = Math.max(...portions.map(p => p.setNumber || 1), 1);
+    if (maxSet > 1) {
+      return (
+        <SetGroupedWrapper
+          portions={portions}
+          trackType={trackType as "mishnayos" | "tehillim"}
+          onClaim={onClaim}
+          onBulkClaim={onBulkClaim}
+          onMultiClaim={onMultiClaim}
+          claimingId={claimingId}
+          completing={completing}
+          currentUserId={currentUserId}
+          t={t} bt={bt} locale={locale}
+        />
+      );
+    }
+  }
+
   if (trackType === "mishnayos") return <MishnayosHierarchy {...{ portions, onClaim, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId, t, bt, locale }} />;
   if (trackType === "tehillim") return <TehillimHierarchy {...{ portions, onClaim, onMultiClaim, claimingId, completing, currentUserId, t, locale }} />;
   if (trackType === "shnayim_mikra") return <ShnayimMikraHierarchy {...{ portions, onClaim, claimingId, completing, currentUserId, t, locale }} />;
@@ -683,5 +703,173 @@ function PortionCard({ portion, onClaim, claimingId, compact, locale, t, multiSe
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ── Repeating Sets Wrapper ────────────────────────────────────────────────────
+
+const SET_HEBREW_LETTERS: Record<number, string> = {
+  1: "א׳", 2: "ב׳", 3: "ג׳", 4: "ד׳", 5: "ה׳",
+  6: "ו׳", 7: "ז׳", 8: "ח׳", 9: "ט׳", 10: "י׳",
+};
+function setLabel(setNumber: number, locale: string): string {
+  if (locale === "he") return `סט ${SET_HEBREW_LETTERS[setNumber] || setNumber}`;
+  return `Set ${setNumber}`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function SetGroupedWrapper({ portions, trackType, onClaim, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId, t, bt, locale }: any) {
+  // Group by setNumber (descending = newest first)
+  const setGroups = useMemo(() => {
+    const groups: Record<number, Portion[]> = {};
+    for (const p of portions) {
+      const sn = (p as Portion).setNumber || 1;
+      if (!groups[sn]) groups[sn] = [];
+      groups[sn].push(p as Portion);
+    }
+    return Object.entries(groups)
+      .map(([sn, ps]) => ({ setNumber: parseInt(sn), portions: ps }))
+      .sort((a, b) => b.setNumber - a.setNumber); // newest first
+  }, [portions]);
+
+  // Determine which set is "active" (highest with any available portions)
+  const activeSetNumber = useMemo(() => {
+    for (const g of [...setGroups].sort((a, b) => b.setNumber - a.setNumber)) {
+      if (g.portions.some(p => p.status === "available")) return g.setNumber;
+    }
+    return setGroups[0]?.setNumber || 1;
+  }, [setGroups]);
+
+  // Per-set expand state — active set expanded by default
+  const [expandedSets, setExpandedSets] = useState<Set<number>>(() => new Set([activeSetNumber]));
+
+  // Overall progress across all sets
+  const totalTaken = portions.filter((p: Portion) => p.status !== "available").length;
+  const totalAll = portions.length;
+  const completedSets = setGroups.filter(g => g.portions.every(p => p.status !== "available")).length;
+  const activeSetPortions = setGroups.find(g => g.setNumber === activeSetNumber)?.portions || [];
+  const activeSetTaken = activeSetPortions.filter(p => p.status !== "available").length;
+  const activeSetPct = activeSetPortions.length > 0 ? Math.round((activeSetTaken / activeSetPortions.length) * 100) : 0;
+  const overallPct = completedSets * 100 + activeSetPct;
+
+  function toggleSet(sn: number) {
+    setExpandedSets(prev => {
+      const next = new Set(prev);
+      if (next.has(sn)) next.delete(sn); else next.add(sn);
+      return next;
+    });
+  }
+
+  return (
+    <div className="space-y-3 mt-4">
+      {/* Overall progress meter */}
+      <div className="rounded-xl bg-navy/5 px-4 py-3 space-y-1.5">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium text-navy" dir="rtl">
+            {locale === "he"
+              ? `${completedSets} סטים הושלמו — סה״כ ${overallPct}%`
+              : `${completedSets} sets completed — total ${overallPct}%`}
+          </span>
+          <span className="text-navy font-heading font-bold text-lg">{overallPct}%</span>
+        </div>
+        {/* Segmented bar: one segment per completed set, then active set */}
+        <div className="flex gap-0.5 h-2.5 rounded-full overflow-hidden bg-navy/10">
+          {setGroups.map(g => {
+            const isComplete = g.portions.every(p => p.status !== "available");
+            const pct = isComplete ? 100 : Math.round(g.portions.filter(p => p.status !== "available").length / g.portions.length * 100);
+            return (
+              <div key={g.setNumber} className="flex-1 rounded-full overflow-hidden bg-navy/10">
+                <div className={cn("h-full transition-all", isComplete ? "bg-emerald-500" : "bg-gold")} style={{ width: `${pct}%` }} />
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted">{totalTaken}/{totalAll} {locale === "he" ? "פרקים נלקחו" : "portions taken"}</p>
+      </div>
+
+      {/* Stacked sets (newest on top) */}
+      {setGroups.map(({ setNumber, portions: setPortions }) => {
+        const isActive = setNumber === activeSetNumber;
+        const isComplete = setPortions.every(p => p.status !== "available");
+        const setTaken = setPortions.filter(p => p.status !== "available").length;
+        const setPct = setPortions.length > 0 ? Math.round(setTaken / setPortions.length * 100) : 0;
+        const isExpanded = expandedSets.has(setNumber);
+
+        return (
+          <div key={setNumber} className={cn(
+            "rounded-xl border-2 overflow-hidden transition-all",
+            isActive && !isComplete ? "border-gold bg-gold/5" : isComplete ? "border-emerald-200 bg-emerald-50/30" : "border-navy/10 bg-white"
+          )}>
+            {/* Set header */}
+            <button
+              onClick={() => toggleSet(setNumber)}
+              className="w-full flex items-center justify-between px-4 py-3 text-start"
+            >
+              <div className="flex items-center gap-3">
+                <span className={cn("font-heading font-bold text-base", isActive && !isComplete ? "text-gold-deep" : "text-navy")}>
+                  {setLabel(setNumber, locale)}
+                </span>
+                {isActive && !isComplete && (
+                  <span className="text-xs bg-gold/20 text-gold-deep px-2 py-0.5 rounded-full font-medium">
+                    {locale === "he" ? "● פעיל — מתמלא עכשיו" : "● Active — filling now"}
+                  </span>
+                )}
+                {isComplete && (
+                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                    {locale === "he" ? "✓ הושלם" : "✓ Completed"}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="hidden sm:flex items-center gap-2">
+                  <div className="w-20 h-1.5 bg-navy/10 rounded-full overflow-hidden">
+                    <div className={cn("h-full rounded-full", isComplete ? "bg-emerald-500" : "bg-gold")} style={{ width: `${setPct}%` }} />
+                  </div>
+                  <span className="text-xs text-muted w-8 text-right">{setPct}%</span>
+                </div>
+                {isExpanded ? <ChevronDown className="h-4 w-4 text-muted" /> : <ChevronRight className="h-4 w-4 text-muted" />}
+              </div>
+            </button>
+
+            {/* Set content */}
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="px-3 pb-3 border-t border-navy/5">
+                    {trackType === "mishnayos" ? (
+                      <MishnayosHierarchy
+                        portions={setPortions}
+                        onClaim={onClaim}
+                        onBulkClaim={onBulkClaim}
+                        onMultiClaim={onMultiClaim}
+                        claimingId={claimingId}
+                        completing={completing}
+                        currentUserId={currentUserId}
+                        t={t} bt={bt} locale={locale}
+                      />
+                    ) : (
+                      <TehillimHierarchy
+                        portions={setPortions}
+                        onClaim={onClaim}
+                        onMultiClaim={onMultiClaim}
+                        claimingId={claimingId}
+                        completing={completing}
+                        currentUserId={currentUserId}
+                        t={t} locale={locale}
+                      />
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
+    </div>
   );
 }

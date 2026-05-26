@@ -28,7 +28,9 @@ import {
   Share2,
   Flag,
   Camera,
+  Mail,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { ReportModal } from "./ReportModal";
 import { PhotoUploadModal } from "@/components/photo/PhotoUploadModal";
 import { toast } from "sonner";
@@ -81,6 +83,10 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const [bulkClaimScope, setBulkClaimScope] = useState<{ scope: string; scopeId: string; scopeName: string } | null>(null);
   const [bulkClaiming, setBulkClaiming] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(project.photoURL || null);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactSending, setContactSending] = useState(false);
   const [chizukMessage, setChizukMessage] = useState<{ he: string; en: string; es: string; fr: string } | null>(null);
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderPreset, setReminderPreset] = useState<'confirmation' | 'light' | 'daily' | 'weekly' | 'custom'>('light');
@@ -523,6 +529,13 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 </Button>
               )}
               <button
+                onClick={() => setContactOpen(true)}
+                className="text-xs text-cream/50 hover:text-cream/80 transition-colors"
+              >
+                <Mail className="h-3 w-3 inline mr-1" />
+                {locale === "he" ? "צור קשר עם המשפחה" : "Contact family"}
+              </button>
+              <button
                 onClick={() => setReportOpen(true)}
                 className="text-xs text-cream/30 hover:text-cream/60 transition-colors"
               >
@@ -742,6 +755,75 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             <Button variant="ghost" onClick={() => setBulkClaimScope(null)} disabled={bulkClaiming}>{t("cancel")}</Button>
             <Button onClick={confirmBulkClaim} disabled={bulkClaiming || !claimerName.trim()}>
               {bulkClaiming ? <Spinner className="h-4 w-4" /> : t("confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contact Family Dialog */}
+      <Dialog open={contactOpen} onOpenChange={setContactOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{locale === "he" ? "צור קשר עם המשפחה" : "Contact the family"}</DialogTitle>
+            <DialogDescription>
+              {locale === "he"
+                ? "הודעתך תועבר למשפחה. כתובת האימייל שלך לא תיחשף."
+                : "Your message will be forwarded to the family. Your email address will not be exposed."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Textarea
+              dir={locale === "he" ? "rtl" : "ltr"}
+              placeholder={locale === "he" ? "כתבו הודעה למשפחה..." : "Write a message to the family..."}
+              value={contactMessage}
+              onChange={e => setContactMessage(e.target.value)}
+              rows={5}
+              className="text-sm"
+            />
+            <Input
+              type="email"
+              dir="ltr"
+              placeholder={locale === "he" ? "כתובת אימייל שלך (אופציונלי)" : "Your email (optional)"}
+              value={contactEmail}
+              onChange={e => setContactEmail(e.target.value)}
+              className="text-sm"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setContactOpen(false)} disabled={contactSending}>
+              {locale === "he" ? "ביטול" : "Cancel"}
+            </Button>
+            <Button
+              disabled={contactSending || !contactMessage.trim()}
+              onClick={async () => {
+                setContactSending(true);
+                try {
+                  const res = await fetch(`/api/memorials/${project.slug}/contact`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: contactMessage, senderEmail: contactEmail || undefined }),
+                  });
+                  if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    if (res.status === 429) {
+                      toast.error(locale === "he" ? "שלחת יותר מדי הודעות היום" : "Too many messages today. Try again tomorrow.");
+                    } else {
+                      toast.error(err.error || (locale === "he" ? "שגיאה בשליחה" : "Failed to send"));
+                    }
+                    return;
+                  }
+                  toast.success(locale === "he" ? "הודעתך נשלחה למשפחה" : "Your message was sent to the family");
+                  setContactMessage("");
+                  setContactEmail("");
+                  setContactOpen(false);
+                } catch {
+                  toast.error(locale === "he" ? "שגיאה בשליחה" : "Failed to send");
+                } finally {
+                  setContactSending(false);
+                }
+              }}
+            >
+              {contactSending ? <Spinner className="h-4 w-4" /> : (locale === "he" ? "שלח" : "Send")}
             </Button>
           </DialogFooter>
         </DialogContent>

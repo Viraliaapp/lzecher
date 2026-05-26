@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
 import type { TrackType } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 
 const TRACK_OPTIONS: {
   key: TrackType;
@@ -202,37 +203,44 @@ export default function CreateMemorialPage() {
 
   // Success screen after creation
   if (createdSlug) {
+    const memorialUrl = typeof window !== "undefined"
+      ? `${window.location.origin}/${locale}/memorial/${createdSlug}`
+      : `/${locale}/memorial/${createdSlug}`;
+    const honoree = `${nameHebrew} ${familyNameHebrew}`.trim();
+
     return (
-      <div className="mx-auto max-w-lg px-4 sm:px-6 py-16 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/10 mb-6">
-          <Check className="h-8 w-8 text-gold" />
-        </div>
-        <h1 className="font-heading text-3xl font-bold text-navy mb-3">
-          {t("successTitle")}
-        </h1>
-        <p className="text-muted mb-8 leading-relaxed">
-          {t("successDesc")}
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link href={`/memorial/${createdSlug}` as "/memorial/[slug]"}>
-            <Button size="lg">
-              <Eye className="h-5 w-5" />
-              {t("viewMemorial")}
+      <div className="mx-auto max-w-lg px-4 sm:px-6 py-16">
+        <div className="text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/10 mb-6">
+            <Check className="h-8 w-8 text-gold" />
+          </div>
+          <h1 className="font-heading text-3xl font-bold text-navy mb-3">
+            {t("successTitle")}
+          </h1>
+          <p className="text-muted mb-8 leading-relaxed">
+            {t("successDesc")}
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link href={`/memorial/${createdSlug}` as "/memorial/[slug]"}>
+              <Button size="lg">
+                <Eye className="h-5 w-5" />
+                {t("viewMemorial")}
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                navigator.clipboard.writeText(memorialUrl);
+                toast.success(t("linkCopied"));
+              }}
+            >
+              <Share2 className="h-5 w-5" />
+              {t("shareLink")}
             </Button>
-          </Link>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => {
-              const url = `${window.location.origin}/${locale}/memorial/${createdSlug}`;
-              navigator.clipboard.writeText(url);
-              toast.success(t("linkCopied"));
-            }}
-          >
-            <Share2 className="h-5 w-5" />
-            {t("shareLink")}
-          </Button>
+          </div>
         </div>
+        <ShareTemplates honoree={honoree} url={memorialUrl} />
       </div>
     );
   }

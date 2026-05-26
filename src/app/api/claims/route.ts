@@ -4,6 +4,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { getClaimMode } from "@/lib/track-config";
 import type { TrackType, CommitmentDuration } from "@/lib/types";
 import { queueRemindersForClaim } from "@/lib/queue-reminders";
+import { seedSetForTrack } from "@/lib/seed-set";
 
 export async function POST(request: NextRequest) {
   try {
@@ -138,11 +139,46 @@ export async function POST(request: NextRequest) {
           });
         } catch (e) {
           console.error("Failed to queue reminders:", e);
-          // Don't fail the claim if reminders fail
         }
       }
 
-      return NextResponse.json({ success: true, claimId: claimRef.id, claimMode: "exclusive" });
+      // ── Repeating sets: check if this set is now complete ───────────────────
+      let newSetOpened = false;
+      let newSetNumber: number | null = null;
+      const isRepeatableTrack = trackType === "mishnayos" || trackType === "tehillim";
+      if (isRepeatableTrack) {
+        try {
+          const currentSetNumber = portionData.setNumber || 1;
+          const projectSnap2 = await db.collection("lzecher_projects").doc(projectId).get();
+          const projData2 = projectSnap2.data();
+          if (projData2?.repeatingSetEnabled !== false) {
+            // Check if any portions in this set are still available
+            const portionsInSet = await db.collection("lzecher_portions")
+              .where("projectId", "==", projectId)
+              .where("trackType", "==", trackType)
+              .where("setNumber", "==", currentSetNumber)
+              .get();
+            const anyAvailable = portionsInSet.docs.some(d => d.id !== portionId && d.data().status === "available");
+            if (!anyAvailable) {
+              // Last portion taken — seed the next set!
+              const nextSetNumber = currentSetNumber + 1;
+              newSetNumber = nextSetNumber;
+              const newCount = await seedSetForTrack(db, projectId, trackType as "mishnayos" | "tehillim", nextSetNumber);
+              await db.collection("lzecher_projects").doc(projectId).update({
+                totalPortions: ((projData2?.totalPortions as number) || 0) + newCount,
+                totalSets: newSetNumber,
+                updatedAt: Date.now(),
+              });
+              newSetOpened = true;
+            }
+          }
+        } catch (setErr) {
+          // Non-fatal: set detection failed, claim still succeeded
+          console.error("[claims] set-completion check failed:", setErr);
+        }
+      }
+
+      return NextResponse.json({ success: true, claimId: claimRef.id, claimMode: "exclusive", newSetOpened, newSetNumber });
     } else {
       // Inclusive — auth required
       if (uid === "anonymous") {

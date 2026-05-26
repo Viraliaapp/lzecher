@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { queueRemindersForClaim } from "@/lib/queue-reminders";
+import { seedSetForTrack } from "@/lib/seed-set";
 import type { TrackType } from "@/lib/types";
 
 // Cherry-pick multi-select claim: user selects specific portionIds and enters
@@ -152,6 +153,48 @@ export async function POST(request: NextRequest) {
     }
 
     const skippedCount = portionIdSet.size - claimedCount;
+
+    // ── Repeating sets: check if any set is now complete ─────────────────────
+    try {
+      const claimedPortionDocs = validPortions.filter(p => {
+        const d = p.data;
+        return (d.trackType === "mishnayos" || d.trackType === "tehillim") && d.status === "available";
+      });
+      if (claimedPortionDocs.length > 0) {
+        const projSnap2 = await db.collection("lzecher_projects").doc(projectId).get();
+        const projData2 = projSnap2.data();
+        if (projData2?.repeatingSetEnabled !== false) {
+          const setsToCheck = new Set<number>(claimedPortionDocs.map(p => (p.data.setNumber as number) || 1));
+          const trackType = claimedPortionDocs[0].data.trackType as "mishnayos" | "tehillim";
+          let totalPortionsDelta = 0;
+          let maxNewSet = projData2?.totalSets || 1;
+          for (const sn of setsToCheck) {
+            const allInSet = await db.collection("lzecher_portions")
+              .where("projectId", "==", projectId).where("trackType", "==", trackType).where("setNumber", "==", sn).get();
+            const claimedNow = new Set(portionIdSet);
+            const anyAvailable = allInSet.docs.some(d => !claimedNow.has(d.id) && d.data().status === "available");
+            if (!anyAvailable) {
+              const newSN = sn + 1;
+              if (newSN > maxNewSet) {
+                const cnt = await seedSetForTrack(db, projectId, trackType, newSN);
+                totalPortionsDelta += cnt;
+                maxNewSet = newSN;
+              }
+            }
+          }
+          if (totalPortionsDelta > 0) {
+            await db.collection("lzecher_projects").doc(projectId).update({
+              totalPortions: ((projData2?.totalPortions as number) || 0) + totalPortionsDelta,
+              totalSets: maxNewSet,
+              updatedAt: Date.now(),
+            });
+          }
+        }
+      }
+    } catch (setErr) {
+      console.error("[multi-claim] set-completion check failed:", setErr);
+    }
+
     return NextResponse.json({
       success: true,
       claimedCount,

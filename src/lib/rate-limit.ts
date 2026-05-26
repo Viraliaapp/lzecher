@@ -37,6 +37,7 @@ const limiters = {
   claimCreateAuth: () => createLimiter("claim-auth", 100, 3600),
   markCompleteAnon: () => createLimiter("complete-anon", 10, 3600),
   ogImage: () => createLimiter("og", 100, 60),
+  contactFamily: () => createLimiter("contact-family", 3, 86400),
 };
 
 export interface RateLimitResult {

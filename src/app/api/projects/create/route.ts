@@ -107,6 +107,8 @@ export async function POST(request: NextRequest) {
       reportsCount: 0,
       projectType: projectType || "permanent",
       tracks,
+      repeatingSetEnabled: true,
+      totalSets: 1,
       totalPortions: 0,
       claimedPortions: 0,
       completedPortions: 0,
@@ -133,6 +135,7 @@ export async function POST(request: NextRequest) {
               reference: `${m.name} ${p}`, displayName: `${m.name} Chapter ${p}`,
               displayNameHebrew: `${m.nameHebrew} פרק ${p}`,
               order, status: "available", seder: m.seder, masechet: m.name, perek: p,
+              setNumber: 1,
             });
             totalPortions++;
           }
@@ -148,6 +151,7 @@ export async function POST(request: NextRequest) {
             reference: `Tehillim ${mz.number}`, displayName: `Psalm ${mz.number}`,
             displayNameHebrew: `תהילים ${mz.number}`,
             order, status: "available", mizmor: mz.number,
+            setNumber: 1,
           });
           totalPortions++;
         }

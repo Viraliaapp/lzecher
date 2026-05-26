@@ -3,6 +3,7 @@ export interface MemorialProject {
   id: string;
   slug: string;
   createdBy: string; // uid
+  createdByEmail?: string | null;
   createdAt: number;
   updatedAt: number;
 
@@ -16,6 +17,7 @@ export interface MemorialProject {
   fatherNameHebrew?: string;
   motherNameHebrew?: string;
   gender: "male" | "female";
+  honorific?: string;
   dateOfPassing: string; // Hebrew date string
   dateOfPassingGregorian?: string;
   photoURL?: string;
@@ -26,6 +28,7 @@ export interface MemorialProject {
   isPublic: boolean;
   allowAnonymous: boolean;
   status: "active" | "completed" | "archived" | "pending_moderation" | "hidden";
+  repeatingSetEnabled?: boolean; // default true for mishnayos/tehillim
 
   // Completion target
   completionTargetDate?: number | null;
@@ -39,6 +42,7 @@ export interface MemorialProject {
   claimedPortions: number;
   completedPortions: number;
   participantCount: number;
+  totalSets?: number; // total sets seeded (including completed), default 1
 }
 
 export type TrackType =
@@ -72,6 +76,7 @@ export interface Portion {
   displayName: string;
   displayNameHebrew: string;
   order: number;
+  setNumber?: number; // which repeating set this belongs to (1, 2, 3...), default 1
 
   // Claim mode
   claimMode?: ClaimMode;
