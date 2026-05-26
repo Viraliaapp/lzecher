@@ -4,6 +4,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { queueRemindersForClaim } from "@/lib/queue-reminders";
 import { seedSetForTrack } from "@/lib/seed-set";
 import type { TrackType } from "@/lib/types";
+import type * as FirebaseFirestore from "@google-cloud/firestore";
 
 // Cherry-pick multi-select claim: user selects specific portionIds and enters
 // one name/email for all of them.
@@ -164,15 +165,26 @@ export async function POST(request: NextRequest) {
         const projSnap2 = await db.collection("lzecher_projects").doc(projectId).get();
         const projData2 = projSnap2.data();
         if (projData2?.repeatingSetEnabled !== false) {
-          const setsToCheck = new Set<number>(claimedPortionDocs.map(p => (p.data.setNumber as number) || 1));
+          const setsToCheck = new Set<number>(claimedPortionDocs.map(p => {
+            const sn = p.data.setNumber as number | undefined;
+            return (sn === undefined || sn === null) ? 1 : sn;
+          }));
           const trackType = claimedPortionDocs[0].data.trackType as "mishnayos" | "tehillim";
           let totalPortionsDelta = 0;
           let maxNewSet = projData2?.totalSets || 1;
+          // Fetch all portions for this project+track once; filter in memory per set.
+          // Firestore where("setNumber","==",null) does NOT match absent-field docs (legacy portions).
+          const allPortionsForTrack = await db.collection("lzecher_portions")
+            .where("projectId", "==", projectId)
+            .where("trackType", "==", trackType)
+            .get();
           for (const sn of setsToCheck) {
-            const allInSet = await db.collection("lzecher_portions")
-              .where("projectId", "==", projectId).where("trackType", "==", trackType).where("setNumber", "==", sn).get();
+            const allInSetDocs = allPortionsForTrack.docs.filter(d => {
+              const dsn = d.data().setNumber;
+              return ((dsn === undefined || dsn === null) ? 1 : dsn) === sn;
+            });
             const claimedNow = new Set(portionIdSet);
-            const anyAvailable = allInSet.docs.some(d => !claimedNow.has(d.id) && d.data().status === "available");
+            const anyAvailable = allInSetDocs.some(d => !claimedNow.has(d.id) && d.data().status === "available");
             if (!anyAvailable) {
               const newSN = sn + 1;
               if (newSN > maxNewSet) {

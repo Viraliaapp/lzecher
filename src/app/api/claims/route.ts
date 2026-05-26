@@ -152,13 +152,19 @@ export async function POST(request: NextRequest) {
           const projectSnap2 = await db.collection("lzecher_projects").doc(projectId).get();
           const projData2 = projectSnap2.data();
           if (projData2?.repeatingSetEnabled !== false) {
-            // Check if any portions in this set are still available
-            const portionsInSet = await db.collection("lzecher_portions")
+            // Fetch all portions for this project+track and filter in memory.
+            // Firestore where("setNumber","==",null) does NOT match documents where the field
+            // is absent (legacy portions seeded before setNumber was added). In-memory filter is the
+            // only reliable way to treat absent setNumber as set 1.
+            const allPortionsForTrack = await db.collection("lzecher_portions")
               .where("projectId", "==", projectId)
               .where("trackType", "==", trackType)
-              .where("setNumber", "==", currentSetNumber)
               .get();
-            const anyAvailable = portionsInSet.docs.some(d => d.id !== portionId && d.data().status === "available");
+            const portionsInSet = allPortionsForTrack.docs.filter(d => {
+              const sn = d.data().setNumber;
+              return ((sn === undefined || sn === null) ? 1 : sn) === currentSetNumber;
+            });
+            const anyAvailable = portionsInSet.some(d => d.id !== portionId && d.data().status === "available");
             if (!anyAvailable) {
               // Last portion taken — seed the next set!
               const nextSetNumber = currentSetNumber + 1;
