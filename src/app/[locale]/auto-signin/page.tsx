@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { signInWithCustomToken } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
@@ -48,13 +48,14 @@ export default function AutoSigninPage() {
         // Set cookie so middleware-protected routes accept the session
         document.cookie = "__session=1; path=/; max-age=2592000; samesite=lax";
         setState("success");
-        // Brief pause so user sees success state, then redirect
+        // Brief pause so user sees the success state, then navigate.
+        // Use Next.js router.push (client-side soft navigation) instead of
+        // window.location.href so AuthProvider stays mounted across the
+        // navigation — avoids the full-page-reload race where App Check /
+        // Firestore fires permission-denied before auth is fully restored.
+        const target = redirect || `/${locale}/dashboard`;
         setTimeout(() => {
-          if (redirect) {
-            window.location.href = redirect;
-          } else {
-            router.push("/dashboard" as "/dashboard");
-          }
+          router.push(target);
         }, 800);
       } catch (err) {
         console.error("[auto-signin] failed:", err);

@@ -49,18 +49,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // Safety timeout: if auth hasn't resolved within 5s, force logged-out state.
+    // Safety timeout: if auth hasn't resolved within 8s, force logged-out state.
     // This self-heals corrupt IndexedDB / stale token situations that previously
     // caused an infinite spinner requiring manual cookie clearing.
     const timeout = setTimeout(() => {
       if (!resolved.current) {
-        console.warn("[auth] 5s timeout — forcing logged-out state");
+        console.warn("[auth] 8s timeout — forcing logged-out state");
         setUser(null);
         setProfile(null);
         resolveLoading();
         logout().catch(() => {});
       }
-    }, 5000);
+    }, 8000);
 
     const unsub = onAuthChange((firebaseUser) => {
       clearTimeout(timeout);
@@ -96,10 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resolveLoading();
       },
       (error) => {
-        // Firestore permission error = stale / invalid token → self-heal
+        // Firestore profile read failed.
         console.error("[auth] Firestore profile error:", error);
         resolveLoading();
-        if (error.code === "permission-denied" || error.code === "unauthenticated") {
+        // 'unauthenticated' = Firebase explicitly rejected the ID token (stale /
+        // revoked) → sign out and self-heal.
+        // 'permission-denied' is NOT forced-logout: it can be transient (App Check
+        // token not ready on fresh page load) and must not kick out a valid user.
+        if (error.code === "unauthenticated") {
           logout().catch(() => {});
         }
       }
