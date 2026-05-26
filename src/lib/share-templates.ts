@@ -79,7 +79,7 @@ Que nous soyons consolés des Cieux.`,
     text: {
       he: `לקראת האזכרה של {name} ז״ל, אנחנו מנסים לארגן לימוד לזכרו/ה.
 
-כבר נלקחו חלקים רבים — בואו נשלים יחד. כל פרק שנלמד מוסיף נחת רוח לנשמה ומחזק את הקשר שלנו איתו/ה.
+כבר נלקחו חלקים רבים — בואו נמלא יחד. כל פרק שנלמד מוסיף נחת רוח לנשמה ומחזק את הקשר שלנו איתו/ה.
 
 הדף המלא של הלימוד:
 {link}
@@ -90,7 +90,7 @@ Que nous soyons consolés des Cieux.`,
 
       en: `As we approach the azkara for {name} z"l, we're organizing learning l'iluy nishmaso/ah.
 
-Many portions have already been taken — let's complete it together. Every perek learned adds nachas ruach to the neshama and strengthens our bond.
+Many portions have already been taken — let's fill it together. Every perek learned adds nachas ruach to the neshama and strengthens our bond.
 
 The full learning page:
 {link}
@@ -101,7 +101,7 @@ Tizku l'mitzvos. May we meet again b'simchos.`,
 
       es: `Al acercarnos al azkará de {name} ז"ל, estamos organizando estudio para la elevación de su alma.
 
-Ya se han tomado muchas porciones — completémoslo juntos. Cada capítulo aprendido añade nachas ruaj al alma y fortalece nuestra conexión.
+Ya se han tomado muchas porciones — llenémoslo juntos. Cada capítulo aprendido añade nachas ruaj al alma y fortalece nuestra conexión.
 
 La página completa de estudio:
 {link}
@@ -112,7 +112,7 @@ Tizku lemitzvot. Que nos encontremos en alegría.`,
 
       fr: `À l'approche de l'azkara pour {name} ז"ל, nous organisons une étude pour l'élévation de son âme.
 
-De nombreuses portions ont déjà été prises — complétons ensemble. Chaque pérek appris apporte une nachat rouah à la neshama et renforce notre lien.
+De nombreuses portions ont déjà été prises — prenons-les ensemble. Chaque pérek appris apporte une nachat rouah à la neshama et renforce notre lien.
 
 La page d'étude complète :
 {link}
@@ -179,7 +179,7 @@ Que sa mémoire soit bénie.`,
     text: {
       he: `האח/אחות שלי, {name} ז״ל, הלך/הלכה מהעולם.
 
-יצרנו דף לימוד לזכרו/ה — כל אחד מהחברים והמשפחה יכול לקחת חלק. כשיוגמרו כל הפרקים, הנשמה תקבל עלייה מיוחדת.
+יצרנו דף לימוד לזכרו/ה — כל אחד מהחברים והמשפחה יכול לקחת חלק. כשיילקחו כל הפרקים, הנשמה תקבל עלייה מיוחדת.
 
 {link}
 
@@ -187,7 +187,7 @@ Que sa mémoire soit bénie.`,
 
       en: `My brother/sister, {name} z"l, has passed away.
 
-We've created a learning page in their memory — family and friends can each take a portion. When all the portions are completed, the neshama receives a special iluy.
+We've created a learning page in their memory — family and friends can each take a portion. When all the portions are taken, the neshama receives a special iluy.
 
 {link}
 
@@ -195,7 +195,7 @@ Thank you all so much.`,
 
       es: `Mi hermano/hermana, {name} ז"ל, falleció.
 
-Hemos creado una página de estudio en su memoria — familiares y amigos pueden tomar una porción. Cuando todas las porciones estén completadas, el alma recibe una elevación especial.
+Hemos creado una página de estudio en su memoria — familiares y amigos pueden tomar una porción. Cuando todas las porciones sean tomadas, el alma recibe una elevación especial.
 
 {link}
 
@@ -203,7 +203,7 @@ Muchas gracias a todos.`,
 
       fr: `Mon frère/ma sœur, {name} ז"ל, est décédé(e).
 
-Nous avons créé une page d'étude en sa mémoire — famille et amis peuvent chacun prendre une portion. Quand toutes les portions seront complétées, la neshama recevra une élévation spéciale.
+Nous avons créé une page d'étude en sa mémoire — famille et amis peuvent chacun prendre une portion. Quand toutes les portions seront prises, la neshama recevra une élévation spéciale.
 
 {link}
 

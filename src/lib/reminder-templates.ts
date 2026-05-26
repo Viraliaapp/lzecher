@@ -410,9 +410,9 @@ const templates: Record<
         `
         ${heading(`3 days remaining`)}
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
-        ${body(`Your deadline is in <strong>3 days</strong>. Now is a great time to complete your commitment of ${commitmentDesc} for <strong>${honoreeName}</strong>.`)}
+        ${body(`Your deadline is in <strong>3 days</strong>. Now is a great time to fulfill your commitment of ${commitmentDesc} for <strong>${honoreeName}</strong>.`)}
         ${deadline ? body(`<strong>Deadline:</strong> ${deadline}`) : ""}
-        ${ctaButton(link, "Complete now")}
+        ${ctaButton(link, "Learn now")}
         `,
         TAGLINES.en,
         "ltr",
@@ -428,9 +428,9 @@ const templates: Record<
         `
         ${heading(`נותרו 3 ימים`)}
         ${badge(`לעילוי נשמת ${honoreeName}`)}
-        ${body(`המועד האחרון הוא בעוד <strong>3 ימים</strong>. עכשיו זה הזמן להשלים את ${commitmentDesc} לעילוי נשמת <strong>${honoreeName}</strong>.`)}
+        ${body(`המועד האחרון הוא בעוד <strong>3 ימים</strong>. עכשיו זה הזמן ללמוד את ${commitmentDesc} לעילוי נשמת <strong>${honoreeName}</strong>.`)}
         ${deadline ? body(`<strong>עד:</strong> ${deadline}`) : ""}
-        ${ctaButton(link, "השלם עכשיו")}
+        ${ctaButton(link, "למד עכשיו")}
         `,
         TAGLINES.he,
         "rtl",
@@ -446,9 +446,9 @@ const templates: Record<
         `
         ${heading(`Quedan 3 dias`)}
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
-        ${body(`Tu fecha limite es en <strong>3 dias</strong>. Ahora es un buen momento para completar tu compromiso de ${commitmentDesc} por <strong>${honoreeName}</strong>.`)}
+        ${body(`Tu fecha limite es en <strong>3 dias</strong>. Ahora es un buen momento para estudiar tu compromiso de ${commitmentDesc} por <strong>${honoreeName}</strong>.`)}
         ${deadline ? body(`<strong>Fecha limite:</strong> ${deadline}`) : ""}
-        ${ctaButton(link, "Completar ahora")}
+        ${ctaButton(link, "Estudiar ahora")}
         `,
         TAGLINES.es,
         "ltr",
@@ -464,9 +464,9 @@ const templates: Record<
         `
         ${heading(`Il reste 3 jours`)}
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
-        ${body(`Votre echeance est dans <strong>3 jours</strong>. C'est le moment de completer votre engagement de ${commitmentDesc} pour <strong>${honoreeName}</strong>.`)}
+        ${body(`Votre echeance est dans <strong>3 jours</strong>. C'est le moment d'etudier votre engagement de ${commitmentDesc} pour <strong>${honoreeName}</strong>.`)}
         ${deadline ? body(`<strong>Echeance :</strong> ${deadline}`) : ""}
-        ${ctaButton(link, "Terminer maintenant")}
+        ${ctaButton(link, "Etudier maintenant")}
         `,
         TAGLINES.fr,
         "ltr",
@@ -487,7 +487,7 @@ const templates: Record<
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
         ${body(`Your commitment of ${commitmentDesc} for <strong>${honoreeName}</strong> is due <strong>tomorrow</strong>. This is your last reminder — you're so close!`)}
         ${deadline ? body(`<strong>Deadline:</strong> ${deadline}`) : ""}
-        ${ctaButton(link, "Complete my commitment")}
+        ${ctaButton(link, "Learn now")}
         `,
         TAGLINES.en,
         "ltr",
@@ -505,7 +505,7 @@ const templates: Record<
         ${badge(`לעילוי נשמת ${honoreeName}`)}
         ${body(`ההתחייבות שלך של ${commitmentDesc} לעילוי נשמת <strong>${honoreeName}</strong> היא <strong>מחר</strong>. זוהי התזכורת האחרונה שלך — אתה כמעט שם!`)}
         ${deadline ? body(`<strong>עד:</strong> ${deadline}`) : ""}
-        ${ctaButton(link, "השלם את ההתחייבות שלי")}
+        ${ctaButton(link, "למד עכשיו")}
         `,
         TAGLINES.he,
         "rtl",
@@ -523,7 +523,7 @@ const templates: Record<
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
         ${body(`Tu compromiso de ${commitmentDesc} por <strong>${honoreeName}</strong> vence <strong>manana</strong>. Este es tu ultimo recordatorio.`)}
         ${deadline ? body(`<strong>Fecha limite:</strong> ${deadline}`) : ""}
-        ${ctaButton(link, "Completar mi compromiso")}
+        ${ctaButton(link, "Estudiar ahora")}
         `,
         TAGLINES.es,
         "ltr",
@@ -541,7 +541,7 @@ const templates: Record<
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
         ${body(`Votre engagement de ${commitmentDesc} pour <strong>${honoreeName}</strong> est du <strong>demain</strong>. C'est votre dernier rappel.`)}
         ${deadline ? body(`<strong>Echeance :</strong> ${deadline}`) : ""}
-        ${ctaButton(link, "Completer mon engagement")}
+        ${ctaButton(link, "Etudier maintenant")}
         `,
         TAGLINES.fr,
         "ltr",
@@ -560,8 +560,8 @@ const templates: Record<
         `
         ${heading(`Today's reminder`)}
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
-        ${body(`This is your daily reminder to complete <strong>${commitmentDesc}</strong> for <strong>${honoreeName}</strong>. Each day you learn is a merit for their neshama.`)}
-        ${ctaButton(link, "Mark today complete")}
+        ${body(`This is your daily reminder to learn <strong>${commitmentDesc}</strong> for <strong>${honoreeName}</strong>. Each day you learn is a merit for their neshama.`)}
+        ${ctaButton(link, "Learn today")}
         `,
         TAGLINES.en,
         "ltr",
@@ -577,8 +577,8 @@ const templates: Record<
         `
         ${heading(`תזכורת להיום`)}
         ${badge(`לעילוי נשמת ${honoreeName}`)}
-        ${body(`זוהי תזכורת יומית להשלים <strong>${commitmentDesc}</strong> לעילוי נשמת <strong>${honoreeName}</strong>. כל יום שאתה לומד הוא זכות לנשמה.`)}
-        ${ctaButton(link, "סמן את היום כהושלם")}
+        ${body(`זוהי תזכורת יומית ללמוד <strong>${commitmentDesc}</strong> לעילוי נשמת <strong>${honoreeName}</strong>. כל יום שאתה לומד הוא זכות לנשמה.`)}
+        ${ctaButton(link, "למד היום")}
         `,
         TAGLINES.he,
         "rtl",
@@ -594,8 +594,8 @@ const templates: Record<
         `
         ${heading(`Recordatorio de hoy`)}
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
-        ${body(`Este es tu recordatorio diario para completar <strong>${commitmentDesc}</strong> por <strong>${honoreeName}</strong>. Cada dia que estudias es un merito para su neshama.`)}
-        ${ctaButton(link, "Marcar hoy como completado")}
+        ${body(`Este es tu recordatorio diario para estudiar <strong>${commitmentDesc}</strong> por <strong>${honoreeName}</strong>. Cada dia que estudias es un merito para su neshama.`)}
+        ${ctaButton(link, "Estudiar hoy")}
         `,
         TAGLINES.es,
         "ltr",
@@ -611,8 +611,8 @@ const templates: Record<
         `
         ${heading(`Rappel du jour`)}
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
-        ${body(`C'est votre rappel quotidien pour completer <strong>${commitmentDesc}</strong> pour <strong>${honoreeName}</strong>. Chaque jour d'etude est un merite pour sa neshama.`)}
-        ${ctaButton(link, "Marquer aujourd'hui comme complete")}
+        ${body(`C'est votre rappel quotidien pour etudier <strong>${commitmentDesc}</strong> pour <strong>${honoreeName}</strong>. Chaque jour d'etude est un merite pour sa neshama.`)}
+        ${ctaButton(link, "Etudier aujourd'hui")}
         `,
         TAGLINES.fr,
         "ltr",
