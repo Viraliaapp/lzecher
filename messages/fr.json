@@ -487,8 +487,6 @@
     "addPhoto": "Ajouter une photographie"
   },
   "bulkClaim": {
-    "takeWholeShas": "Prendre tout le Chass a leur memoire",
-    "takeWholeShasSubtext": "525 perakim dans 6 sedarim",
     "takeEntireSeder": "Prendre tout le Seder {sederName}",
     "takeEntireMasechta": "Prendre toute la Masekhet {masechtaName}",
     "takeAllTehillim": "Prendre tout le Tehilim",

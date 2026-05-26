@@ -500,8 +500,6 @@
     "anonymousNote": "You can close this tab — your sign-in link will still work when you're ready."
   },
   "bulkClaim": {
-    "takeWholeShas": "I'll take the entire Shas in their memory",
-    "takeWholeShasSubtext": "525 perakim across 6 sedarim",
     "takeEntireSeder": "Take entire Seder {sederName}",
     "takeEntireMasechta": "Take entire Masechta {masechtaName}",
     "takeAllTehillim": "Take all of Tehillim",

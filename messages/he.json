@@ -500,8 +500,6 @@
     "anonymousNote": "ניתן לסגור את הדפדפן — הקישור יישאר תקף כשתהיה מוכן."
   },
   "bulkClaim": {
-    "takeWholeShas": "קח את כל הש״ס לעילוי נשמתם",
-    "takeWholeShasSubtext": "תקכ״ה פרקים בששה סדרי משנה",
     "takeEntireSeder": "קח את כל סדר {sederName}",
     "takeEntireMasechta": "קח את כל מסכת {masechtaName}",
     "takeAllTehillim": "קח את כל התהילים",
