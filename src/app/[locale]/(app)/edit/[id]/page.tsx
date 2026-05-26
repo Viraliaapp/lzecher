@@ -12,8 +12,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
 import type { TrackType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -66,13 +64,20 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
     if (!user) { router.push("/login" as "/login"); return; }
     (async () => {
       try {
-        const snap = await getDoc(doc(db, "lzecher_projects", id));
-        if (!snap.exists()) { toast.error("Project not found"); router.push("/dashboard" as "/dashboard"); return; }
-        const data = snap.data();
-        // Allow creator or admin
-        const isOwner = data.createdBy === user.uid;
-        const isAdmin = profile?.isAdmin;
-        if (!isOwner && !isAdmin) { toast.error("Not authorized"); router.push("/dashboard" as "/dashboard"); return; }
+        const idToken = await auth.currentUser?.getIdToken(true);
+        if (!idToken) { toast.error("Session expired"); setLoading(false); return; }
+        const res = await fetch(`/api/projects/${id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          if (res.status === 403) { toast.error("Not authorized"); router.push("/dashboard" as "/dashboard"); return; }
+          if (res.status === 404) { toast.error("Project not found"); router.push("/dashboard" as "/dashboard"); return; }
+          throw new Error(errData.error || "Load failed");
+        }
+        const data = await res.json();
         setProject(data);
         setNameHebrew(data.nameHebrew || "");
         setFamilyNameHebrew(data.familyNameHebrew || "");

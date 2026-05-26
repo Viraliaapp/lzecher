@@ -18,7 +18,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil } from "lucide-react";
+import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil, Share2 } from "lucide-react";
+import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 import { toast } from "sonner";
 import { collection, query, getDocs, orderBy } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase/config";
@@ -38,6 +39,7 @@ export default function AdminPage() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [hideDialogOpen, setHideDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [shareProject, setShareProject] = useState<MemorialProject | null>(null);
   const [hideReason, setHideReason] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -190,6 +192,9 @@ export default function AdminPage() {
                     <a href={`/en/memorial/${project.slug}`} target="_blank" rel="noopener">
                       <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
                     </a>
+                    <Button variant="ghost" size="icon" title="Share" onClick={() => setShareProject(project)}>
+                      <Share2 className="h-4 w-4 text-navy/60" />
+                    </Button>
                     <a href={`/admin/projects/${project.id}/edit`}>
                       <Button variant="ghost" size="icon" title="Edit"><Pencil className="h-4 w-4 text-navy/60" /></Button>
                     </a>
@@ -217,6 +222,21 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+
+      {/* Share dialog */}
+      <Dialog open={!!shareProject} onOpenChange={(o) => !o && setShareProject(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle dir="rtl">{shareProject?.nameHebrew}</DialogTitle>
+          </DialogHeader>
+          {shareProject && (
+            <ShareTemplates
+              honoree={`${shareProject.nameHebrew} ${shareProject.familyNameHebrew || ""}`.trim()}
+              url={`${typeof window !== "undefined" ? window.location.origin : ""}/memorial/${shareProject.slug}`}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Hide dialog */}
       <Dialog open={hideDialogOpen} onOpenChange={setHideDialogOpen}>

@@ -191,23 +191,6 @@ function MishnayosHierarchy({ portions, onClaim, onBulkClaim, onMultiClaim, clai
 
   return (
     <div className="space-y-3 mt-4">
-      {/* Multi-select toggle — ITEM 7: no whole-Shas button here */}
-      <div className="flex items-center justify-between gap-2">
-        {onMultiClaim && totalAvailable > 0 && !multiSelectMode && (
-          <button
-            onClick={() => setMultiSelectMode(true)}
-            className="text-xs text-navy/60 hover:text-navy underline underline-offset-2 transition-colors"
-          >
-            {locale === "he" ? "בחר כמה פרקים" : "Select several chapters"}
-          </button>
-        )}
-        {multiSelectMode && (
-          <p className="text-xs text-gold font-medium">
-            {locale === "he" ? "לחץ על פרקים לבחירה" : "Tap chapters to select"}
-          </p>
-        )}
-      </div>
-
       {/* Level 1: Sedarim */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {SEDER_ORDER.map((seder) => {
@@ -297,12 +280,26 @@ function MishnayosHierarchy({ portions, onClaim, onBulkClaim, onMultiClaim, clai
                           const mName = locale === "he" ? (hebrewMasechtaNames[expandedMasechta] || expandedMasechta) : expandedMasechta;
                           onBulkClaim("masechta", expandedMasechta, locale === "he" ? `מסכת ${mName}` : `Masechta ${mName}`);
                         }}
-                        className="w-full mb-3 py-2 px-3 rounded-lg border border-gold/30 bg-gold/5 hover:bg-gold/10 transition-all text-center"
+                        className="w-full mb-2 py-2 px-3 rounded-lg border border-gold/30 bg-gold/5 hover:bg-gold/10 transition-all text-center"
                       >
                         <p className="text-xs font-medium text-navy">
                           {bt("takeEntireMasechta", { masechtaName: locale === "he" ? (hebrewMasechtaNames[expandedMasechta] || expandedMasechta) : expandedMasechta })}
                         </p>
                       </button>
+                    )}
+                    {/* Multi-select toggle — inside expanded masechta */}
+                    {onMultiClaim && totalAvailable > 0 && !multiSelectMode && (
+                      <button
+                        onClick={() => setMultiSelectMode(true)}
+                        className="text-xs text-navy/60 hover:text-navy underline underline-offset-2 transition-colors mb-2 block"
+                      >
+                        {locale === "he" ? "בחר כמה פרקים" : "Select several chapters"}
+                      </button>
+                    )}
+                    {multiSelectMode && (
+                      <p className="text-xs text-gold font-medium mb-2">
+                        {locale === "he" ? "לחץ על פרקים לבחירה" : "Tap chapters to select"}
+                      </p>
                     )}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }}>
                       {(masechtotInSeder[expandedMasechta] as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((portion) => (
@@ -371,21 +368,6 @@ function TehillimHierarchy({ portions, onClaim, onMultiClaim, claimingId, comple
 
   return (
     <div className="space-y-3 mt-4">
-      {/* Multi-select toggle */}
-      {onMultiClaim && totalAvailable > 0 && !multiSelectMode && (
-        <button
-          onClick={() => setMultiSelectMode(true)}
-          className="text-xs text-navy/60 hover:text-navy underline underline-offset-2 transition-colors"
-        >
-          {locale === "he" ? "בחר כמה פרקים" : "Select several chapters"}
-        </button>
-      )}
-      {multiSelectMode && (
-        <p className="text-xs text-gold font-medium">
-          {locale === "he" ? "לחץ על פרקים לבחירה" : "Tap chapters to select"}
-        </p>
-      )}
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {TEHILLIM_BOOKS.map((book, i) => {
           const bp = portions.filter((p: Portion) => {
@@ -416,23 +398,39 @@ function TehillimHierarchy({ portions, onClaim, onMultiClaim, claimingId, comple
               <AnimatePresence>
                 {isExp && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }} className="p-3 mt-1 bg-cream-warm rounded-xl">
-                      {bp.sort((a: Portion, b: Portion) => (a.order || 0) - (b.order || 0)).map((p: Portion) => (
-                        <PortionCard
-                          key={p.id}
-                          portion={p}
-                          onClaim={onClaim}
-                          claimingId={claimingId}
-                          completing={completing}
-                          currentUserId={currentUserId}
-                          t={t}
-                          locale={locale}
-                          compact
-                          multiSelectMode={multiSelectMode}
-                          isSelected={selectedIds.has(p.id)}
-                          onSelect={toggleSelect}
-                        />
-                      ))}
+                    <div className="p-3 mt-1 bg-cream-warm rounded-xl">
+                      {/* Multi-select toggle — inside expanded book */}
+                      {onMultiClaim && totalAvailable > 0 && !multiSelectMode && (
+                        <button
+                          onClick={() => setMultiSelectMode(true)}
+                          className="text-xs text-navy/60 hover:text-navy underline underline-offset-2 transition-colors mb-2 block"
+                        >
+                          {locale === "he" ? "בחר כמה פרקים" : "Select several chapters"}
+                        </button>
+                      )}
+                      {multiSelectMode && (
+                        <p className="text-xs text-gold font-medium mb-2">
+                          {locale === "he" ? "לחץ על פרקים לבחירה" : "Tap chapters to select"}
+                        </p>
+                      )}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }}>
+                        {bp.sort((a: Portion, b: Portion) => (a.order || 0) - (b.order || 0)).map((p: Portion) => (
+                          <PortionCard
+                            key={p.id}
+                            portion={p}
+                            onClaim={onClaim}
+                            claimingId={claimingId}
+                            completing={completing}
+                            currentUserId={currentUserId}
+                            t={t}
+                            locale={locale}
+                            compact
+                            multiSelectMode={multiSelectMode}
+                            isSelected={selectedIds.has(p.id)}
+                            onSelect={toggleSelect}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -461,13 +459,17 @@ function ShnayimMikraHierarchy({ portions, onClaim, claimingId, completing, curr
 
   const books = useMemo(() => {
     const groups: Record<string, Portion[]> = {};
-    for (const p of portions) {
+    // Sort by global order to recover the canonical parsha sequence (1–54 relative to this track).
+    // The global `order` field is shared across all tracks, so use relative index, not absolute value.
+    const sorted = [...portions].sort((a, b) => (a.order || 0) - (b.order || 0));
+    sorted.forEach((p, idx) => {
+      const relOrder = idx + 1;
       const book = p.parsha ? (["Bereishis", "Shemos", "Vayikra", "Bamidbar", "Devarim"].find(b =>
-        p.order && p.order <= (b === "Bereishis" ? 12 : b === "Shemos" ? 23 : b === "Vayikra" ? 33 : b === "Bamidbar" ? 43 : 54)
+        relOrder <= (b === "Bereishis" ? 12 : b === "Shemos" ? 23 : b === "Vayikra" ? 33 : b === "Bamidbar" ? 43 : 54)
       ) || "Other") : "Other";
       if (!groups[book]) groups[book] = [];
       groups[book].push(p);
-    }
+    });
     return groups;
   }, [portions]);
 

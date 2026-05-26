@@ -132,7 +132,10 @@
     "done": "fait",
     "viewMemorial": "Voir memorial",
     "projectShort": "Memorial {id}",
-    "myJourney": "Mon parcours d etude"
+    "myJourney": "Mon parcours d etude",
+    "taken": "Pris",
+    "share": "Partager",
+    "sessionExpired": "Votre session a expiré."
   },
   "create": {
     "stepOf": "Etape {current} sur {total}",

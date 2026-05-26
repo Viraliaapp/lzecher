@@ -132,7 +132,10 @@
     "done": "done",
     "viewMemorial": "View memorial",
     "projectShort": "Project {id}",
-    "myJourney": "My Learning Journey"
+    "myJourney": "My Learning Journey",
+    "taken": "Taken",
+    "share": "Share",
+    "sessionExpired": "Your session has expired."
   },
   "create": {
     "stepOf": "Step {current} of {total}",

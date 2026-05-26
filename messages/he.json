@@ -132,7 +132,10 @@
     "done": "הושלם",
     "viewMemorial": "צפה בהנצחה",
     "projectShort": "הנצחה {id}",
-    "myJourney": "מסע הלימוד שלי"
+    "myJourney": "מסע הלימוד שלי",
+    "taken": "נלקחו",
+    "share": "שיתוף",
+    "sessionExpired": "פג תוקף הסשן"
   },
   "create": {
     "stepOf": "שלב {current} מתוך {total}",
