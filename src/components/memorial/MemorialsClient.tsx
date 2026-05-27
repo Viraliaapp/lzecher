@@ -71,7 +71,7 @@ export function MemorialsClient({ memorials }: Props) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((m) => {
-              const pct = m.totalPortions > 0 ? Math.round((m.completedPortions / m.totalPortions) * 100) : 0;
+              const pct = m.totalPortions > 0 ? Math.round((m.claimedPortions / m.totalPortions) * 100) : 0;
               const honorific = (m as MemorialProject & { honorific?: string }).honorific ||
                 (m.gender === "female" ? "ע״ה" : "ז״ל");
               return (

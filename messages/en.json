@@ -73,7 +73,9 @@
     "ctaAccent": "today.",
     "ctaSubtitle": "Create a memorial and unite your community in learning.",
     "searchPlaceholder": "Search by name...",
-    "noResults": "No memorials match your search."
+    "noResults": "No memorials match your search.",
+    "takenLabel": "Taken for learning",
+    "cardCta": "→ Join the Learning"
   },
   "auth": {
     "signInTitle": "Sign In",
@@ -315,7 +317,9 @@
     "learnSectionTitle": "Take Part in the Learning",
     "learnSectionSubtitle": "Every perek learned is chesed shel emes and an elevation for the neshama",
     "tributeSignature": "— The Family",
-    "contactFamily": "Contact the family"
+    "contactFamily": "Contact the family",
+    "trackPickSubtitle": "Choose the area that suits you",
+    "trackTileCta": "Click to choose a chapter"
   },
   "memorials": {
     "title": "All Memorials",

@@ -73,7 +73,9 @@
     "ctaAccent": "היום.",
     "ctaSubtitle": "צרו דף הנצחה ואחדו את קהילתכם בלימוד.",
     "searchPlaceholder": "חיפוש לפי שם...",
-    "noResults": "לא נמצאו דפי הנצחה התואמים את החיפוש."
+    "noResults": "לא נמצאו דפי הנצחה התואמים את החיפוש.",
+    "takenLabel": "נלקחו ללימוד",
+    "cardCta": "→ הצטרפו ללימוד"
   },
   "auth": {
     "signInTitle": "התחברות",
@@ -315,7 +317,9 @@
     "learnSectionTitle": "קחו חלק בלימוד",
     "learnSectionSubtitle": "כל פרק שנלמד הוא חסד של אמת ועלייה לנשמה",
     "tributeSignature": "— המשפחה",
-    "contactFamily": "צור קשר עם המשפחה"
+    "contactFamily": "צור קשר עם המשפחה",
+    "trackPickSubtitle": "בחרו את התחום שמתאים לכם",
+    "trackTileCta": "לחצו לבחור פרק ←"
   },
   "memorials": {
     "title": "כל ההנצחות",

@@ -1,22 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
 import { Search } from "lucide-react";
 import { motion } from "framer-motion";
-import type { MemorialProject } from "@/lib/types";
+import type { MemorialProject, TrackType } from "@/lib/types";
 
 interface HomeClientProps {
   memorials?: MemorialProject[];
 }
 
+const TRACK_LABELS: Record<TrackType, { he: string; en: string; es: string; fr: string }> = {
+  mishnayos: { he: "משניות", en: "Mishnayos", es: "Mishnayot", fr: "Mishnayot" },
+  tehillim: { he: "תהילים", en: "Tehillim", es: "Tehilim", fr: "Tehilim" },
+  shnayim_mikra: { he: "שניים מקרא", en: "Shnayim Mikra", es: "Shnaim Mikra", fr: "Chnayim Mikra" },
+  kabalos: { he: "קבלות", en: "Kabalos", es: "Kabalot", fr: "Kabalot" },
+  daf_yomi: { he: "דף יומי", en: "Daf Yomi", es: "Daf Yomi", fr: "Daf Yomi" },
+};
+
+function trackLabel(track: TrackType, locale: string): string {
+  const map = TRACK_LABELS[track];
+  return map?.[locale as keyof typeof map] ?? map?.en ?? track;
+}
+
 export function HomeClient({ memorials = [] }: HomeClientProps) {
   const t = useTranslations("landing");
+  const locale = useLocale();
   const [search, setSearch] = useState("");
 
   const filtered = memorials.filter((m) => {
@@ -109,17 +122,19 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
               {filtered.map((m, i) => {
+                // Part 3 fix: use claimedPortions (not completedPortions) for the percentage
                 const pct =
                   m.totalPortions > 0
-                    ? Math.round(
-                        (m.completedPortions / m.totalPortions) * 100
-                      )
+                    ? Math.round((m.claimedPortions / m.totalPortions) * 100)
                     : 0;
                 const honorific =
                   (m as MemorialProject & { honorific?: string }).honorific ||
-                  (m.gender === "female" ? "\u05E2\u05F4\u05D4" : "\u05D6\u05F4\u05DC");
+                  (m.gender === "female" ? "ע״ה" : "ז״ל");
+                const hebrewName = `${m.nameHebrew} ${m.familyNameHebrew || ""}`.trim();
+                const hebrewDate = (m as MemorialProject & { dateOfPassingHebrew?: string }).dateOfPassingHebrew;
+
                 return (
                   <motion.div
                     key={m.id}
@@ -127,54 +142,136 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: i * 0.05 }}
+                    className="w-full max-w-[340px]"
                   >
                     <Link href={`/memorial/${m.slug}` as "/memorial/[slug]"}>
-                      <div className="rounded-2xl border border-navy/5 bg-white p-6 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer text-center">
-                        <div className="flex justify-center mb-4">
-                          <YahrzeitCandle size="sm" />
-                        </div>
-                        <p className="text-xs text-gold font-medium mb-1">
-                          {honorific}
-                        </p>
-                        <h3
-                          className="font-heading text-lg font-bold text-navy mb-1"
-                          dir="rtl"
+                      <div
+                        className="rounded-[18px] overflow-hidden cursor-pointer group"
+                        style={{
+                          boxShadow: "0 4px 20px rgba(15,27,45,0.10)",
+                          transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLDivElement).style.transform = "translateY(-3px)";
+                          (e.currentTarget as HTMLDivElement).style.boxShadow = "0 12px 40px rgba(15,27,45,0.18)";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
+                          (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 20px rgba(15,27,45,0.10)";
+                        }}
+                      >
+                        {/* 1 — Dark hero band */}
+                        <div
+                          style={{
+                            background: "linear-gradient(165deg, #1B2138 0%, #252C48 60%, #2d2a3a 100%)",
+                            padding: "20px 16px 16px",
+                            textAlign: "center",
+                            position: "relative",
+                            overflow: "hidden",
+                          }}
                         >
-                          {`${m.nameHebrew} ${m.familyNameHebrew || ""}`.trim()}
-                        </h3>
-                        {(m.nameEnglish || m.familyNameEnglish) && (
-                          <p className="font-serif italic text-muted text-sm mb-3">
-                            {`${m.nameEnglish || ""} ${m.familyNameEnglish || ""}`.trim()}
-                          </p>
-                        )}
-                        <div className="flex flex-wrap justify-center gap-1 mb-3">
-                          {m.tracks.map((track) => (
-                            <span
-                              key={track}
-                              className="text-[10px] px-2 py-0.5 rounded-full bg-gold/10 text-gold-deep font-medium"
-                            >
-                              {track === "mishnayos"
-                                ? "\u05DE\u05E9\u05E0\u05D9\u05D5\u05EA"
-                                : track === "tehillim"
-                                  ? "\u05EA\u05D4\u05D9\u05DC\u05D9\u05DD"
-                                  : track === "shnayim_mikra"
-                                    ? "\u05E9\u05E0\u05D9\u05D9\u05DD \u05DE\u05E7\u05E8\u05D0"
-                                    : track === "kabalos"
-                                      ? "\u05E7\u05D1\u05DC\u05D5\u05EA"
-                                      : track === "daf_yomi"
-                                        ? "\u05D3\u05E3 \u05D9\u05D5\u05DE\u05D9"
-                                        : "\u05E7\u05D1\u05DC\u05D5\u05EA"}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-xs text-muted">
-                            <span>
-                              {m.claimedPortions}/{m.totalPortions}
-                            </span>
-                            <span>{pct}%</span>
+                          {/* Soft gold radial glow */}
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: "-60px", left: "50%", transform: "translateX(-50%)",
+                              width: "280px", height: "180px",
+                              background: "radial-gradient(ellipse, rgba(201,162,75,0.20) 0%, transparent 70%)",
+                              pointerEvents: "none",
+                            }}
+                          />
+                          {/* Mini candle */}
+                          <div className="flex justify-center mb-2 relative z-10">
+                            <YahrzeitCandle size="sm" />
                           </div>
-                          <Progress value={pct} className="h-1.5" />
+                          {/* Eyebrow */}
+                          <p
+                            className="font-serif italic relative z-10"
+                            style={{ color: "rgba(201,162,75,0.78)", fontSize: "11px", letterSpacing: "0.12em" }}
+                          >
+                            — לעילוי נשמת —
+                          </p>
+                          {/* Name */}
+                          <h3
+                            className="font-heading relative z-10"
+                            style={{ fontWeight: 900, fontSize: "21px", color: "#FAF6EC", marginTop: "4px", direction: "rtl" }}
+                          >
+                            {`${hebrewName} ${honorific}`}
+                          </h3>
+                          {/* English name accent */}
+                          {(m.nameEnglish || m.familyNameEnglish) && (
+                            <p className="font-serif italic relative z-10" style={{ color: "rgba(201,162,75,0.50)", fontSize: "12px", marginTop: "2px" }}>
+                              {`${m.nameEnglish || ""} ${m.familyNameEnglish || ""}`.trim()}
+                            </p>
+                          )}
+                          {/* Date */}
+                          {hebrewDate && (
+                            <p className="relative z-10" style={{ color: "rgba(250,246,236,0.38)", fontSize: "12px", marginTop: "3px" }} dir="rtl">
+                              {hebrewDate}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* 2 — Gold-pale stat band */}
+                        <div
+                          style={{ background: "#F2E8CC", padding: "14px 16px 12px", textAlign: "center" }}
+                        >
+                          <p
+                            className="font-heading"
+                            style={{ fontWeight: 900, fontSize: "30px", color: "#C9A961", lineHeight: 1 }}
+                          >
+                            {pct}%
+                          </p>
+                          <p style={{ fontSize: "11px", color: "#8B7355", marginTop: "3px", marginBottom: "8px" }}>
+                            {t("takenLabel")}
+                          </p>
+                          {/* Thin progress bar */}
+                          <div
+                            style={{ height: "5px", borderRadius: "3px", background: "rgba(15,27,45,0.08)", overflow: "hidden" }}
+                          >
+                            <div
+                              style={{ height: "100%", width: `${pct}%`, background: "#C9A961", borderRadius: "3px", transition: "width 0.6s ease" }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* 3 — Track chips */}
+                        <div
+                          style={{ background: "#FAF6EC", padding: "9px 12px", display: "flex", flexWrap: "wrap", gap: "4px", justifyContent: "center", minHeight: "36px", alignItems: "center" }}
+                        >
+                          {m.tracks.map((track) => {
+                            const label = trackLabel(track, locale);
+                            const showCount = m.tracks.length === 1;
+                            return (
+                              <span
+                                key={track}
+                                style={{
+                                  fontSize: "10px", padding: "2px 8px", borderRadius: "12px",
+                                  background: "rgba(201,162,75,0.14)", color: "#6B5323", fontWeight: 500,
+                                }}
+                              >
+                                {showCount
+                                  ? `${label} ${m.claimedPortions}/${m.totalPortions}`
+                                  : label}
+                              </span>
+                            );
+                          })}
+                        </div>
+
+                        {/* 4 — Navy CTA band */}
+                        <div
+                          style={{
+                            background: "#0F1B2D",
+                            padding: "11px 16px",
+                            textAlign: "center",
+                          }}
+                        >
+                          <p
+                            className="font-heading"
+                            style={{ fontWeight: 700, fontSize: "13px", color: "#FAF6EC", letterSpacing: "0.02em" }}
+                          >
+                            {t("cardCta")}
+                          </p>
                         </div>
                       </div>
                     </Link>

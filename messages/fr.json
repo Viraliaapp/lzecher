@@ -73,7 +73,9 @@
     "ctaAccent": "aujourd'hui.",
     "ctaSubtitle": "Creez un memorial et unissez votre communaute dans l'etude.",
     "searchPlaceholder": "Rechercher par nom...",
-    "noResults": "Aucun memorial ne correspond a votre recherche."
+    "noResults": "Aucun memorial ne correspond a votre recherche.",
+    "takenLabel": "Pris pour l'etude",
+    "cardCta": "→ Rejoindre l'etude"
   },
   "auth": {
     "signInTitle": "Connexion",
@@ -315,7 +317,9 @@
     "learnSectionTitle": "Participez a l'etude",
     "learnSectionSubtitle": "Chaque perek appris est chesed chel emet et une elevation pour la neshama",
     "tributeSignature": "— La Famille",
-    "contactFamily": "Contacter la famille"
+    "contactFamily": "Contacter la famille",
+    "trackPickSubtitle": "Choisissez le domaine qui vous convient",
+    "trackTileCta": "Cliquez pour choisir →"
   },
   "memorials": {
     "title": "Tous les memoriaux",

@@ -73,7 +73,9 @@
     "ctaAccent": "hoy.",
     "ctaSubtitle": "Crea un memorial y une a tu comunidad en el estudio.",
     "searchPlaceholder": "Buscar por nombre...",
-    "noResults": "No se encontraron memoriales que coincidan con su busqueda."
+    "noResults": "No se encontraron memoriales que coincidan con su busqueda.",
+    "takenLabel": "Tomados para el estudio",
+    "cardCta": "→ Únete al estudio"
   },
   "auth": {
     "signInTitle": "Iniciar sesion",
@@ -315,7 +317,9 @@
     "learnSectionTitle": "Participa en el Estudio",
     "learnSectionSubtitle": "Cada capítulo aprendido es chesed shel emet y una elevación para la neshama",
     "tributeSignature": "— La Familia",
-    "contactFamily": "Contactar a la familia"
+    "contactFamily": "Contactar a la familia",
+    "trackPickSubtitle": "Elige el area que te convenga",
+    "trackTileCta": "Haz clic para elegir →"
   },
   "memorials": {
     "title": "Todos los memoriales",

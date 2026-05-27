@@ -6,8 +6,6 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TrackHierarchy } from "./TrackHierarchy";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -21,10 +19,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  BookOpen,
-  Music,
-  ScrollText,
-  Heart,
   Share2,
   Flag,
   Camera,
@@ -39,12 +33,12 @@ import type { MemorialProject, Portion, TrackType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { heClaimButton, getClaimVerbForm } from "@/lib/track-config";
 
-const TRACK_ICONS: Record<TrackType, typeof BookOpen> = {
-  mishnayos: BookOpen,
-  tehillim: Music,
-  shnayim_mikra: ScrollText,
-  kabalos: Heart,
-  daf_yomi: BookOpen,
+const TRACK_EMOJI: Record<TrackType, string> = {
+  mishnayos: "📖",
+  tehillim: "🎵",
+  shnayim_mikra: "📜",
+  kabalos: "🕯️",
+  daf_yomi: "⌛",
 };
 
 function formatGregorianDate(dateStr: string, locale: string): string {
@@ -97,6 +91,11 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   // Multi-select claim state
   const [multiClaimPortionIds, setMultiClaimPortionIds] = useState<string[]>([]);
   const [multiClaimDialogOpen, setMultiClaimDialogOpen] = useState(false);
+
+  // Track selector state (replaces Tabs)
+  const defaultTrack = (["mishnayos", "tehillim", "shnayim_mikra", "kabalos"] as const)
+    .find((tt) => project.tracks.includes(tt as TrackType)) || project.tracks[0];
+  const [selectedTrack, setSelectedTrack] = useState<TrackType>(defaultTrack);
 
   function getResolvedReminderPrefs(): string[] {
     if (!claimerEmail || !reminderEnabled) return [];
@@ -694,58 +693,134 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         </div>
       )}
 
-      {/* Track Tabs */}
+      {/* Track Selector — Square Tile Grid (Phase 4.2) */}
       {totalPortions > 0 && (
         <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8">
-          <div className="text-center mb-6">
-            <h2 className="font-heading text-2xl font-bold text-navy mb-2">{t("learnSectionTitle")}</h2>
-            <p className="font-serif italic text-muted text-sm">{t("learnSectionSubtitle")}</p>
+          <div className="text-center mb-8">
+            <h2
+              className="font-heading font-bold text-navy mb-2"
+              style={{ fontSize: "28px" }}
+            >
+              {t("learnSectionTitle")}
+            </h2>
+            <p className="font-serif italic text-muted text-sm">
+              {t("trackPickSubtitle")}
+            </p>
           </div>
-          <Tabs defaultValue={
-            (["mishnayos", "tehillim", "shnayim_mikra", "kabalos"] as const)
-              .find((tt) => project.tracks.includes(tt)) || project.tracks[0]
-          } className="w-full">
-            <TabsList className="w-full justify-start overflow-x-auto">
-              {project.tracks.map((track) => {
-                const Icon = TRACK_ICONS[track];
-                const tp = trackGroups[track] || [];
-                // Badge shows claimed (taken) count — Item 2
-                const tc = tp.filter((p) => p.status !== "available").length;
-                return (
-                  <TabsTrigger key={track} value={track} className="gap-2">
-                    <Icon className="h-4 w-4" />
-                    {t(`track_${track}`)}
-                    <Badge variant="secondary" className="ml-1 text-[10px]">
-                      {tc}/{tp.length}
-                    </Badge>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
 
+          {/* Tile Grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+              gap: "18px",
+              maxWidth: "920px",
+              margin: "0 auto 36px",
+            }}
+          >
             {project.tracks.map((track) => {
               const tp = trackGroups[track] || [];
+              const taken = tp.filter((p) => p.status !== "available").length;
+              const total = tp.length;
+              const tilePct = total > 0 ? Math.round((taken / total) * 100) : 0;
+              const isActive = selectedTrack === track;
+              const emoji = TRACK_EMOJI[track] ?? "📖";
+
               return (
-                <TabsContent key={track} value={track}>
-                  {tp.length === 0 ? (
-                    <p className="text-center text-muted py-8">{t("noPortions")}</p>
-                  ) : (
-                    <TrackHierarchy
-                      portions={tp}
-                      trackType={track}
-                      onClaim={handleClaimClick}
-                      onComplete={handleComplete}
-                      onBulkClaim={handleBulkClaim}
-                      onMultiClaim={handleMultiClaim}
-                      claimingId={claimingId}
-                      completing={completing}
-                      currentUserId={user?.uid}
-                    />
+                <button
+                  key={track}
+                  type="button"
+                  onClick={() => setSelectedTrack(track)}
+                  className={cn(
+                    "rounded-[18px] p-6 text-center border-2 transition-all cursor-pointer",
+                    isActive
+                      ? "border-navy shadow-lg"
+                      : "bg-white border-[rgba(15,27,45,0.10)] hover:border-gold/50 hover:shadow-md hover:-translate-y-0.5"
                   )}
-                </TabsContent>
+                  style={isActive
+                    ? { background: "#0F1B2D" }
+                    : { background: "#FFFFFF" }
+                  }
+                >
+                  {/* Icon */}
+                  <div style={{ fontSize: "32px", marginBottom: "10px", lineHeight: 1 }}>
+                    {emoji}
+                  </div>
+                  {/* Track name */}
+                  <p
+                    className="font-heading font-bold"
+                    style={{
+                      fontSize: "22px",
+                      color: isActive ? "#C9A961" : "#0F1B2D",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {t(`track_${track}` as "track_mishnayos")}
+                  </p>
+                  {/* Count line */}
+                  <p
+                    style={{
+                      fontFamily: "Heebo, Inter, sans-serif",
+                      fontSize: "14px",
+                      color: isActive ? "rgba(250,246,236,0.70)" : "#6B6F76",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    {taken} / {total} {locale === "he" ? "נלקחו" : t("taken").split(" ")[0]}
+                  </p>
+                  {/* Mini progress bar */}
+                  <div
+                    style={{
+                      width: "80%", margin: "0 auto 12px",
+                      height: "5px", borderRadius: "3px",
+                      background: isActive ? "rgba(250,246,236,0.18)" : "rgba(201,162,75,0.15)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${tilePct}%`,
+                        background: "#C9A961",
+                        borderRadius: "3px",
+                        transition: "width 0.5s ease",
+                      }}
+                    />
+                  </div>
+                  {/* CTA */}
+                  <p
+                    style={{
+                      fontFamily: "Heebo, Inter, sans-serif",
+                      fontSize: "13px",
+                      color: isActive ? "rgba(201,162,75,0.85)" : "#C9A961",
+                    }}
+                  >
+                    {t("trackTileCta")}
+                  </p>
+                </button>
               );
             })}
-          </Tabs>
+          </div>
+
+          {/* Selected track content */}
+          {(() => {
+            const tp = trackGroups[selectedTrack] || [];
+            return tp.length === 0 ? (
+              <p className="text-center text-muted py-8">{t("noPortions")}</p>
+            ) : (
+              <TrackHierarchy
+                portions={tp}
+                trackType={selectedTrack}
+                onClaim={handleClaimClick}
+                onComplete={handleComplete}
+                onBulkClaim={handleBulkClaim}
+                onMultiClaim={handleMultiClaim}
+                claimingId={claimingId}
+                completing={completing}
+                currentUserId={user?.uid}
+              />
+            );
+          })()}
         </div>
       )}
 

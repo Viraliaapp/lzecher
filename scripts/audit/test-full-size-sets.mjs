@@ -265,16 +265,34 @@ async function main() {
   // Claim 100 spread across different masechtos (mimics the real bug scenario)
   // Take the first 100 portions (spans Zeraim seder)
   const first100 = allIdsC.slice(0, 100);
+  let prematureStop = false;
   for (let i = 0; i < first100.length; i += 50) {
-    await claimManyViaApi(first100.slice(i, i + 50), `Claimer${i}`);
+    const batch = first100.slice(i, i + 50);
+    console.log(`  [C] Claiming batch ${Math.floor(i/50)+1}: portions ${i+1}–${i+batch.length}`);
+    await claimManyViaApi(batch, `Claimer${i}`);
+    await new Promise(r => setTimeout(r, 600));
+    const midCheck = await getSet2Count();
+    if (midCheck > 0) {
+      console.error(`\n  ⛔ PREMATURE STOP: Set 2 opened after ${i + batch.length} claims (set2Count=${midCheck})`);
+      console.error(`  Batch that triggered it: portions ${i+1}–${i+batch.length}`);
+      const proj = await getProjData();
+      console.error(`  Project state: totalSets=${proj?.totalSets}, totalPortions=${proj?.totalPortions}, claimedPortions=${proj?.claimedPortions}`);
+      prematureStop = true;
+      allPassed = false;
+      skipCleanup = true;
+      break;
+    }
+    console.log(`    Set2 count after batch: 0 ✓`);
   }
-  await new Promise(r => setTimeout(r, 1000));
 
-  const set2AfterC = await getSet2Count();
-  check(set2AfterC === 0, `Set 2 did NOT open after 100/525 claims (count=${set2AfterC})`);
-  const projDataC = await getProjData();
-  check(projDataC?.totalSets === 1, `Project still totalSets=1 (got ${projDataC?.totalSets})`);
-  console.log(`  Set2 count: ${set2AfterC}, totalSets: ${projDataC?.totalSets}`);
+  if (!prematureStop) {
+    await new Promise(r => setTimeout(r, 1000));
+    const set2AfterC = await getSet2Count();
+    check(set2AfterC === 0, `Set 2 did NOT open after 100/525 claims (count=${set2AfterC})`);
+    const projDataC = await getProjData();
+    check(projDataC?.totalSets === 1, `Project still totalSets=1 (got ${projDataC?.totalSets})`);
+    console.log(`  Set2 count: ${set2AfterC}, totalSets: ${projDataC?.totalSets}`);
+  }
 
   // ══ Summary ══════════════════════════════════════════════════════════════════
   console.log("\n════════════════════════════════════════");
@@ -285,6 +303,15 @@ async function main() {
   }
 }
 
+let skipCleanup = false;
+
 main()
-  .catch(e => { console.error("Script error:", e); })
-  .finally(async () => { await cleanup().catch(() => {}); process.exit(0); });
+  .catch(e => { console.error("Script error:", e); skipCleanup = true; })
+  .finally(async () => {
+    if (skipCleanup) {
+      console.error("\n⚠️  Cleanup SKIPPED — data preserved for inspection. Project ID:", TEST_PROJECT_ID);
+    } else {
+      await cleanup().catch(() => {});
+    }
+    process.exit(0);
+  });
