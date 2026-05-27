@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { queueRemindersForClaim } from "@/lib/queue-reminders";
-import { seedSetForTrack } from "@/lib/seed-set";
+import { maybeOpenNextSet } from "@/lib/open-next-set";
 import type { TrackType } from "@/lib/types";
 import type * as FirebaseFirestore from "@google-cloud/firestore";
 
@@ -157,49 +157,22 @@ export async function POST(request: NextRequest) {
 
     // ── Repeating sets: check if any set is now complete ─────────────────────
     try {
-      const claimedPortionDocs = validPortions.filter(p => {
-        const d = p.data;
-        return (d.trackType === "mishnayos" || d.trackType === "tehillim") && d.status === "available";
-      });
-      if (claimedPortionDocs.length > 0) {
+      const repeatableDocs = validPortions.filter(p =>
+        p.data.trackType === "mishnayos" || p.data.trackType === "tehillim"
+      );
+      if (repeatableDocs.length > 0) {
         const projSnap2 = await db.collection("lzecher_projects").doc(projectId).get();
         const projData2 = projSnap2.data();
-        if (projData2?.repeatingSetEnabled !== false) {
-          const setsToCheck = new Set<number>(claimedPortionDocs.map(p => {
-            const sn = p.data.setNumber as number | undefined;
-            return (sn === undefined || sn === null) ? 1 : sn;
-          }));
-          const trackType = claimedPortionDocs[0].data.trackType as "mishnayos" | "tehillim";
-          let totalPortionsDelta = 0;
-          let maxNewSet = projData2?.totalSets || 1;
-          // Fetch all portions for this project+track once; filter in memory per set.
-          // Firestore where("setNumber","==",null) does NOT match absent-field docs (legacy portions).
-          const allPortionsForTrack = await db.collection("lzecher_portions")
-            .where("projectId", "==", projectId)
-            .where("trackType", "==", trackType)
-            .get();
-          for (const sn of setsToCheck) {
-            const allInSetDocs = allPortionsForTrack.docs.filter(d => {
-              const dsn = d.data().setNumber;
-              return ((dsn === undefined || dsn === null) ? 1 : dsn) === sn;
-            });
-            const claimedNow = new Set(portionIdSet);
-            const anyAvailable = allInSetDocs.some(d => !claimedNow.has(d.id) && d.data().status === "available");
-            if (!anyAvailable) {
-              const newSN = sn + 1;
-              if (newSN > maxNewSet) {
-                const cnt = await seedSetForTrack(db, projectId, trackType, newSN);
-                totalPortionsDelta += cnt;
-                maxNewSet = newSN;
-              }
-            }
+        if (projData2) {
+          // Collect distinct (trackType, setNumber) pairs touched by this batch
+          const setsToCheck = new Map<string, { trackType: "mishnayos" | "tehillim"; setNumber: number }>();
+          for (const p of repeatableDocs) {
+            const tt = p.data.trackType as "mishnayos" | "tehillim";
+            const sn = (p.data.setNumber as number | undefined) || 1;
+            setsToCheck.set(`${tt}:${sn}`, { trackType: tt, setNumber: sn });
           }
-          if (totalPortionsDelta > 0) {
-            await db.collection("lzecher_projects").doc(projectId).update({
-              totalPortions: ((projData2?.totalPortions as number) || 0) + totalPortionsDelta,
-              totalSets: maxNewSet,
-              updatedAt: Date.now(),
-            });
+          for (const { trackType: tt, setNumber: sn } of setsToCheck.values()) {
+            await maybeOpenNextSet(db, projectId, tt, sn, portionIdSet, projData2);
           }
         }
       }

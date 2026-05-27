@@ -4,7 +4,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { getClaimMode } from "@/lib/track-config";
 import type { TrackType, CommitmentDuration } from "@/lib/types";
 import { queueRemindersForClaim } from "@/lib/queue-reminders";
-import { seedSetForTrack } from "@/lib/seed-set";
+import { maybeOpenNextSet } from "@/lib/open-next-set";
 
 export async function POST(request: NextRequest) {
   try {
@@ -148,35 +148,19 @@ export async function POST(request: NextRequest) {
       const isRepeatableTrack = trackType === "mishnayos" || trackType === "tehillim";
       if (isRepeatableTrack) {
         try {
-          const currentSetNumber = portionData.setNumber || 1;
+          const currentSetNumber = (portionData.setNumber as number | undefined) || 1;
           const projectSnap2 = await db.collection("lzecher_projects").doc(projectId).get();
           const projData2 = projectSnap2.data();
-          if (projData2?.repeatingSetEnabled !== false) {
-            // Fetch all portions for this project+track and filter in memory.
-            // Firestore where("setNumber","==",null) does NOT match documents where the field
-            // is absent (legacy portions seeded before setNumber was added). In-memory filter is the
-            // only reliable way to treat absent setNumber as set 1.
-            const allPortionsForTrack = await db.collection("lzecher_portions")
-              .where("projectId", "==", projectId)
-              .where("trackType", "==", trackType)
-              .get();
-            const portionsInSet = allPortionsForTrack.docs.filter(d => {
-              const sn = d.data().setNumber;
-              return ((sn === undefined || sn === null) ? 1 : sn) === currentSetNumber;
-            });
-            const anyAvailable = portionsInSet.some(d => d.id !== portionId && d.data().status === "available");
-            if (!anyAvailable) {
-              // Last portion taken — seed the next set!
-              const nextSetNumber = currentSetNumber + 1;
-              newSetNumber = nextSetNumber;
-              const newCount = await seedSetForTrack(db, projectId, trackType as "mishnayos" | "tehillim", nextSetNumber);
-              await db.collection("lzecher_projects").doc(projectId).update({
-                totalPortions: ((projData2?.totalPortions as number) || 0) + newCount,
-                totalSets: newSetNumber,
-                updatedAt: Date.now(),
-              });
-              newSetOpened = true;
-            }
+          if (projData2) {
+            const setResult = await maybeOpenNextSet(
+              db, projectId,
+              trackType as "mishnayos" | "tehillim",
+              currentSetNumber,
+              new Set([portionId]),
+              projData2
+            );
+            newSetOpened = setResult.newSetOpened;
+            newSetNumber = setResult.newSetNumber;
           }
         } catch (setErr) {
           // Non-fatal: set detection failed, claim still succeeded

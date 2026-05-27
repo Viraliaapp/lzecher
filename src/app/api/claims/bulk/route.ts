@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { queueRemindersForClaim } from "@/lib/queue-reminders";
+import { maybeOpenNextSet } from "@/lib/open-next-set";
 
 export async function POST(request: NextRequest) {
   try {
@@ -193,6 +194,24 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         console.error("[bulk-claim] queue reminders failed:", e);
       }
+    }
+
+    // ── Repeating sets: check if this bulk claim completed a set ─────────────
+    try {
+      const tt = firstPortion.trackType as "mishnayos" | "tehillim";
+      if (tt === "mishnayos" || tt === "tehillim") {
+        const projSnap2 = await db.collection("lzecher_projects").doc(projectId).get();
+        const projData2 = projSnap2.data();
+        if (projData2) {
+          // Bulk claims only target one scope at a time (one seder/masechta), so
+          // all claimed portions belong to the same set. Use the first portion's setNumber.
+          const sn = (firstPortion.setNumber as number | undefined) || 1;
+          const claimedIds = new Set<string>(availablePortions.map(d => d.id));
+          await maybeOpenNextSet(db, projectId, tt, sn, claimedIds, projData2);
+        }
+      }
+    } catch (setErr) {
+      console.error("[bulk-claim] set-completion check failed:", setErr);
     }
 
     return NextResponse.json({
