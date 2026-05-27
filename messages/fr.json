@@ -309,7 +309,13 @@
     "nameRequired": "Veuillez saisir votre nom",
     "completionBanner": "Un immense mérite (zekhout) pour la neshama de {name}.",
     "markCompleteConfirm": "Marquer cette portion comme apprise ?",
-    "markCompleteAccountability": "Marquer comme complete est un engagement personnel entre vous et Hachem. La nechama beneficie de l etude honnete."
+    "markCompleteAccountability": "Marquer comme complete est un engagement personnel entre vous et Hachem. La nechama beneficie de l etude honnete.",
+    "taken": "Pris pour l'etude",
+    "takenSublabel": "portions prises · d'autres arrivent",
+    "learnSectionTitle": "Participez a l'etude",
+    "learnSectionSubtitle": "Chaque perek appris est chesed chel emet et une elevation pour la neshama",
+    "tributeSignature": "— La Famille",
+    "contactFamily": "Contacter la famille"
   },
   "memorials": {
     "title": "Tous les memoriaux",

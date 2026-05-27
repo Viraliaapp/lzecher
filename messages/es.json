@@ -309,7 +309,13 @@
     "nameRequired": "Por favor ingrese su nombre",
     "completionBanner": "Un enorme mérito (zejut) para el alma de {name}.",
     "markCompleteConfirm": "Marcar esta porcion como aprendida?",
-    "markCompleteAccountability": "Marcar como completado es un compromiso personal entre tu y Hashem. El neshama se beneficia del estudio honesto."
+    "markCompleteAccountability": "Marcar como completado es un compromiso personal entre tu y Hashem. El neshama se beneficia del estudio honesto.",
+    "taken": "Tomados para el estudio",
+    "takenSublabel": "porciones tomadas · más se unen",
+    "learnSectionTitle": "Participa en el Estudio",
+    "learnSectionSubtitle": "Cada capítulo aprendido es chesed shel emet y una elevación para la neshama",
+    "tributeSignature": "— La Familia",
+    "contactFamily": "Contactar a la familia"
   },
   "memorials": {
     "title": "Todos los memoriales",

@@ -309,7 +309,13 @@
     "nameRequired": "Please enter your name",
     "completionBanner": "An enormous zechus for {name}’s neshama.",
     "markCompleteConfirm": "Mark this portion as learned?",
-    "markCompleteAccountability": "Marking complete is a personal commitment between you and Hashem. The neshama benefits from honest learning."
+    "markCompleteAccountability": "Marking complete is a personal commitment between you and Hashem. The neshama benefits from honest learning.",
+    "taken": "Taken for learning",
+    "takenSublabel": "portions taken · more joining",
+    "learnSectionTitle": "Take Part in the Learning",
+    "learnSectionSubtitle": "Every perek learned is chesed shel emes and an elevation for the neshama",
+    "tributeSignature": "— The Family",
+    "contactFamily": "Contact the family"
   },
   "memorials": {
     "title": "All Memorials",

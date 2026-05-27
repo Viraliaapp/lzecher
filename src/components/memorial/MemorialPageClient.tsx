@@ -453,96 +453,153 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   return (
     <div className="min-h-screen bg-cream">
       {/* ── Hero ── */}
-      <div className="bg-navy text-cream">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <div
+        className="relative overflow-hidden text-cream"
+        style={{ background: "linear-gradient(165deg, #1B2138 0%, #252C48 60%, #2d2a3a 100%)" }}
+      >
+        {/* Radial gold glow behind top center */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            width: "640px", height: "420px",
+            top: "-140px", left: "50%", transform: "translateX(-50%)",
+            background: "radial-gradient(ellipse, rgba(201,162,75,0.22) 0%, transparent 68%)",
+          }}
+        />
+        <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <div className="text-center">
-            {photoUrl && (
-              <div className="flex justify-center mb-6">
-                <div className="h-48 w-48 rounded-full overflow-hidden border-4 border-gold/30 shadow-lg">
-                  <img src={photoUrl} alt={project.nameHebrew} className="h-full w-full object-cover" />
+
+            {/* Photo with mini candle above, OR full YahrzeitCandle */}
+            {photoUrl ? (
+              <div className="relative inline-flex flex-col items-center mb-6">
+                {/* Mini candle above oval */}
+                <svg viewBox="0 0 40 60" width={40} height={60} fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-[-4px] relative z-10">
+                  <ellipse cx="20" cy="20" rx="18" ry="18" fill="rgba(201,162,75,0.10)">
+                    <animate attributeName="rx" values="18;14;20;16;18" dur="7s" repeatCount="indefinite" />
+                  </ellipse>
+                  <rect x="14" y="33" width="12" height="22" rx="3" fill="#FAF6EC" fillOpacity="0.85" stroke="#C9A961" strokeWidth="0.8" strokeOpacity="0.3" />
+                  <rect x="14.5" y="38" width="11" height="16" rx="2.5" fill="#F5EDD9" />
+                  <line x1="20" y1="33" x2="20" y2="25" stroke="#2A2D34" strokeWidth="1" strokeLinecap="round">
+                    <animate attributeName="x2" values="20;19.7;20.3;20" dur="3.2s" repeatCount="indefinite" />
+                  </line>
+                  <ellipse cx="20" cy="17" rx="5" ry="9" fill="#C9A961" fillOpacity="0.18">
+                    <animate attributeName="ry" values="9;7;10;8;9" dur="6s" repeatCount="indefinite" />
+                    <animate attributeName="cy" values="17;15.5;18;16.5;17" dur="6s" repeatCount="indefinite" />
+                  </ellipse>
+                  <ellipse cx="20" cy="17" rx="3" ry="6" fill="#C9A961" fillOpacity="0.55">
+                    <animate attributeName="ry" values="6;4.5;7;5.5;6" dur="4.8s" repeatCount="indefinite" />
+                    <animate attributeName="cy" values="17;15;18;16;17" dur="4.8s" repeatCount="indefinite" />
+                  </ellipse>
+                  <ellipse cx="20" cy="15" rx="1.5" ry="3.5" fill="#E8CD93">
+                    <animate attributeName="ry" values="3.5;2.5;4;3;3.5" dur="3.8s" repeatCount="indefinite" />
+                    <animate attributeName="cy" values="15;13.5;16;14.5;15" dur="3.8s" repeatCount="indefinite" />
+                  </ellipse>
+                  <rect x="13" y="32" width="14" height="2.5" rx="1.25" fill="#C9A961" fillOpacity="0.12" stroke="#C9A961" strokeWidth="0.4" strokeOpacity="0.2" />
+                </svg>
+                {/* Oval gold-framed photo */}
+                <div
+                  style={{
+                    width: "120px", height: "150px",
+                    borderRadius: "50%",
+                    overflow: "hidden",
+                    border: "3px solid #C9A24B",
+                    boxShadow: "0 0 44px rgba(201,162,75,.35), inset 0 1px 1px rgba(255,255,255,0.15)",
+                  }}
+                >
+                  <img
+                    src={photoUrl}
+                    alt={project.nameHebrew}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(20%) sepia(8%)" }}
+                  />
                 </div>
+              </div>
+            ) : (
+              <div className="flex justify-center mb-6">
+                <YahrzeitCandle size="lg" />
               </div>
             )}
 
-            <div className="flex justify-center mb-6">
-              <YahrzeitCandle size="lg" />
-            </div>
-
-            <p className="font-serif italic text-gold text-base sm:text-lg tracking-wide mb-3">
-              {t("lIluyNishmas")}
+            {/* Eyebrow */}
+            <p className="font-serif italic tracking-widest text-sm sm:text-base mb-3" style={{ color: "rgba(201,162,75,0.78)" }}>
+              — {t("lIluyNishmas")} —
             </p>
 
-            <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold mb-2" dir="rtl">
+            {/* Honoree name */}
+            <h1 className="font-heading font-black text-3xl sm:text-4xl lg:text-5xl text-cream mb-2" style={{ fontWeight: 900 }} dir="rtl">
               {displayNameWithHonorific}
             </h1>
 
+            {/* English name accent */}
             {(project.nameEnglish || project.familyNameEnglish) && (
-              <p className="font-serif italic text-cream/60 text-lg mb-2">
+              <p className="font-serif italic text-lg mb-1" style={{ color: "rgba(201,162,75,0.55)" }}>
                 {`${project.nameEnglish || ""} ${project.familyNameEnglish || ""}`.trim()}
               </p>
             )}
 
+            {/* Date */}
             {dateDisplay && (
-              <p className="text-cream/50 text-sm mt-2 font-heading" dir="rtl">{dateDisplay}</p>
+              <p className="text-sm mt-1 font-heading" style={{ color: "rgba(250,246,236,0.40)" }} dir="rtl">
+                {dateDisplay}
+              </p>
             )}
 
+            {/* Ornament divider */}
             <div className="flex items-center justify-center gap-3 my-6 max-w-xs mx-auto">
-              <div className="h-px flex-1 bg-gold/20" />
-              <span className="text-gold/50 text-xs">&#x2727;</span>
-              <div className="h-px flex-1 bg-gold/20" />
+              <div className="h-px flex-1" style={{ background: "rgba(201,162,75,0.25)" }} />
+              <span style={{ color: "rgba(201,162,75,0.50)", fontSize: "0.65rem" }}>&#x2726;</span>
+              <div className="h-px flex-1" style={{ background: "rgba(201,162,75,0.25)" }} />
             </div>
 
-            {/* Stats: primary = taken (%, נלקחו), secondary = completed */}
-            <div className="grid grid-cols-3 gap-6 max-w-md mx-auto">
-              <div>
-                <p className="text-2xl font-heading font-bold text-gold">{claimed}</p>
-                <p className="text-xs text-cream/50">{t("claimed")}</p>
-              </div>
-              <div>
-                <p className="text-2xl font-heading font-bold text-gold">{pct}%</p>
-                <p className="text-xs text-cream/50">{locale === "he" ? "נלקחו" : t("progress")}</p>
-              </div>
-              <div>
-                <p className="text-lg font-heading font-medium text-gold/60">{completed}</p>
-                <p className="text-xs text-cream/40">{t("completed")}</p>
-              </div>
+            {/* Single stat: % taken + progress bar + sub-count */}
+            <div className="max-w-xs mx-auto">
+              <p className="font-heading font-black text-5xl sm:text-6xl" style={{ color: "#C9A961" }}>
+                {pct}%
+              </p>
+              <p className="text-sm mt-1 mb-3" style={{ color: "rgba(250,246,236,0.55)" }}>
+                {t("taken")}
+              </p>
+              <Progress value={pct} className="h-2 mb-3" style={{ background: "rgba(250,246,236,0.10)" }} indicatorClassName="bg-gold" />
+              <p className="text-xs" style={{ color: "rgba(250,246,236,0.35)" }}>
+                {claimed} {t("takenSublabel")}
+              </p>
             </div>
 
-            <div className="mt-4 max-w-md mx-auto">
-              <Progress value={pct} className="h-2 bg-cream/10" indicatorClassName="bg-gold" />
-            </div>
-
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <Button variant="outline" size="sm" className="border-cream/20 text-cream hover:bg-cream/10" onClick={shareLink}>
-                <Share2 className="h-4 w-4" />
+            {/* Action buttons */}
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <Button
+                size="sm"
+                onClick={shareLink}
+                className="hover:opacity-90 transition-opacity"
+                style={{ background: "rgba(201,162,75,0.20)", border: "1px solid rgba(201,162,75,0.40)", color: "#FAF6EC" }}
+              >
+                <Share2 className="h-4 w-4 mr-1.5" />
                 {t("share")}
               </Button>
-              {!photoUrl && user && (user.uid === (project as MemorialProject & { createdBy: string }).createdBy) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-cream/20 text-cream hover:bg-cream/10"
-                  onClick={() => setPhotoUploadOpen(true)}
-                >
-                  <Camera className="h-4 w-4" />
-                  {t("addPhoto")}
-                </Button>
-              )}
               <button
                 onClick={() => setContactOpen(true)}
                 className="text-xs text-cream/50 hover:text-cream/80 transition-colors"
               >
                 <Mail className="h-3 w-3 inline mr-1" />
-                {locale === "he" ? "צור קשר עם המשפחה" : "Contact family"}
+                {t("contactFamily")}
               </button>
+              {!photoUrl && user && user.uid === project.createdBy && (
+                <button
+                  className="text-xs text-cream/30 hover:text-cream/60 transition-colors"
+                  onClick={() => setPhotoUploadOpen(true)}
+                >
+                  <Camera className="h-3 w-3 inline mr-1" />
+                  {t("addPhoto")}
+                </button>
+              )}
               <button
                 onClick={() => setReportOpen(true)}
-                className="text-xs text-cream/30 hover:text-cream/60 transition-colors"
+                className="text-xs text-cream/25 hover:text-cream/55 transition-colors"
               >
                 <Flag className="h-3 w-3 inline mr-1" />
                 {t("report")}
               </button>
             </div>
+
           </div>
         </div>
       </div>
@@ -560,15 +617,70 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         </div>
       )}
 
-      {/* Tribute/Biography */}
+      {/* Tribute/Biography — framed letter */}
       {project.biography && (
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8">
-          <Card>
-            <CardContent className="p-6 sm:p-8">
-              <h3 className="font-heading text-lg font-semibold text-navy mb-3">{t("tribute")}</h3>
-              <p className="text-muted leading-relaxed whitespace-pre-line">{project.biography}</p>
-            </CardContent>
-          </Card>
+        <div
+          className="py-12 sm:py-16"
+          style={{ background: "radial-gradient(ellipse at top, #FFF8E8 0%, #FAF6EC 65%)" }}
+        >
+          <div className="mx-auto max-w-2xl px-4 sm:px-6">
+            <div
+              className="relative rounded-2xl p-8 sm:p-12"
+              style={{
+                background: "#FFFDF8",
+                border: "1px solid rgba(201,162,75,0.38)",
+                boxShadow: "0 8px 48px rgba(15,27,45,0.10), 0 2px 8px rgba(15,27,45,0.06)",
+              }}
+            >
+              {/* Inner inset border — double-frame effect */}
+              <div
+                className="absolute pointer-events-none"
+                style={{ inset: "8px", border: "1px solid rgba(201,162,75,0.16)", borderRadius: "12px" }}
+              />
+              {/* Decorative quotation mark */}
+              <span
+                className="absolute select-none font-serif"
+                style={{
+                  top: "10px",
+                  [locale === "he" ? "right" : "left"]: "18px",
+                  fontSize: "80px",
+                  lineHeight: 1,
+                  color: "rgba(201,162,75,0.20)",
+                  fontFamily: "Georgia, serif",
+                  pointerEvents: "none",
+                }}
+              >
+                ״
+              </span>
+              {/* Heading */}
+              <h3
+                className="font-serif italic text-center tracking-widest text-xs uppercase mb-6"
+                style={{ color: "rgba(201,162,75,0.82)", letterSpacing: "0.18em" }}
+              >
+                {t("tribute")}
+              </h3>
+              {/* Tribute text */}
+              <p
+                className="text-center whitespace-pre-line relative z-10"
+                style={{
+                  fontFamily: "'Frank Ruhl Libre', Georgia, serif",
+                  fontSize: "1.1rem",
+                  color: "#0F1B2D",
+                  lineHeight: "1.9",
+                  direction: locale === "he" ? "rtl" : "ltr",
+                }}
+              >
+                {project.biography}
+              </p>
+              {/* Signature */}
+              <p
+                className="font-serif italic text-center text-sm mt-7"
+                style={{ color: "rgba(15,27,45,0.32)" }}
+              >
+                {t("tributeSignature")}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -585,7 +697,10 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       {/* Track Tabs */}
       {totalPortions > 0 && (
         <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8">
-          <h2 className="font-heading text-xl font-semibold text-navy mb-4">{t("claimPortions")}</h2>
+          <div className="text-center mb-6">
+            <h2 className="font-heading text-2xl font-bold text-navy mb-2">{t("learnSectionTitle")}</h2>
+            <p className="font-serif italic text-muted text-sm">{t("learnSectionSubtitle")}</p>
+          </div>
           <Tabs defaultValue={
             (["mishnayos", "tehillim", "shnayim_mikra", "kabalos"] as const)
               .find((tt) => project.tracks.includes(tt)) || project.tracks[0]
@@ -723,7 +838,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             <span className="text-gold/50 text-xs">✦</span>
             <div className="h-px flex-1 bg-gold/20" />
           </div>
-          <p className="text-sm text-muted">{completed + 1} {t("completed").toLowerCase()} · {pct}% {t("progress").toLowerCase()}</p>
+          <p className="text-sm text-muted">{pct}% {t("taken")} · {claimed} {t("takenSublabel")}</p>
           <DialogFooter className="mt-4">
             <Button onClick={() => setChizukMessage(null)}>{t("continue" as never) || "Continue"}</Button>
           </DialogFooter>

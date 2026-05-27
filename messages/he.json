@@ -309,7 +309,13 @@
     "nameRequired": "אנא הזן את שמך",
     "completionBanner": "זכות עצומה לנשמת {name}.",
     "markCompleteConfirm": "לסמן את הפרק הזה כנלמד?",
-    "markCompleteAccountability": "סימון השלמה הוא קבלה אישית בינך לבין הקדוש ברוך הוא. הנשמה נהנית מלימוד אמיתי."
+    "markCompleteAccountability": "סימון השלמה הוא קבלה אישית בינך לבין הקדוש ברוך הוא. הנשמה נהנית מלימוד אמיתי.",
+    "taken": "נלקחו ללימוד",
+    "takenSublabel": "חלקים נלקחו · ממשיכים להצטרף",
+    "learnSectionTitle": "קחו חלק בלימוד",
+    "learnSectionSubtitle": "כל פרק שנלמד הוא חסד של אמת ועלייה לנשמה",
+    "tributeSignature": "— המשפחה",
+    "contactFamily": "צור קשר עם המשפחה"
   },
   "memorials": {
     "title": "כל ההנצחות",
