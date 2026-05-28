@@ -23,22 +23,26 @@ export async function GET(request: NextRequest) {
   const now = Date.now();
 
   // ── Query pending emails ──────────────────────────────────────────────────
-  const snapshot = await db
+  // Single-field query avoids composite index requirement; filter sendAt in memory.
+  const pendingSnap = await db
     .collection("lzecher_scheduled_emails")
     .where("status", "==", "pending")
-    .where("sendAt", "<=", now)
-    .limit(BATCH_LIMIT)
+    .limit(BATCH_LIMIT * 3)
     .get();
 
-  if (snapshot.empty) {
-    return NextResponse.json({ processed: 0, message: "No pending emails" });
+  const readyDocs = pendingSnap.docs.filter(
+    (d) => ((d.data().sendAt as number) || 0) <= now
+  ).slice(0, BATCH_LIMIT);
+
+  if (readyDocs.length === 0) {
+    return NextResponse.json({ processed: 0, message: "No pending emails ready to send" });
   }
 
   let sent = 0;
   let failed = 0;
 
   const results = await Promise.allSettled(
-    snapshot.docs.map((doc) => processEmail(db, doc, now))
+    readyDocs.map((doc) => processEmail(db, doc, now))
   );
 
   results.forEach((result) => {
@@ -50,7 +54,7 @@ export async function GET(request: NextRequest) {
     }
   });
 
-  return NextResponse.json({ processed: snapshot.size, sent, failed });
+  return NextResponse.json({ processed: readyDocs.length, sent, failed });
 }
 
 // ── Per-email processor ───────────────────────────────────────────────────────
@@ -72,9 +76,10 @@ async function processEmail(
     const reminderType = data.reminderType as ReminderType;
     const email = getReminderEmail(reminderType, locale, templateArgs);
 
-    // Send via Resend
+    // Send via Resend — RESEND_FROM_EMAIL must be a verified domain (or use onboarding@resend.dev for testing)
+    const fromAddress = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
     const { error } = await resend.emails.send({
-      from: "Lzecher <noreply@lzecher.com>",
+      from: `Lzecher <${fromAddress}>`,
       to: data.toEmail,
       subject: email.subject,
       html: email.body,

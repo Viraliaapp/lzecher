@@ -524,34 +524,50 @@ function ShnayimMikraHierarchy({ portions, onClaim, claimingId, completing, curr
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function InclusiveGrid({ portions, onClaim, claimingId, t, locale }: any) {
+  const isKabalos = (portions as Portion[]).some(p => p.trackType === "kabalos");
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
       {(portions as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((p) => {
         const primaryName = locale === "he" ? (p.displayNameHebrew || p.displayName) : (p.displayName || p.displayNameHebrew);
-        const secondaryName = locale === "he" ? (p.displayName !== p.displayNameHebrew ? p.displayName : null) : (p.displayNameHebrew !== p.displayName ? p.displayNameHebrew : null);
-        const verbForm = getVerbForm(p);
-        const btnLabel = locale === "he"
-          ? heClaimButton(verbForm, false).replace("אני ", "")
-          : t("joinCommitment");
+        const names: string[] = p.claimerNames || [];
+        const count = p.currentClaimerCount || names.length || 0;
+        const btnLabel = isKabalos
+          ? (locale === "he" ? "אני מקבל/ת על עצמי בלי נדר" : "I accept upon myself (bli neder)")
+          : (locale === "he" ? heClaimButton(getVerbForm(p), false).replace("אני ", "") : t("joinCommitment"));
         return (
           <Card key={p.id} className="transition-all hover:shadow-sm hover:-translate-y-0.5">
             <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex-1 min-w-0">
                   <p className="font-medium text-navy text-sm" dir={locale === "he" ? "rtl" : "ltr"}>
                     {primaryName}
                   </p>
-                  {secondaryName && (
-                    <p className="text-xs text-muted" dir={locale === "he" ? "ltr" : "rtl"}>{secondaryName}</p>
+                  {isKabalos && (
+                    <p className="text-[10px] text-gold-deep mt-0.5" dir="rtl">
+                      {locale === "he" ? "בלי נדר" : "bli neder"}
+                    </p>
                   )}
                 </div>
-                {(p.currentClaimerCount || 0) > 0 && (
+                {count > 0 && (
                   <div className="flex items-center gap-1 text-xs text-gold-deep bg-gold/10 px-2 py-0.5 rounded-full shrink-0">
                     <Users className="h-3 w-3" />
-                    <span>{p.currentClaimerCount}</span>
+                    <span>{count}</span>
                   </div>
                 )}
               </div>
+              {/* Takers list */}
+              {names.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-1">
+                  {names.slice(0, 5).map((name, i) => (
+                    <span key={i} className="text-[10px] bg-navy/5 text-navy/60 px-1.5 py-0.5 rounded-full" dir="rtl">
+                      {name}
+                    </span>
+                  ))}
+                  {names.length > 5 && (
+                    <span className="text-[10px] text-navy/40">+{names.length - 5}</span>
+                  )}
+                </div>
+              )}
               <Button
                 size="sm"
                 className="w-full h-8 text-xs"
@@ -560,12 +576,7 @@ function InclusiveGrid({ portions, onClaim, claimingId, t, locale }: any) {
               >
                 {claimingId === p.id ? (
                   <Spinner className="h-3 w-3" />
-                ) : (
-                  <>
-                    <Users className="h-3 w-3" />
-                    {btnLabel}
-                  </>
-                )}
+                ) : btnLabel}
               </Button>
             </CardContent>
           </Card>

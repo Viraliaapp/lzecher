@@ -171,9 +171,7 @@ export async function POST(request: NextRequest) {
           totalPortions++;
         }
       }
-      // 'kabalos' track (formerly 'mitzvot') — inclusive, one portion per template
-      // Feminine-only mitzvos get claimVerbForm: "feminine"
-      const FEMININE_KABALOS = new Set(["shabbat-candles", "hafrashat-challah"]);
+      // 'kabalos' track — inclusive, bli neder, one portion per template
       if (tracks.includes("kabalos") || tracks.includes("mitzvot" as never)) {
         for (const mt of MITZVAH_TEMPLATES) {
           order++;
@@ -181,11 +179,13 @@ export async function POST(request: NextRequest) {
           batch.set(ref, {
             id: ref.id, projectId: projectRef.id, trackType: "kabalos",
             claimMode: "inclusive",
-            reference: mt.title, displayName: mt.title,
+            reference: mt.titleHebrew, displayName: mt.title,
             displayNameHebrew: mt.titleHebrew,
             order, status: "available",
             currentClaimerCount: 0,
-            claimVerbForm: FEMININE_KABALOS.has(mt.id) ? "feminine" : "both",
+            claimerNames: [],
+            claimVerbForm: "both",
+            isFreeText: mt.id === "kabbalah-ishit",
           });
           totalPortions++;
         }

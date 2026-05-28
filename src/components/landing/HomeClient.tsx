@@ -124,11 +124,22 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
               {filtered.map((m, i) => {
-                // Part 3 fix: use claimedPortions (not completedPortions) for the percentage
-                const pct =
-                  m.totalPortions > 0
-                    ? Math.round((m.claimedPortions / m.totalPortions) * 100)
-                    : 0;
+                // Progress % uses Tehillim+Mishnayos only if per-track data is available
+                const byTrack = (m as MemorialProject & { claimedByTrack?: Record<string, number> }).claimedByTrack || {};
+                const tmHasTracks = m.tracks.some(t => t === "mishnayos" || t === "tehillim");
+                const hasByTrack = Object.keys(byTrack).length > 0;
+                let pct: number;
+                if (tmHasTracks && hasByTrack) {
+                  // estimate TM total: mishnayos=525/set, tehillim=150/set (single set approx)
+                  const mClaimed = byTrack.mishnayos || 0;
+                  const tClaimed = byTrack.tehillim || 0;
+                  const mTotal = m.tracks.includes("mishnayos") ? 525 : 0;
+                  const tTotal = m.tracks.includes("tehillim") ? 150 : 0;
+                  const tmTotal = mTotal + tTotal;
+                  pct = tmTotal > 0 ? Math.min(100, Math.round(((mClaimed + tClaimed) / tmTotal) * 100)) : 0;
+                } else {
+                  pct = m.totalPortions > 0 ? Math.round((m.claimedPortions / m.totalPortions) * 100) : 0;
+                }
                 const honorific =
                   (m as MemorialProject & { honorific?: string }).honorific ||
                   (m.gender === "female" ? "ע״ה" : "ז״ל");
@@ -235,27 +246,28 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
                           </div>
                         </div>
 
-                        {/* 3 — Track chips */}
+                        {/* 3 — Per-track stat line */}
                         <div
-                          style={{ background: "#FAF6EC", padding: "9px 12px", display: "flex", flexWrap: "wrap", gap: "4px", justifyContent: "center", minHeight: "36px", alignItems: "center" }}
+                          style={{ background: "#FAF6EC", padding: "9px 12px", minHeight: "36px", textAlign: "center" }}
                         >
-                          {m.tracks.map((track) => {
-                            const label = trackLabel(track, locale);
-                            const showCount = m.tracks.length === 1;
+                          {(() => {
+                            const parts: string[] = [];
+                            const mC = byTrack.mishnayos || 0;
+                            const tC = byTrack.tehillim || 0;
+                            const kC = byTrack.kabalos || 0;
+                            if (mC > 0) parts.push(`${mC} ${locale === "he" ? "משניות" : "Mishnayos"}`);
+                            if (tC > 0) parts.push(`${tC} ${locale === "he" ? "תהילים" : "Tehillim"}`);
+                            if (kC > 0) parts.push(`${kC} ${locale === "he" ? "קבלות" : "Kabalos"}`);
+                            if ((m.participantCount || 0) > 0) parts.push(`${m.participantCount} ${locale === "he" ? "משתתפים" : "participants"}`);
+                            if (parts.length === 0) {
+                              m.tracks.forEach(track => parts.push(trackLabel(track, locale)));
+                            }
                             return (
-                              <span
-                                key={track}
-                                style={{
-                                  fontSize: "10px", padding: "2px 8px", borderRadius: "12px",
-                                  background: "rgba(201,162,75,0.14)", color: "#6B5323", fontWeight: 500,
-                                }}
-                              >
-                                {showCount
-                                  ? `${label} ${m.claimedPortions}/${m.totalPortions}`
-                                  : label}
-                              </span>
+                              <p style={{ fontSize: "10px", color: "#6B5323", lineHeight: 1.6 }}>
+                                {parts.join(" · ")}
+                              </p>
                             );
-                          })}
+                          })()}
                         </div>
 
                         {/* 4 — Navy CTA band */}

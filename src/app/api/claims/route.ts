@@ -116,11 +116,15 @@ export async function POST(request: NextRequest) {
       // Update project stats
       const projectRef = db.collection("lzecher_projects").doc(projectId);
       const projectSnap = await projectRef.get();
+      let projectSlug: string | null = null;
       if (projectSnap.exists) {
         const proj = projectSnap.data()!;
+        projectSlug = (proj.slug as string) || null;
+        const trackCount = ((proj.claimedByTrack as Record<string, number> | undefined) || {})[trackType] || 0;
         await projectRef.update({
           claimedPortions: (proj.claimedPortions || 0) + 1,
           participantCount: (proj.participantCount || 0) + 1,
+          [`claimedByTrack.${trackType}`]: trackCount + 1,
         });
       }
 
@@ -130,6 +134,7 @@ export async function POST(request: NextRequest) {
           await queueRemindersForClaim({
             claimId: claimRef.id,
             projectId,
+            projectSlug,
             userId: uid,
             userEmail: email,
             reminderPreferences,
@@ -208,19 +213,24 @@ export async function POST(request: NextRequest) {
         longestStreak: 0,
       });
 
-      // Increment currentClaimerCount on the portion
+      // Increment currentClaimerCount and append claimer name
       await portionRef.update({
         currentClaimerCount: (portionData.currentClaimerCount || 0) + 1,
+        claimerNames: [...((portionData.claimerNames as string[]) || []), claimerName.trim()],
       });
 
       // Update project stats
-      const projectRef = db.collection("lzecher_projects").doc(projectId);
-      const projectSnap = await projectRef.get();
-      if (projectSnap.exists) {
-        const proj = projectSnap.data()!;
-        await projectRef.update({
-          claimedPortions: (proj.claimedPortions || 0) + 1,
-          participantCount: (proj.participantCount || 0) + 1,
+      const projectRef2 = db.collection("lzecher_projects").doc(projectId);
+      const projectSnap2b = await projectRef2.get();
+      let projectSlugInc: string | null = null;
+      if (projectSnap2b.exists) {
+        const proj2 = projectSnap2b.data()!;
+        projectSlugInc = (proj2.slug as string) || null;
+        const trackCount2 = ((proj2.claimedByTrack as Record<string, number> | undefined) || {})[trackType] || 0;
+        await projectRef2.update({
+          claimedPortions: (proj2.claimedPortions || 0) + 1,
+          participantCount: (proj2.participantCount || 0) + 1,
+          [`claimedByTrack.${trackType}`]: trackCount2 + 1,
         });
       }
 
@@ -230,6 +240,7 @@ export async function POST(request: NextRequest) {
           await queueRemindersForClaim({
             claimId: claimRef.id,
             projectId,
+            projectSlug: projectSlugInc,
             userId: uid,
             userEmail: email,
             reminderPreferences,
@@ -239,7 +250,6 @@ export async function POST(request: NextRequest) {
           });
         } catch (e) {
           console.error("Failed to queue reminders:", e);
-          // Don't fail the claim if reminders fail
         }
       }
 

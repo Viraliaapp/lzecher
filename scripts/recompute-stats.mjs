@@ -56,6 +56,19 @@ async function run() {
       const progressPercent =
         totalPortions > 0 ? Math.round((claimedPortions / totalPortions) * 100) : 0;
 
+      // Per-track claimed counts (exclusive tracks use portion status; inclusive tracks use currentClaimerCount)
+      const claimedByTrack = {};
+      for (const pd of portionsSnap.docs) {
+        const d = pd.data();
+        const tt = d.trackType || "unknown";
+        if (!claimedByTrack[tt]) claimedByTrack[tt] = 0;
+        if (d.claimMode === "inclusive") {
+          claimedByTrack[tt] += (d.currentClaimerCount || 0);
+        } else if (d.status !== "available") {
+          claimedByTrack[tt] += 1;
+        }
+      }
+
       const before = {
         totalPortions: projData.totalPortions,
         claimedPortions: projData.claimedPortions,
@@ -68,13 +81,14 @@ async function run() {
       const nameStr = `${projData.nameHebrew || ""} ${projData.familyNameHebrew || ""}`.trim() || projId;
 
       if (changed) {
-        await projDoc.ref.update({ totalPortions, claimedPortions, completedPortions, progressPercent, updatedAt: Date.now() });
+        await projDoc.ref.update({ totalPortions, claimedPortions, completedPortions, progressPercent, claimedByTrack, updatedAt: Date.now() });
         console.log(`  [UPDATED] ${nameStr} (${projId})`);
         console.log(`    before: total=${before.totalPortions} claimed=${before.claimedPortions} pct=${before.progressPercent}%`);
         console.log(`    after:  total=${after.totalPortions}  claimed=${after.claimedPortions}  pct=${after.progressPercent}%`);
         updated++;
       } else {
-        console.log(`  [ok] ${nameStr} — no change (claimed=${claimedPortions}/${totalPortions} = ${progressPercent}%)`);
+        await projDoc.ref.update({ claimedByTrack, updatedAt: Date.now() });
+        console.log(`  [ok] ${nameStr} — stats unchanged, claimedByTrack backfilled`);
         skipped++;
       }
     } catch (err) {

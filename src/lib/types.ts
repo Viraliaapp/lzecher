@@ -43,6 +43,7 @@ export interface MemorialProject {
   completedPortions: number;
   participantCount: number;
   totalSets?: number; // total sets seeded (including completed), default 1
+  claimedByTrack?: Record<string, number>; // per-track claimed counts for stat line
 }
 
 export type TrackType =
@@ -85,6 +86,10 @@ export interface Portion {
 
   // Gendered claim verb (overrides track-level default)
   claimVerbForm?: "masculine" | "feminine" | "both";
+
+  // Inclusive claim extras
+  isFreeText?: boolean; // kabalos "personal commitment" tile — claimer enters custom text
+  claimerNames?: string[]; // names of people who took this (inclusive tracks)
 
   // Claim status
   status: "available" | "claimed" | "completed";

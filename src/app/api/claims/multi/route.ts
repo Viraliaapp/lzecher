@@ -120,16 +120,27 @@ export async function POST(request: NextRequest) {
       await batch.commit();
     }
 
-    // Update project stats
+    // Update project stats (including per-track counts)
     const projectRef = db.collection("lzecher_projects").doc(projectId);
     const projectSnap = await projectRef.get();
     let projectSlug: string | null = null;
     if (projectSnap.exists) {
       const proj = projectSnap.data()!;
       projectSlug = proj.slug || null;
+      const existingByTrack = (proj.claimedByTrack as Record<string, number> | undefined) || {};
+      const deltaByTrack: Record<string, number> = {};
+      for (const p of validPortions) {
+        const tt = p.data.trackType as string;
+        deltaByTrack[tt] = (deltaByTrack[tt] || 0) + 1;
+      }
+      const newByTrack: Record<string, number> = { ...existingByTrack };
+      for (const [tt, delta] of Object.entries(deltaByTrack)) {
+        newByTrack[tt] = (newByTrack[tt] || 0) + delta;
+      }
       await projectRef.update({
         claimedPortions: (proj.claimedPortions || 0) + claimedCount,
         participantCount: (proj.participantCount || 0) + 1,
+        claimedByTrack: newByTrack,
       });
     }
 

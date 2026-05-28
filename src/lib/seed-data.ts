@@ -147,20 +147,56 @@ export const PARSHIYOT: Parsha[] = [
   { id: "vezos-habracha", name: "Vezos Habracha", nameHebrew: "וזאת הברכה", book: "Devarim", bookHebrew: "דברים", order: 54, aliyot: 7 },
 ];
 
-/* ── Mitzvah Templates: 12 (approved list) ── */
+/* ── Kabalos Templates: 5 fixed + 1 free-text (bli neder, inclusive) ── */
 export const MITZVAH_TEMPLATES: MitzvahTemplate[] = [
-  { id: "shabbat-candles", title: "Shabbat Candle Lighting", titleHebrew: "הדלקת נרות", description: "Light Shabbat candles each week in their memory", descriptionHebrew: "להדליק נרות שבת מדי שבוע לעילוי נשמתם", category: "tefillah" },
-  { id: "hafrashat-challah", title: "Hafrashat Challah", titleHebrew: "הפרשת חלה", description: "Separate challah when baking, dedicating the mitzvah to their memory", descriptionHebrew: "להפריש חלה בעת אפייה ולהקדיש את המצווה לעילוי נשמתם", category: "tefillah" },
-  { id: "tzedakah-daily", title: "Daily Tzedakah", titleHebrew: "צדקה יומית", description: "Give tzedakah every weekday for a set period", descriptionHebrew: "לתת צדקה בכל יום חול לתקופה מסוימת", category: "tzedakah" },
-  { id: "mitzvah-kabalah", title: "Mitzvah Acceptance", titleHebrew: "התחייבות מצוה", description: "Accept upon yourself a specific mitzvah commitment in their memory", descriptionHebrew: "לקבל על עצמך התחייבות למצווה מסוימת לעילוי נשמתם", category: "middot" },
-  { id: "chesed-acts", title: "Acts of Chesed", titleHebrew: "חסד", description: "Perform deliberate acts of kindness daily in their memory", descriptionHebrew: "לעשות מעשי חסד מכוונים מדי יום לעילוי נשמתם", category: "chesed" },
-  { id: "visit-kever", title: "Visit Kever", titleHebrew: "ביקור קבר", description: "Visit the kever and recite tehillim or learn mishnayos there", descriptionHebrew: "לבקר בקבר ולומר תהילים או ללמוד משניות", category: "chesed" },
-  { id: "limud-halacha-yomi", title: "Daily Halacha", titleHebrew: "לימוד הלכה יומי", description: "Learn one halacha each day in their merit", descriptionHebrew: "ללמוד הלכה אחת בכל יום לעילוי נשמתם", category: "limud" },
-  { id: "brachos-kavana", title: "Brachot with Kavana", titleHebrew: "ברכות בכוונה", description: "Say brachot slowly and with focused intention in their memory", descriptionHebrew: "לברך ברכות בכוונה ובאיטיות לעילוי נשמתם", category: "tefillah" },
-  { id: "chesed-visit-sick", title: "Bikur Cholim", titleHebrew: "ביקור חולים", description: "Visit someone who is unwell to bring them comfort and support", descriptionHebrew: "לבקר חולה ולהביא לו נחמה ותמיכה", category: "chesed" },
-  { id: "chesed-hachnasas-orchim", title: "Hachnasat Orchim", titleHebrew: "הכנסת אורחים", description: "Host guests for a Shabbos or Yom Tov meal", descriptionHebrew: "לארח אורחים לסעודת שבת או יום טוב", category: "chesed" },
-  { id: "middot-shemiras-halashon", title: "Shemiras HaLashon", titleHebrew: "שמירת הלשון", description: "Strengthen your speech in their memory. Avoid lashon hara, rechilus, and motzi shem ra. Many take on specific hours of the day or learn daily from Sefer Chofetz Chaim.", descriptionHebrew: "התחזקות בשמירת הלשון לעילוי נשמתם. הימנעות מלשון הרע, רכילות ומוציא שם רע. רבים מקבלים על עצמם שעות מסוימות ביום או לימוד יומי מספר חפץ חיים.", category: "middot" },
-  { id: "middot-hakaras-hatov", title: "Daily Hakaras Hatov to Hashem", titleHebrew: "הכרת הטוב יומית להשם", description: "Each day, consciously thank Hashem for one specific thing in your life. The act of recognizing daily blessings — health, family, parnassah, the small kindnesses — elevates the neshama.", descriptionHebrew: "מדי יום, להודות להשם בכוונה על דבר אחד ספציפי בחיים. ההכרה בברכות היומיומיות — בריאות, משפחה, פרנסה, החסדים הקטנים — מעלה את הנשמה.", category: "middot" },
+  {
+    id: "limud-torah-yomi",
+    title: "Daily Torah Study",
+    titleHebrew: "לימוד תורה יומי",
+    description: "Set aside time each day to learn Torah in their memory",
+    descriptionHebrew: "להקדיש זמן בכל יום ללימוד תורה לעילוי נשמתם",
+    category: "limud",
+  },
+  {
+    id: "tzedakah-lzecher",
+    title: "Tzedakah in Their Memory",
+    titleHebrew: "צדקה לעילוי נשמתם",
+    description: "Give tzedakah regularly as a merit for their soul",
+    descriptionHebrew: "לתת צדקה בקביעות לעילוי נשמתם",
+    category: "tzedakah",
+  },
+  {
+    id: "shemiras-halashon",
+    title: "Shemiras HaLashon",
+    titleHebrew: "שמירת הלשון",
+    description: "Guard your speech — avoid lashon hara and rechilus in their memory",
+    descriptionHebrew: "לשמור על הלשון — להימנע מלשון הרע ורכילות לעילוי נשמתם",
+    category: "middot",
+  },
+  {
+    id: "maasim-tovim",
+    title: "Acts of Chesed",
+    titleHebrew: "מעשים טובים",
+    description: "Perform acts of kindness in their memory",
+    descriptionHebrew: "לעשות מעשים טובים וחסד לעילוי נשמתם",
+    category: "chesed",
+  },
+  {
+    id: "tefillah-bekavanah",
+    title: "Tefillah with Kavanah",
+    titleHebrew: "תפילה בכוונה",
+    description: "Daven with deeper focus and intention in their memory",
+    descriptionHebrew: "להתפלל בכוונה ובריכוז לעילוי נשמתם",
+    category: "tefillah",
+  },
+  {
+    id: "kabbalah-ishit",
+    title: "Personal Commitment",
+    titleHebrew: "קבלה אישית",
+    description: "Accept a personal commitment of your own choosing in their memory",
+    descriptionHebrew: "לקבל על עצמך קבלה אישית לפי בחירתך לעילוי נשמתם",
+    category: "middot",
+  },
 ];
 
 /* ── Mussar Seforim ── */

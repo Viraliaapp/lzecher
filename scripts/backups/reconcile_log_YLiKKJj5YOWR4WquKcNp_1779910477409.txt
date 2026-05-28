@@ -1,0 +1,90 @@
+Live: 1050 portions, 180 claims
+Set 1 portions: 525, Set 2 portions: 525
+Backup has 111 claims, live has 180 claims
+
+Case A (move to s1 available): 28
+Case B (same-person duplicate, delete s2 claim): 42
+Case B CONFLICT (different people): 0
+
+--- CASE A: Moving claims to set-1 portions ---
+  [A] Maasros 4: moved 1 claim(s) from s2(3cQy8cYhi13TgR4QbYyl) → s1(iqAYnrPaDJIwwGSHyoBv), claimer=שוקי רוט
+  [A] Bava Kamma 1: moved 1 claim(s) from s2(4BFCm2LECq38JrVtUy8c) → s1(m64YILkW9jmleiyXZsgP), claimer=יהונתן בלויגרונד
+  [A] Bava Kamma 5: moved 1 claim(s) from s2(9osgfV0RQ9oJiKaI3m8Q) → s1(ohXrgXcq86QH9jhEKaGH), claimer=יהונתן בלויגרונד
+  [A] Yoma 5: moved 1 claim(s) from s2(AeFBHOmNnxFjfnpCWL5y) → s1(4j3hmexst4uB2F56Fmmu), claimer=מ מ
+  [A] Bava Kamma 10: moved 1 claim(s) from s2(CXMqMJfee88t3DcoINmO) → s1(Y77vJOc2QVZHuk5FwI1q), claimer=יהונתן בלויגרונד
+  [A] Bava Kamma 8: moved 1 claim(s) from s2(Cmd9JFOtNLC4pvvLzaF9) → s1(2JQBCgrKcGtBN12uYbp1), claimer=יהונתן בלויגרונד
+  [A] Bava Kamma 6: moved 1 claim(s) from s2(Dro1eFug4mxgsf5DB4XV) → s1(D0sfiXPHaifS73pXg1vs), claimer=יהונתן בלויגרונד
+  [A] Maasros 1: moved 1 claim(s) from s2(EW20qHQdjvpgnK9ze1Sj) → s1(huPQML9zuRRDv3PnkCqM), claimer=שוקי רוט
+  [A] Bava Kamma 2: moved 1 claim(s) from s2(Fl6FzwuDSfwARVZfo4Ev) → s1(Qfexemyg1ynYRQqYFxu1), claimer=יהונתן בלויגרונד
+  [A] Yoma 8: moved 1 claim(s) from s2(Kwz2aSjnKggDZpREYSZo) → s1(SQNb0l468rk78ijX7tJF), claimer=מ מ
+  [A] Bava Kamma 3: moved 1 claim(s) from s2(LckvxUSYzbFfIDQXhaLD) → s1(jnK51EZK2qCpZErrCZZB), claimer=יהונתן בלויגרונד
+  [A] Yoma 6: moved 1 claim(s) from s2(N7kmKTRbChRset0JJ1J3) → s1(zVeBQTlUCPlSEDMtPUjv), claimer=מ מ
+  [A] Yoma 2: moved 1 claim(s) from s2(RFMoyA4naVwf3OzvgCAY) → s1(dWIj1ZSegDLdDAMU4vPM), claimer=מ מ
+  [A] Maaser Sheni 1: moved 1 claim(s) from s2(SHEgwYGm5zv2NPPVCU5r) → s1(b5BsIvGG4tdWvZGjpPoH), claimer=שוקי רוט
+  [A] Maasros 3: moved 1 claim(s) from s2(WDrYPP2vaSwS5iWHu0xg) → s1(o6JPoqsxB8GhV5O9VRDn), claimer=שוקי רוט
+  [A] Maaser Sheni 2: moved 1 claim(s) from s2(XO94pFSFDShrgVeynsn6) → s1(OOREqaTufRcFSlfFzuGD), claimer=שוקי רוט
+  [A] Maasros 2: moved 1 claim(s) from s2(XxKOGjHJiR7vwF5EMIwf) → s1(0OcRwpHxDiJcr2F3IdcE), claimer=שוקי רוט
+  [A] Maasros 5: moved 1 claim(s) from s2(asjT8W6H6L0woj1jokqg) → s1(N96NIxcPg4cR225yllIB), claimer=שוקי רוט
+  [A] Bava Kamma 7: moved 1 claim(s) from s2(d9V98LUdwfTqV6XQpwkU) → s1(Xpsly3220rAcvvFbMssd), claimer=יהונתן בלויגרונד
+  [A] Yoma 1: moved 1 claim(s) from s2(dY0fBm5uLerAZEOao2O7) → s1(iK8sVuWs349ot44NOYF2), claimer=מ מ
+  [A] Maaser Sheni 3: moved 1 claim(s) from s2(ejMLst9edo4V0RRdEQHO) → s1(Ng9mJLBUtv9S1Ib7K5dp), claimer=שוקי רוט
+  [A] Yoma 4: moved 1 claim(s) from s2(fyfSN3rGNO1Kd1qL8IKn) → s1(k4C6EahRORdM7wH8Z0sZ), claimer=מ מ
+  [A] Yoma 7: moved 1 claim(s) from s2(hMySAd5WBDDJkNTqX99K) → s1(eCRCxbNtw9RPYkJf4MQE), claimer=מ מ
+  [A] Maaser Sheni 5: moved 1 claim(s) from s2(lf4Fajguw9PMfrjhBtKe) → s1(CdlBwpM0vkxPx7OxF4Pv), claimer=שוקי רוט
+  [A] Bava Kamma 9: moved 1 claim(s) from s2(sYrteAchSsMRnOb6y4K2) → s1(FXOXzQRhYnDMnFG8CZvS), claimer=יהונתן בלויגרונד
+  [A] Yoma 3: moved 1 claim(s) from s2(u2v86VHvUsCOGo2FopH9) → s1(UHCGAJ9DwRdHhmO0h0xC), claimer=מ מ
+  [A] Bava Kamma 4: moved 1 claim(s) from s2(wSFgBQdrN4MT8dM4YfdD) → s1(HKyR5jAGU6y2w79kx96O), claimer=יהונתן בלויגרונד
+  [A] Maaser Sheni 4: moved 1 claim(s) from s2(zqpQ3lAnGppDYNNRYKct) → s1(8aJQm8ixhz9uZpq89hc8), claimer=שוקי רוט
+
+--- CASE B: Deleting duplicate set-2 claims ---
+  [B] Zavim 4: deleted set-2 claim (N7uT5UNJOWBON3o3ypon) by מוטי ליפשיץ — set-1 claim preserved
+  [B] Gittin 1: deleted set-2 claim (OhnHBGA4jHc6zIrC6y1a) by אריה בלויגרונד — set-1 claim preserved
+  [B] Niddah 4: deleted set-2 claim (yIf9RoT8D40QhJFwsruB) by קובי בלוגרונד — set-1 claim preserved
+  [B] Kiddushin 2: deleted set-2 claim (Of23udqHfjFCfTT8D09v) by אריה בלויגרונד — set-1 claim preserved
+  [B] Niddah 2: deleted set-2 claim (FE6J8gccIGqDI5hF0Q4l) by קובי בלוגרונד — set-1 claim preserved
+  [B] Bikkurim 1: deleted set-2 claim (bXi6jUL4bA4ZWnVTP41I) by מוטי — set-1 claim preserved
+  [B] Niddah 9: deleted set-2 claim (HbxzIyk9cRYKEnSS0yhf) by קובי בלוגרונד — set-1 claim preserved
+  [B] Zavim 3: deleted set-2 claim (etC8GWJIFXygUz1YaIox) by מוטי ליפשיץ — set-1 claim preserved
+  [B] Zavim 2: deleted set-2 claim (FguRMpDYBcAWj4mbjgz4) by מוטי ליפשיץ — set-1 claim preserved
+  [B] Niddah 5: deleted set-2 claim (ShXH4b3tCsa26jWKVd0W) by קובי בלוגרונד — set-1 claim preserved
+  [B] Gittin 6: deleted set-2 claim (xrzR4Eg3aSGQQEj13FNM) by אריה בלויגרונד — set-1 claim preserved
+  [B] Niddah 7: deleted set-2 claim (RQeuLMLG8MxPPnHqnKcC) by קובי בלוגרונד — set-1 claim preserved
+  [B] Sheviis 10: deleted set-2 claim (jgMOYxsKy7tWk40wGjfa) by אריה אנסבכר — set-1 claim preserved
+  [B] Gittin 5: deleted set-2 claim (MpXfCJZHsOK94hkk1x7Y) by אריה בלויגרונד — set-1 claim preserved
+  [B] Gittin 4: deleted set-2 claim (mzELwmg3MDkdiPqyIEVP) by אריה בלויגרונד — set-1 claim preserved
+  [B] Kiddushin 4: deleted set-2 claim (7oXJvXj27X8MtFF4ldi2) by אריה בלויגרונד — set-1 claim preserved
+  [B] Sheviis 5: deleted set-2 claim (lpi9ZY3K7FHaKZGwll86) by אריה אנסבכר — set-1 claim preserved
+  [B] Sheviis 6: deleted set-2 claim (qkcQ4YkB7d62VmcIEpRx) by אריה אנסבכר — set-1 claim preserved
+  [B] Gittin 8: deleted set-2 claim (c7ZSIsPx3CYhiZVkrADT) by אריה בלויגרונד — set-1 claim preserved
+  [B] Sheviis 4: deleted set-2 claim (3Nw3wuUbNmQ4LgzYchJ2) by אריה אנסבכר — set-1 claim preserved
+  [B] Kiddushin 3: deleted set-2 claim (hsioKIrTFnARsyhyQKQ9) by אריה בלויגרונד — set-1 claim preserved
+  [B] Gittin 7: deleted set-2 claim (F1Vo7Kt6I3sdLDRW3Nut) by אריה בלויגרונד — set-1 claim preserved
+  [B] Gittin 3: deleted set-2 claim (Y30qQmAN2WkixcvJUyU7) by אריה בלויגרונד — set-1 claim preserved
+  [B] Bikkurim 2: deleted set-2 claim (wza69WRi5UuG7PsiLEVJ) by מוטי — set-1 claim preserved
+  [B] Zavim 1: deleted set-2 claim (h6pdcKKyfm4bARpaXcl5) by מוטי ליפשיץ — set-1 claim preserved
+  [B] Bikkurim 3: deleted set-2 claim (R98r71ML8xg5d12avpxW) by מוטי — set-1 claim preserved
+  [B] Niddah 10: deleted set-2 claim (mp7ddf6aKsI0n8XI6DJV) by קובי בלוגרונד — set-1 claim preserved
+  [B] Sheviis 7: deleted set-2 claim (BEwZkTBokrwxyXnd2n2p) by אריה אנסבכר — set-1 claim preserved
+  [B] Sheviis 8: deleted set-2 claim (jdpSSsPQfUdKNKGO2NIu) by אריה אנסבכר — set-1 claim preserved
+  [B] Sheviis 2: deleted set-2 claim (2RlS9erv6GxSOSCZlhCL) by אריה אנסבכר — set-1 claim preserved
+  [B] Niddah 6: deleted set-2 claim (1n8OM12z33Lk14eb1UBf) by קובי בלוגרונד — set-1 claim preserved
+  [B] Gittin 2: deleted set-2 claim (cg1BausFnC7NIbEDPKQC) by אריה בלויגרונד — set-1 claim preserved
+  [B] Niddah 8: deleted set-2 claim (m0wWPVycEbe1F30x4p1F) by קובי בלוגרונד — set-1 claim preserved
+  [B] Bikkurim 4: deleted set-2 claim (62kNV7ruiJeE1auWCTyE) by מוטי — set-1 claim preserved
+  [B] Sheviis 1: deleted set-2 claim (NAdINSN768408RAS1B7Q) by אריה אנסבכר — set-1 claim preserved
+  [B] Sheviis 3: deleted set-2 claim (k4RJNDT7CbtOaG9bs8HZ) by אריה אנסבכר — set-1 claim preserved
+  [B] Niddah 1: deleted set-2 claim (Zxvzx24OCRijrDVb47tS) by קובי בלוגרונד — set-1 claim preserved
+  [B] Zavim 5: deleted set-2 claim (8Mp8KOPBS6F6rYQs4K8P) by מוטי ליפשיץ — set-1 claim preserved
+  [B] Kiddushin 1: deleted set-2 claim (CR6XL6QQuDqvid88hK4M) by אריה בלויגרונד — set-1 claim preserved
+  [B] Gittin 9: deleted set-2 claim (B5GAotnnvCZ298WwBDNa) by אריה בלויגרונד — set-1 claim preserved
+  [B] Niddah 3: deleted set-2 claim (kdndU4TCsfilQ80vHYB7) by קובי בלוגרונד — set-1 claim preserved
+  [B] Sheviis 9: deleted set-2 claim (xpktW3qfsZ7WzYa8vx7W) by אריה אנסבכר — set-1 claim preserved
+
+--- Deleting set-2 portions ---
+Deleted 525 set-2 portions
+
+Project stats recomputed: totalPortions=525, totalSets=1
+  claimedPortions=128, completedPortions=0, progress=24%
+
+Final claim count: 138 (backup had 111)
+CLAIM INTEGRITY: OK — removed 42 duplicate set-2 claims, net = 138
