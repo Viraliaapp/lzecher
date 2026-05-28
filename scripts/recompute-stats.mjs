@@ -1,8 +1,10 @@
 /**
- * Recomputes claimedPortions, completedPortions, totalPortions, progressPercent
- * for all lzecher_projects from actual portion data.
+ * Recomputes claimedPortions, completedPortions, totalPortions, progressPercent,
+ * participantCount, and claimedByTrack for all lzecher_projects.
  *
- * Scope: lzecher_projects + lzecher_portions only. Read-only on claims.
+ * participantCount = unique claimers per project (deduped by userId or name+email).
+ *
+ * Scope: lzecher_projects + lzecher_portions + lzecher_claims (read-only on claims).
  * Safe to run multiple times (idempotent).
  *
  * Usage: node scripts/recompute-stats.mjs
@@ -33,6 +35,20 @@ async function run() {
   const projectsSnap = await db.collection("lzecher_projects").get();
   console.log(`Found ${projectsSnap.size} projects`);
 
+  // Pre-load all claims once — used for participantCount deduplication
+  console.log("Loading all lzecher_claims…");
+  const allClaimsSnap = await db.collection("lzecher_claims").get();
+  console.log(`  ${allClaimsSnap.size} claims loaded`);
+
+  // Group claims by projectId
+  const claimsByProject = new Map();
+  for (const cd of allClaimsSnap.docs) {
+    const pid = cd.data().projectId;
+    if (!pid) continue;
+    if (!claimsByProject.has(pid)) claimsByProject.set(pid, []);
+    claimsByProject.get(pid).push(cd.data());
+  }
+
   let updated = 0, skipped = 0, errors = 0;
 
   for (const projDoc of projectsSnap.docs) {
@@ -56,7 +72,7 @@ async function run() {
       const progressPercent =
         totalPortions > 0 ? Math.round((claimedPortions / totalPortions) * 100) : 0;
 
-      // Per-track claimed counts (exclusive tracks use portion status; inclusive tracks use currentClaimerCount)
+      // Per-track claimed counts
       const claimedByTrack = {};
       for (const pd of portionsSnap.docs) {
         const d = pd.data();
@@ -69,26 +85,38 @@ async function run() {
         }
       }
 
+      // Unique participant count — dedupe by userId (if not anonymous) or name+email
+      const claims = claimsByProject.get(projId) || [];
+      const participantKeys = new Set();
+      for (const c of claims) {
+        const key = (c.userId && c.userId !== "anonymous")
+          ? c.userId
+          : `${c.userName || ""}__${c.userEmail || ""}`;
+        participantKeys.add(key);
+      }
+      const participantCount = participantKeys.size;
+
       const before = {
         totalPortions: projData.totalPortions,
         claimedPortions: projData.claimedPortions,
         completedPortions: projData.completedPortions,
         progressPercent: projData.progressPercent,
+        participantCount: projData.participantCount,
       };
-      const after = { totalPortions, claimedPortions, completedPortions, progressPercent };
+      const after = { totalPortions, claimedPortions, completedPortions, progressPercent, participantCount };
 
       const changed = JSON.stringify(before) !== JSON.stringify(after);
       const nameStr = `${projData.nameHebrew || ""} ${projData.familyNameHebrew || ""}`.trim() || projId;
 
       if (changed) {
-        await projDoc.ref.update({ totalPortions, claimedPortions, completedPortions, progressPercent, claimedByTrack, updatedAt: Date.now() });
+        await projDoc.ref.update({ totalPortions, claimedPortions, completedPortions, progressPercent, participantCount, claimedByTrack, updatedAt: Date.now() });
         console.log(`  [UPDATED] ${nameStr} (${projId})`);
-        console.log(`    before: total=${before.totalPortions} claimed=${before.claimedPortions} pct=${before.progressPercent}%`);
-        console.log(`    after:  total=${after.totalPortions}  claimed=${after.claimedPortions}  pct=${after.progressPercent}%`);
+        console.log(`    before: total=${before.totalPortions} claimed=${before.claimedPortions} pct=${before.progressPercent}% participants=${before.participantCount}`);
+        console.log(`    after:  total=${after.totalPortions}  claimed=${after.claimedPortions}  pct=${after.progressPercent}%  participants=${after.participantCount}`);
         updated++;
       } else {
         await projDoc.ref.update({ claimedByTrack, updatedAt: Date.now() });
-        console.log(`  [ok] ${nameStr} — stats unchanged, claimedByTrack backfilled`);
+        console.log(`  [ok] ${nameStr} — stats unchanged`);
         skipped++;
       }
     } catch (err) {

@@ -107,6 +107,14 @@ function SectionHeader({ title, meta, textDir }: { title: string; meta?: string;
 
 function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: () => void }) {
   const t = useTranslations("dashboard");
+  const locale = useLocale();
+  const [manageOpen, setManageOpen] = useState(false);
+  const [claims, setClaims] = useState<Record<string, unknown>[]>([]);
+  const [loadingClaims, setLoadingClaims] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [saving, setSaving] = useState(false);
+
   const pct = project.totalPortions > 0
     ? Math.round((project.claimedPortions / project.totalPortions) * 100)
     : 0;
@@ -115,6 +123,63 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
   const hebrewName = `${project.nameHebrew} ${project.familyNameHebrew || ""}`.trim();
   const englishName = `${project.nameEnglish || ""} ${project.familyNameEnglish || ""}`.trim();
   const isActive = project.status === "active";
+
+  async function loadClaims() {
+    if (claims.length > 0) return; // already loaded
+    setLoadingClaims(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const res = await fetch(`/api/projects/${project.id}/claims`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setClaims(data.claims || []);
+      }
+    } catch { /* ignore */ }
+    setLoadingClaims(false);
+  }
+
+  async function removeClaim(claimId: string) {
+    if (!confirm(locale === "he" ? "האם למחוק תביעה זו?" : "Remove this claim?")) return;
+    setSaving(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const res = await fetch(`/api/projects/${project.id}/claims/${claimId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      if (res.ok) {
+        setClaims(prev => prev.filter(c => (c as Record<string, unknown>).id !== claimId));
+      }
+    } catch { /* ignore */ }
+    setSaving(false);
+  }
+
+  async function saveName(claimId: string) {
+    if (!editName.trim()) return;
+    setSaving(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const res = await fetch(`/api/projects/${project.id}/claims/${claimId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, userName: editName.trim() }),
+      });
+      if (res.ok) {
+        setClaims(prev => prev.map(c =>
+          (c as Record<string, unknown>).id === claimId
+            ? { ...c, userName: editName.trim() }
+            : c
+        ));
+        setEditingId(null);
+      }
+    } catch { /* ignore */ }
+    setSaving(false);
+  }
 
   return (
     <div
@@ -169,6 +234,62 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
         <Link href={`/edit/${project.id}` as never} style={{ flex: 1, display: "block" }}>
           <button className="dashboard-action-btn">✎ {t("actionEdit")}</button>
         </Link>
+      </div>
+
+      {/* Manage claims section */}
+      <div style={{ borderTop: "1px solid rgba(232,223,200,0.7)", background: "#FAF6EC" }}>
+        <button
+          onClick={() => { setManageOpen(o => !o); if (!manageOpen) loadClaims(); }}
+          style={{ width: "100%", padding: "9px 16px", fontSize: "12px", fontWeight: 600, color: "#0F1B2D", background: "transparent", border: "none", cursor: "pointer", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+        >
+          ⚙ {locale === "he" ? "ניהול תביעות" : "Manage Claims"}
+          {manageOpen ? <span>▲</span> : <span>▼</span>}
+        </button>
+        {manageOpen && (
+          <div style={{ padding: "0 12px 12px", maxHeight: "300px", overflowY: "auto" }}>
+            {loadingClaims && <p style={{ fontSize: "12px", color: "#8B7355", textAlign: "center", padding: "8px" }}>Loading...</p>}
+            {!loadingClaims && claims.length === 0 && (
+              <p style={{ fontSize: "12px", color: "#8B7355", textAlign: "center", padding: "8px" }}>
+                {locale === "he" ? "אין תביעות עדיין" : "No claims yet"}
+              </p>
+            )}
+            {claims.map((c) => {
+              const cl = c as Record<string, unknown>;
+              const isEditing = editingId === cl.id;
+              return (
+                <div key={cl.id as string} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 0", borderBottom: "1px solid rgba(232,223,200,0.4)", fontSize: "12px" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {isEditing ? (
+                      <input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        style={{ width: "100%", padding: "2px 6px", border: "1px solid #C9A961", borderRadius: "4px", fontSize: "12px" }}
+                        onKeyDown={(e) => e.key === "Enter" && saveName(cl.id as string)}
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        <span style={{ fontWeight: 600, color: "#0F1B2D" }} dir="rtl">{cl.userName as string}</span>
+                        <span style={{ color: "#8B7355", marginLeft: "4px" }}>{cl.reference as string}</span>
+                      </>
+                    )}
+                  </div>
+                  {isEditing ? (
+                    <>
+                      <button onClick={() => saveName(cl.id as string)} disabled={saving} style={{ fontSize: "11px", color: "#5B7A52", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>✓</button>
+                      <button onClick={() => setEditingId(null)} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer" }}>✕</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => { setEditingId(cl.id as string); setEditName(cl.userName as string); }} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer" }}>✎</button>
+                      <button onClick={() => removeClaim(cl.id as string)} disabled={saving} style={{ fontSize: "11px", color: "#cc4444", background: "none", border: "none", cursor: "pointer" }}>✕</button>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

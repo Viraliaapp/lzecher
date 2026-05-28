@@ -113,7 +113,8 @@ export async function POST(request: NextRequest) {
         reminderPreferences: reminderPreferences ?? [],
       });
 
-      // Update project stats
+      // Update project stats — increment participantCount only if this is the
+      // user's first claim on this project (prevents one person = N participants).
       const projectRef = db.collection("lzecher_projects").doc(projectId);
       const projectSnap = await projectRef.get();
       let projectSlug: string | null = null;
@@ -121,9 +122,32 @@ export async function POST(request: NextRequest) {
         const proj = projectSnap.data()!;
         projectSlug = (proj.slug as string) || null;
         const trackCount = ((proj.claimedByTrack as Record<string, number> | undefined) || {})[trackType] || 0;
+
+        // Check if this user already has a prior claim on this project
+        const priorClaimKey = uid !== "anonymous" ? "userId" : null;
+        let isNewParticipant = true;
+        if (priorClaimKey) {
+          const priorSnap = await db.collection("lzecher_claims")
+            .where("projectId", "==", projectId)
+            .where("userId", "==", uid)
+            .limit(2)
+            .get();
+          // limit(2): the claim we just wrote counts as 1; if ≥2 exist, user had a prior claim
+          isNewParticipant = priorSnap.size <= 1;
+        } else {
+          // Anonymous user identified by name+email — check if combo appeared before
+          const anonKey = `${claimerName.trim()}__${email || ""}`;
+          const priorAnonSnap = await db.collection("lzecher_claims")
+            .where("projectId", "==", projectId)
+            .where("userName", "==", claimerName.trim())
+            .limit(2)
+            .get();
+          isNewParticipant = priorAnonSnap.size <= 1;
+        }
+
         await projectRef.update({
           claimedPortions: (proj.claimedPortions || 0) + 1,
-          participantCount: (proj.participantCount || 0) + 1,
+          ...(isNewParticipant ? { participantCount: (proj.participantCount || 0) + 1 } : {}),
           [`claimedByTrack.${trackType}`]: trackCount + 1,
         });
       }

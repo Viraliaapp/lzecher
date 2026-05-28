@@ -13,6 +13,8 @@ import type { Portion, TrackType } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { toHebrewNumeral } from "@/lib/hebrew-numerals";
 import { TRACK_CONFIGS, heClaimButton, type ClaimVerbForm } from "@/lib/track-config";
+import { toHebrewCalendarDate } from "@/lib/hebrew-date";
+import { VictorySeal } from "@/components/ui/VictorySeal";
 
 /**
  * Localize a display name for the active locale. In Hebrew, trailing Arabic
@@ -51,6 +53,7 @@ interface Props {
   trackType: string;
   onClaim: (portion: Portion) => void;
   onComplete: (portion: Portion) => void;
+  onBulkComplete?: (portionIds: string[]) => void;
   onBulkClaim?: (scope: string, scopeId: string, scopeName: string) => void;
   onMultiClaim?: (portionIds: string[]) => void;
   claimingId: string | null;
@@ -59,7 +62,7 @@ interface Props {
 }
 
 export function TrackHierarchy({
-  portions, trackType, onClaim, onComplete, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId,
+  portions, trackType, onClaim, onComplete, onBulkComplete, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId,
 }: Props) {
   const t = useTranslations("memorial");
   const bt = useTranslations("bulkClaim");
@@ -74,6 +77,8 @@ export function TrackHierarchy({
           portions={portions}
           trackType={trackType as "mishnayos" | "tehillim"}
           onClaim={onClaim}
+          onComplete={onComplete}
+          onBulkComplete={onBulkComplete}
           onBulkClaim={onBulkClaim}
           onMultiClaim={onMultiClaim}
           claimingId={claimingId}
@@ -85,15 +90,15 @@ export function TrackHierarchy({
     }
   }
 
-  if (trackType === "mishnayos") return <MishnayosHierarchy {...{ portions, onClaim, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId, t, bt, locale }} />;
-  if (trackType === "tehillim") return <TehillimHierarchy {...{ portions, onClaim, onMultiClaim, claimingId, completing, currentUserId, t, locale }} />;
-  if (trackType === "shnayim_mikra") return <ShnayimMikraHierarchy {...{ portions, onClaim, claimingId, completing, currentUserId, t, locale }} />;
+  if (trackType === "mishnayos") return <MishnayosHierarchy {...{ portions, onClaim, onComplete, onBulkComplete, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId, t, bt, locale }} />;
+  if (trackType === "tehillim") return <TehillimHierarchy {...{ portions, onClaim, onComplete, onBulkComplete, onMultiClaim, claimingId, completing, currentUserId, t, locale }} />;
+  if (trackType === "shnayim_mikra") return <ShnayimMikraHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
 
   if (trackType === "kabalos" || trackType === "daf_yomi") {
     return <InclusiveGrid {...{ portions, onClaim, claimingId, completing, currentUserId, t, locale }} />;
   }
 
-  return <FlatGrid {...{ portions, onClaim, claimingId, completing, currentUserId, t, locale }} />;
+  return <FlatGrid {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
 }
 
 // ── Floating multi-select action bar ─────────────────────────────────────────
@@ -133,7 +138,7 @@ function MultiSelectBar({
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function MishnayosHierarchy({ portions, onClaim, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId, t, bt, locale }: any) {
+function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId, t, bt, locale }: any) {
   const [expandedSeder, setExpandedSeder] = useState<string | null>(null);
   const [expandedMasechta, setExpandedMasechta] = useState<string | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
@@ -287,6 +292,22 @@ function MishnayosHierarchy({ portions, onClaim, onBulkClaim, onMultiClaim, clai
                         </p>
                       </button>
                     )}
+                    {/* Mark masechta complete button — only show if any claimed portions */}
+                    {onBulkComplete && (masechtotInSeder[expandedMasechta] as Portion[]).some(p => p.status === "claimed") && (
+                      <button
+                        onClick={() => {
+                          const takenIds = (masechtotInSeder[expandedMasechta] as Portion[])
+                            .filter(p => p.status === "claimed")
+                            .map(p => p.id);
+                          onBulkComplete(takenIds);
+                        }}
+                        className="w-full mb-2 py-2 px-3 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-all text-center"
+                      >
+                        <p className="text-xs font-medium text-emerald-700">
+                          {locale === "he" ? `✓ סמן מסכת ${hebrewMasechtaNames[expandedMasechta] || expandedMasechta} כהושלמה` : `✓ Mark entire ${expandedMasechta} complete`}
+                        </p>
+                      </button>
+                    )}
                     {/* Multi-select toggle — inside expanded masechta */}
                     {onMultiClaim && totalAvailable > 0 && !multiSelectMode && (
                       <button
@@ -307,6 +328,7 @@ function MishnayosHierarchy({ portions, onClaim, onBulkClaim, onMultiClaim, clai
                           key={portion.id}
                           portion={portion}
                           onClaim={onClaim}
+                          onComplete={onComplete}
                           claimingId={claimingId}
                           completing={completing}
                           currentUserId={currentUserId}
@@ -341,10 +363,12 @@ function MishnayosHierarchy({ portions, onClaim, onBulkClaim, onMultiClaim, clai
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function TehillimHierarchy({ portions, onClaim, onMultiClaim, claimingId, completing, currentUserId, t, locale }: any) {
+function TehillimHierarchy({ portions, onClaim, onComplete, onBulkComplete, onMultiClaim, claimingId, completing, currentUserId, t, locale }: any) {
   const [expandedBook, setExpandedBook] = useState<number | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [completeSelectMode, setCompleteSelectMode] = useState(false);
+  const [completeSelectedIds, setCompleteSelectedIds] = useState<Set<string>>(new Set());
 
   function toggleSelect(id: string) {
     setSelectedIds(prev => {
@@ -362,6 +386,24 @@ function TehillimHierarchy({ portions, onClaim, onMultiClaim, claimingId, comple
   function handleMultiClaim() {
     onMultiClaim?.(Array.from(selectedIds));
     exitSelectMode();
+  }
+
+  function toggleCompleteSelect(id: string) {
+    setCompleteSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function exitCompleteSelectMode() {
+    setCompleteSelectMode(false);
+    setCompleteSelectedIds(new Set());
+  }
+
+  function handleBulkComplete() {
+    onBulkComplete?.(Array.from(completeSelectedIds));
+    exitCompleteSelectMode();
   }
 
   const totalAvailable = portions.filter((p: Portion) => p.status === "available").length;
@@ -400,7 +442,7 @@ function TehillimHierarchy({ portions, onClaim, onMultiClaim, claimingId, comple
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                     <div className="p-3 mt-1 bg-cream-warm rounded-xl">
                       {/* Multi-select toggle — inside expanded book */}
-                      {onMultiClaim && totalAvailable > 0 && !multiSelectMode && (
+                      {onMultiClaim && totalAvailable > 0 && !multiSelectMode && !completeSelectMode && (
                         <button
                           onClick={() => setMultiSelectMode(true)}
                           className="text-xs text-navy/60 hover:text-navy underline underline-offset-2 transition-colors mb-2 block"
@@ -408,9 +450,23 @@ function TehillimHierarchy({ portions, onClaim, onMultiClaim, claimingId, comple
                           {locale === "he" ? "בחר כמה פרקים" : "Select several chapters"}
                         </button>
                       )}
+                      {/* Select to complete toggle — only when claimed portions exist in book */}
+                      {onBulkComplete && bp.some((p: Portion) => p.status === "claimed") && !multiSelectMode && !completeSelectMode && (
+                        <button
+                          onClick={() => setCompleteSelectMode(true)}
+                          className="text-xs text-emerald-700 hover:text-emerald-900 underline underline-offset-2 transition-colors mb-2 block"
+                        >
+                          {locale === "he" ? "סמן פרקים כהושלמו" : "Select to complete"}
+                        </button>
+                      )}
                       {multiSelectMode && (
                         <p className="text-xs text-gold font-medium mb-2">
                           {locale === "he" ? "לחץ על פרקים לבחירה" : "Tap chapters to select"}
+                        </p>
+                      )}
+                      {completeSelectMode && (
+                        <p className="text-xs text-emerald-700 font-medium mb-2">
+                          {locale === "he" ? "לחץ על פרקים שהושלמו" : "Tap completed chapters"}
                         </p>
                       )}
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }}>
@@ -419,6 +475,7 @@ function TehillimHierarchy({ portions, onClaim, onMultiClaim, claimingId, comple
                             key={p.id}
                             portion={p}
                             onClaim={onClaim}
+                            onComplete={onComplete}
                             claimingId={claimingId}
                             completing={completing}
                             currentUserId={currentUserId}
@@ -428,6 +485,9 @@ function TehillimHierarchy({ portions, onClaim, onMultiClaim, claimingId, comple
                             multiSelectMode={multiSelectMode}
                             isSelected={selectedIds.has(p.id)}
                             onSelect={toggleSelect}
+                            completeSelectMode={completeSelectMode}
+                            isCompleteSelected={completeSelectedIds.has(p.id)}
+                            onCompleteSelect={toggleCompleteSelect}
                           />
                         ))}
                       </div>
@@ -449,12 +509,43 @@ function TehillimHierarchy({ portions, onClaim, onMultiClaim, claimingId, comple
           onCancel={exitSelectMode}
         />
       )}
+
+      {/* Floating complete-select bar */}
+      {completeSelectMode && completeSelectedIds.size > 0 && (
+        <div className="sticky bottom-4 z-10 mx-auto max-w-sm pointer-events-none">
+          <div className="pointer-events-auto flex items-center justify-between gap-3 bg-emerald-800 text-white rounded-2xl px-4 py-3 shadow-xl">
+            <div>
+              <p className="text-sm font-bold" dir="rtl">
+                {locale === "he" ? `נבחרו ${completeSelectedIds.size} פרקים` : `${completeSelectedIds.size} selected`}
+              </p>
+              <button onClick={exitCompleteSelectMode} className="text-xs text-white/60 hover:text-white underline mt-0.5">
+                {locale === "he" ? "ביטול" : "Cancel"}
+              </button>
+            </div>
+            <Button
+              size="sm"
+              className="bg-emerald-400 text-emerald-900 hover:bg-emerald-300 font-bold shrink-0"
+              onClick={handleBulkComplete}
+            >
+              {locale === "he" ? `✓ סמן ${completeSelectedIds.size}` : `✓ Complete ${completeSelectedIds.size}`}
+            </Button>
+          </div>
+        </div>
+      )}
+      {/* Cancel complete mode when nothing selected */}
+      {completeSelectMode && completeSelectedIds.size === 0 && (
+        <div className="text-center">
+          <button onClick={exitCompleteSelectMode} className="text-xs text-emerald-700 hover:text-emerald-900 underline">
+            {locale === "he" ? "ביטול" : "Cancel"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ShnayimMikraHierarchy({ portions, onClaim, claimingId, completing, currentUserId, t, locale }: any) {
+function ShnayimMikraHierarchy({ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }: any) {
   const [expandedBook, setExpandedBook] = useState<string | null>(null);
 
   const books = useMemo(() => {
@@ -504,6 +595,7 @@ function ShnayimMikraHierarchy({ portions, onClaim, claimingId, completing, curr
                         key={p.id}
                         portion={p}
                         onClaim={onClaim}
+                        onComplete={onComplete}
                         claimingId={claimingId}
                         completing={completing}
                         currentUserId={currentUserId}
@@ -526,72 +618,79 @@ function ShnayimMikraHierarchy({ portions, onClaim, claimingId, completing, curr
 function InclusiveGrid({ portions, onClaim, claimingId, t, locale }: any) {
   const isKabalos = (portions as Portion[]).some(p => p.trackType === "kabalos");
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-      {(portions as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((p) => {
-        const primaryName = locale === "he" ? (p.displayNameHebrew || p.displayName) : (p.displayName || p.displayNameHebrew);
-        const names: string[] = p.claimerNames || [];
-        const count = p.currentClaimerCount || names.length || 0;
-        const btnLabel = isKabalos
-          ? (locale === "he" ? "אני מקבל/ת על עצמי בלי נדר" : "I accept upon myself (bli neder)")
-          : (locale === "he" ? heClaimButton(getVerbForm(p), false).replace("אני ", "") : t("joinCommitment"));
-        return (
-          <Card key={p.id} className="transition-all hover:shadow-sm hover:-translate-y-0.5">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-navy text-sm" dir={locale === "he" ? "rtl" : "ltr"}>
-                    {primaryName}
-                  </p>
-                  {isKabalos && (
-                    <p className="text-[10px] text-gold-deep mt-0.5" dir="rtl">
-                      {locale === "he" ? "בלי נדר" : "bli neder"}
+    <div className="mt-4">
+      {isKabalos && (
+        <p className="text-xs text-gold-deep font-medium mb-3 text-right" dir="rtl">
+          {locale === "he" ? "כל הקבלות הן בלי נדר" : "All commitments are bli neder"}
+        </p>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {(portions as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((p) => {
+          const primaryName = locale === "he" ? (p.displayNameHebrew || p.displayName) : (p.displayName || p.displayNameHebrew);
+          const names: string[] = p.claimerNames || [];
+          const count = p.currentClaimerCount || names.length || 0;
+          const btnLabel = isKabalos
+            ? (locale === "he" ? "אני מקבל/ת על עצמי בלי נדר" : "I accept upon myself (bli neder)")
+            : (locale === "he" ? heClaimButton(getVerbForm(p), false).replace("אני ", "") : t("joinCommitment"));
+          const isFreeText = !!(p as Portion & { isFreeText?: boolean }).isFreeText;
+          return (
+            <Card key={p.id} className="transition-all hover:shadow-sm hover:-translate-y-0.5">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-navy text-sm" dir={locale === "he" ? "rtl" : "ltr"}>
+                      {primaryName}
                     </p>
+                  </div>
+                  {count > 0 && (
+                    <div className="flex items-center gap-1 text-xs text-gold-deep bg-gold/10 px-2 py-0.5 rounded-full shrink-0" dir="rtl">
+                      <Users className="h-3 w-3" />
+                      <span>
+                        {isKabalos
+                          ? (locale === "he" ? `${count} קיבלו על עצמם בלי נדר` : `${count} accepted`)
+                          : count}
+                      </span>
+                    </div>
                   )}
                 </div>
-                {count > 0 && (
-                  <div className="flex items-center gap-1 text-xs text-gold-deep bg-gold/10 px-2 py-0.5 rounded-full shrink-0">
-                    <Users className="h-3 w-3" />
-                    <span>{count}</span>
+                {/* Takers list */}
+                {names.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-1">
+                    {names.slice(0, 5).map((name, i) => (
+                      <span key={i} className="text-[10px] bg-navy/5 text-navy/60 px-1.5 py-0.5 rounded-full" dir="rtl">
+                        {name}
+                      </span>
+                    ))}
+                    {names.length > 5 && (
+                      <span className="text-[10px] text-navy/40">+{names.length - 5}</span>
+                    )}
                   </div>
                 )}
-              </div>
-              {/* Takers list */}
-              {names.length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-1">
-                  {names.slice(0, 5).map((name, i) => (
-                    <span key={i} className="text-[10px] bg-navy/5 text-navy/60 px-1.5 py-0.5 rounded-full" dir="rtl">
-                      {name}
-                    </span>
-                  ))}
-                  {names.length > 5 && (
-                    <span className="text-[10px] text-navy/40">+{names.length - 5}</span>
-                  )}
-                </div>
-              )}
-              <Button
-                size="sm"
-                className="w-full h-8 text-xs"
-                onClick={() => onClaim(p)}
-                disabled={claimingId === p.id}
-              >
-                {claimingId === p.id ? (
-                  <Spinner className="h-3 w-3" />
-                ) : btnLabel}
-              </Button>
-            </CardContent>
-          </Card>
-        );
-      })}
+                <Button
+                  size="sm"
+                  className="w-full h-8 text-xs"
+                  onClick={() => onClaim(p)}
+                  disabled={claimingId === p.id}
+                >
+                  {claimingId === p.id ? (
+                    <Spinner className="h-3 w-3" />
+                  ) : btnLabel}
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function FlatGrid({ portions, onClaim, claimingId, completing, currentUserId, t, locale }: any) {
+function FlatGrid({ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }: any) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }} className="mt-4">
       {(portions as Portion[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((p) => (
-        <PortionCard key={p.id} portion={p} onClaim={onClaim} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} locale={locale} />
+        <PortionCard key={p.id} portion={p} onClaim={onClaim} onComplete={onComplete} claimingId={claimingId} completing={completing} currentUserId={currentUserId} t={t} locale={locale} />
       ))}
     </div>
   );
@@ -600,6 +699,7 @@ function FlatGrid({ portions, onClaim, claimingId, completing, currentUserId, t,
 interface PortionCardProps {
   portion: Portion;
   onClaim: (p: Portion) => void;
+  onComplete?: (p: Portion) => void;
   claimingId: string | null;
   completing: boolean;
   currentUserId?: string;
@@ -610,9 +710,12 @@ interface PortionCardProps {
   multiSelectMode?: boolean;
   isSelected?: boolean;
   onSelect?: (id: string) => void;
+  completeSelectMode?: boolean;
+  isCompleteSelected?: boolean;
+  onCompleteSelect?: (id: string) => void;
 }
 
-function PortionCard({ portion, onClaim, claimingId, compact, locale, t, multiSelectMode, isSelected, onSelect }: PortionCardProps) {
+function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale, t, multiSelectMode, isSelected, onSelect, completeSelectMode, isCompleteSelected, onCompleteSelect }: PortionCardProps) {
   const p = portion;
   const verbForm = getVerbForm(p);
 
@@ -698,21 +801,51 @@ function PortionCard({ portion, onClaim, claimingId, compact, locale, t, multiSe
         )}
 
         {isTaken && (
-          <div className="mt-auto">
-            <p
-              className="text-xs font-bold text-navy"
-              dir="rtl"
-              style={{ wordBreak: "break-word" as const, overflowWrap: "break-word" as const }}
-            >
+          <div className="mt-auto space-y-1.5">
+            <p className="text-xs font-bold text-navy" dir="rtl" style={{ wordBreak: "break-word" as const }}>
               {t("claimedBy", { name: p.claimedByName || t("someone") })}
             </p>
+            {completeSelectMode ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={isCompleteSelected}
+                  onChange={() => onCompleteSelect?.(p.id)}
+                  className="h-4 w-4 accent-emerald-600 cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="text-[10px] text-emerald-700">{locale === "he" ? "סמן" : "Mark"}</span>
+              </div>
+            ) : (
+              onComplete && (
+                <button
+                  onClick={() => onComplete(p)}
+                  className="w-full text-[10px] text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded px-2 py-1 font-medium transition-colors"
+                >
+                  {locale === "he" ? "✓ סמן כהושלם" : locale === "es" ? "✓ Marcar completo" : locale === "fr" ? "✓ Marquer terminé" : "✓ Mark complete"}
+                </button>
+              )
+            )}
           </div>
         )}
 
         {isDone && (
-          <p className="text-[10px] text-emerald-600 mt-auto">
-            {t("completedBy", { name: (p as Portion & { completedByName?: string }).completedByName || p.claimedByName || t("someone") })}
-          </p>
+          <div className="mt-auto space-y-1">
+            <div className="flex items-center gap-1.5">
+              <VictorySeal size={18} />
+              <p className="text-[10px] text-emerald-700 font-medium">
+                {locale === "he" ? "הושלם" : locale === "es" ? "Completado" : locale === "fr" ? "Terminé" : "Completed"}
+              </p>
+            </div>
+            {(p as Portion & { completedAt?: number }).completedAt && (
+              <p className="text-[10px] text-emerald-600" dir={locale === "he" ? "rtl" : "ltr"}>
+                {toHebrewCalendarDate((p as Portion & { completedAt?: number }).completedAt!, locale)}
+              </p>
+            )}
+            <p className="text-[10px] text-muted" dir="rtl">
+              {(p as Portion & { completedByName?: string }).completedByName || p.claimedByName || t("someone")}
+            </p>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -731,7 +864,7 @@ function setLabel(setNumber: number, locale: string): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function SetGroupedWrapper({ portions, trackType, onClaim, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId, t, bt, locale }: any) {
+function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkComplete, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId, t, bt, locale }: any) {
   // Group by setNumber (descending = newest first)
   const setGroups = useMemo(() => {
     const groups: Record<number, Portion[]> = {};
@@ -858,6 +991,8 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onBulkClaim, onMultiC
                       <MishnayosHierarchy
                         portions={setPortions}
                         onClaim={onClaim}
+                        onComplete={onComplete}
+                        onBulkComplete={onBulkComplete}
                         onBulkClaim={onBulkClaim}
                         onMultiClaim={onMultiClaim}
                         claimingId={claimingId}
@@ -869,6 +1004,8 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onBulkClaim, onMultiC
                       <TehillimHierarchy
                         portions={setPortions}
                         onClaim={onClaim}
+                        onComplete={onComplete}
+                        onBulkComplete={onBulkComplete}
                         onMultiClaim={onMultiClaim}
                         claimingId={claimingId}
                         completing={completing}

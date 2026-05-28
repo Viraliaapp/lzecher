@@ -32,6 +32,7 @@ import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Portion, TrackType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { heClaimButton, getClaimVerbForm } from "@/lib/track-config";
+import { toHebrewCalendarDate } from "@/lib/hebrew-date";
 
 const TRACK_EMOJI: Record<TrackType, string> = {
   mishnayos: "📖",
@@ -213,6 +214,13 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const [submitting, setSubmitting] = useState(false);
   const [claimerCustomText, setClaimerCustomText] = useState("");
 
+  // Complete dialog state
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [completingPortion, setCompletingPortion] = useState<Portion | null>(null);
+  const [completingPortionIds, setCompletingPortionIds] = useState<string[]>([]);
+  const [completerName, setCompleterName] = useState("");
+  const [submittingComplete, setSubmittingComplete] = useState(false);
+
   // Multi-select claim state
   const [multiClaimPortionIds, setMultiClaimPortionIds] = useState<string[]>([]);
   const [multiClaimDialogOpen, setMultiClaimDialogOpen] = useState(false);
@@ -257,6 +265,11 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     }
     pct = completedSetCount * 100 + activeSetPct;
   }
+
+  // Green bar: completed / one-set-denominator for TM only
+  const tmSet1Count = tmPortions.filter(p => (p.setNumber || 1) === 1).length;
+  const tmCompletedCount = tmPortions.filter(p => p.status === "completed").length;
+  const completedPct = tmSet1Count > 0 ? Math.min(100, Math.round((tmCompletedCount / tmSet1Count) * 100)) : 0;
 
   const trackGroups = useMemo(() => {
     const groups: Record<string, Portion[]> = {};
@@ -367,10 +380,54 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function handleComplete(_portion: Portion) {
-    // Mark-complete is removed from the memorial page (Item 3).
-    // It remains available in the user's dashboard.
+  function handleComplete(portion: Portion) {
+    setCompletingPortion(portion);
+    setCompletingPortionIds([]);
+    setCompleterName(user?.displayName || "");
+    setSubmittingComplete(false);
+    setCompleteDialogOpen(true);
+  }
+
+  function handleBulkComplete(portionIds: string[]) {
+    setCompletingPortion(null);
+    setCompletingPortionIds(portionIds);
+    setCompleterName(user?.displayName || "");
+    setSubmittingComplete(false);
+    setCompleteDialogOpen(true);
+  }
+
+  async function confirmComplete() {
+    const ids = completingPortion ? [completingPortion.id] : completingPortionIds;
+    if (ids.length === 0) return;
+    setSubmittingComplete(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken().catch(() => null);
+      const res = await fetch("/api/claims/complete-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          portionIds: ids,
+          projectId: project.id,
+          completedByName: completerName.trim() || undefined,
+          idToken,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { toast.error(data.error || "Failed to mark complete"); return; }
+      const now = Date.now();
+      setPortions(prev => prev.map(p =>
+        ids.includes(p.id) && p.status === "claimed"
+          ? { ...p, status: "completed" as const, completedAt: now, completedByName: completerName.trim() || p.claimedByName }
+          : p
+      ));
+      toast.success(locale === "he" ? `${data.count || ids.length} פרקים הושלמו` : `${data.count || ids.length} portions completed`);
+      setCompleteDialogOpen(false);
+    } catch(err) {
+      console.error("[complete] error:", err);
+      toast.error("Failed to mark complete");
+    } finally {
+      setSubmittingComplete(false);
+    }
   }
 
   function shareLink() {
@@ -618,6 +675,14 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 {t("taken")}
               </p>
               <Progress value={pct} className="h-2 mb-3" style={{ background: "rgba(250,246,236,0.10)" }} indicatorClassName="bg-gold" />
+              {completedPct > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs mb-1" style={{ color: "rgba(250,246,236,0.45)" }}>
+                    {locale === "he" ? `${completedPct}% הושלמו` : locale === "es" ? `${completedPct}% completados` : locale === "fr" ? `${completedPct}% complétés` : `${completedPct}% completed`}
+                  </p>
+                  <Progress value={completedPct} className="h-1.5 mb-1" style={{ background: "rgba(250,246,236,0.10)" }} indicatorClassName="bg-[#5B7A52]" />
+                </div>
+              )}
               {(() => {
                 const parts: string[] = [];
                 const mClaimed = portions.filter(p => p.trackType === "mishnayos" && p.status !== "available").length;
@@ -884,6 +949,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 trackType={selectedTrack}
                 onClaim={handleClaimClick}
                 onComplete={handleComplete}
+                onBulkComplete={handleBulkComplete}
                 onBulkClaim={handleBulkClaim}
                 onMultiClaim={handleMultiClaim}
                 claimingId={claimingId}
@@ -911,6 +977,11 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {(selectedPortion as (Portion & { isFreeText?: boolean }) | null)?.trackType === "kabalos" && (
+              <p className="text-xs text-gold-deep font-medium text-right" dir="rtl">
+                {locale === "he" ? "כל הקבלות הן בלי נדר" : "All commitments are bli neder"}
+              </p>
+            )}
             <div>
               <label className="text-sm font-medium text-navy mb-1 block">{t("yourName")}</label>
               <Input
@@ -1097,6 +1168,47 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
               }}
             >
               {contactSending ? <Spinner className="h-4 w-4" /> : (locale === "he" ? "שלח" : "Send")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Completion dialog ── */}
+      <Dialog open={completeDialogOpen} onOpenChange={(o) => !o && setCompleteDialogOpen(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle dir="rtl">
+              {completingPortionIds.length > 0
+                ? (locale === "he" ? `סמן ${completingPortionIds.length} פרקים כהושלמו` : `Mark ${completingPortionIds.length} portions complete`)
+                : (locale === "he" ? "סמן פרק כהושלם" : "Mark portion complete")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {completingPortion && (
+              <p className="text-sm text-muted" dir="rtl">
+                {completingPortion.displayNameHebrew || completingPortion.displayName}
+              </p>
+            )}
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2" dir="rtl">
+              {locale === "he" ? "כל אחד יכול לאשר השלמה לעילוי הנשמה." : "Anyone can confirm completion for the elevation of the soul."}
+            </p>
+            <div>
+              <label className="text-sm font-medium text-navy mb-1 block" dir="rtl">
+                {locale === "he" ? "שמך (אופציונלי)" : "Your name (optional)"}
+              </label>
+              <Input
+                value={completerName}
+                onChange={(e) => setCompleterName(e.target.value)}
+                placeholder={locale === "he" ? "שמך" : "Your name"}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCompleteDialogOpen(false)} disabled={submittingComplete}>
+              {locale === "he" ? "ביטול" : "Cancel"}
+            </Button>
+            <Button onClick={confirmComplete} disabled={submittingComplete}>
+              {submittingComplete ? <Spinner className="h-4 w-4" /> : (locale === "he" ? "אישור" : "Confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
