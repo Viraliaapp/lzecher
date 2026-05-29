@@ -14,14 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Rate limit
-    const ip = getClientIp(request);
-    const rl = await checkRateLimit("claimCreateAnon", `claim:${ip}`);
-    if (!rl.success) {
-      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-    }
-
-    // Auth
+    // Auth first so we can skip rate limit for verified users
     let uid = "anonymous";
     let email: string | null = null;
     if (idToken) {
@@ -32,6 +25,15 @@ export async function POST(request: NextRequest) {
         email = decoded.email || null;
       } catch {
         // treat as anonymous
+      }
+    }
+
+    // Rate limit only for anonymous users
+    if (uid === "anonymous") {
+      const ip = getClientIp(request);
+      const rl = await checkRateLimit("claimCreateAnon", `claim:${ip}`);
+      if (!rl.success) {
+        return NextResponse.json({ error: "Too many requests" }, { status: 429 });
       }
     }
     email = email || claimerEmail || null;

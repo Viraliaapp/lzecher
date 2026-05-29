@@ -43,10 +43,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Sign-in or completedByName required" }, { status: 401 });
     }
 
-    // Rate limit
-    const ip = getClientIp(request);
-    const rl = await checkRateLimit("markCompleteAnon", `bulk-complete:${ip}`);
-    if (!rl.success) return NextResponse.json({ error: "Too many bulk completions. Try again shortly." }, { status: 429 });
+    // Rate limit only for anonymous users — authenticated users are not throttled
+    if (!uid) {
+      const ip = getClientIp(request);
+      const rl = await checkRateLimit("bulkCompleteOp", `bulk-complete:${ip}`);
+      if (!rl.success) return NextResponse.json({ error: "Too many bulk completions. Try again shortly." }, { status: 429 });
+    }
 
     const db = getAdminDb();
 

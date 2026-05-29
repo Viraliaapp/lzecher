@@ -33,9 +33,10 @@ const limiters = {
   magicLinkPerEmail: () => createLimiter("ml-email", 5, 3600),
   magicLinkPerIp: () => createLimiter("ml-ip", 20, 3600),
   projectCreate: () => createLimiter("proj-create", 10, 3600),
-  claimCreateAnon: () => createLimiter("claim-anon", 30, 3600),
-  claimCreateAuth: () => createLimiter("claim-auth", 100, 3600),
-  markCompleteAnon: () => createLimiter("complete-anon", 10, 3600),
+  claimCreateAnon: () => createLimiter("claim-anon", 200, 3600),     // 200 claim ops/hr for anon IP
+  claimCreateAuth: () => createLimiter("claim-auth", 500, 3600),     // 500 claim ops/hr for auth
+  markCompleteAnon: () => createLimiter("complete-anon", 500, 3600), // 500 single completes/hr for anon IP
+  bulkCompleteOp: () => createLimiter("bulk-complete-op", 200, 3600),// 200 bulk-complete OPs/hr (each op = 1 batch call, not 1 item)
   ogImage: () => createLimiter("og", 100, 60),
   contactFamily: () => createLimiter("contact-family", 3, 86400),
 };
