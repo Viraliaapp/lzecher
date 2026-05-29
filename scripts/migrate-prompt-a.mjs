@@ -83,6 +83,18 @@ async function run() {
   const projSnap = await db.collection("lzecher_projects").get();
   console.log(`Found ${projSnap.size} lzecher_projects\n`);
 
+  // Pre-load all claims once for authoritative participantCount (dedup by uid or name+email).
+  const allClaims = await db.collection("lzecher_claims").get();
+  const participantsByProject = new Map();
+  for (const cd of allClaims.docs) {
+    const c = cd.data();
+    if (!c.projectId || c.isParent === true) continue;
+    const key = c.userId && c.userId !== "anonymous" ? `u:${c.userId}` : `n:${(c.userName || "").trim()}__${(c.userEmail || "").trim()}`;
+    if (key === "n:__") continue;
+    if (!participantsByProject.has(c.projectId)) participantsByProject.set(c.projectId, new Set());
+    participantsByProject.get(c.projectId).add(key);
+  }
+
   // Backup (always, even dry-run, so we have a snapshot)
   const ts = new Date().toISOString().replace(/[:.]/g, "-");
   mkdirSync("scripts/backups", { recursive: true });
@@ -118,17 +130,21 @@ async function run() {
     const totalSets = tmSetNums.length ? Math.max(...tmSetNums) : 1;
     const prog = computeProgress(portions);
     const topMatmidim = computeTopMatmidim(portions);
+    const participantCount = (participantsByProject.get(doc.id) || new Set()).size;
 
     const update = {
       totalPortions, claimedPortions, completedPortions, totalSets,
       progressPct: prog.pct, completedProgressPct: prog.completedPct, completedCycles: prog.cycles,
-      claimedByTrack, topMatmidim,
+      claimedByTrack, topMatmidim, participantCount,
     };
+    if (participantCount !== (p.participantCount || 0)) {
+      console.log(`    participantCount: ${p.participantCount ?? "—"} → ${participantCount}`);
+    }
 
     // Accumulate global totals (active/completed only — matches recompute-global).
     if (!p.status || ["active", "completed"].includes(p.status)) {
       globalProjects++;
-      globalParticipants += p.participantCount || 0;
+      globalParticipants += participantCount;
       for (const k of Object.keys(globalTotals)) globalTotals[k] += claimedByTrack[k] || 0;
     }
     // Safe defaults — only when field is absent.

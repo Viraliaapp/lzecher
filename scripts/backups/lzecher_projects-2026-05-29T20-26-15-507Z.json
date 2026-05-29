@@ -1,0 +1,778 @@
+[
+  {
+    "id": "B9Pa8lLjjyRUKOFz0kgF",
+    "slug": "memorial-lz8uqv",
+    "familyNameEnglish": null,
+    "dateOfPassing": "2026-02-05",
+    "status": "active",
+    "biography": "לזכרו של סבא האהוב שלנו!\nתהא נשמתו צרורה בצרור החיים",
+    "familyNameHebrew": "כהן",
+    "nameHebrew": "רפאל",
+    "reportsCount": 0,
+    "datePreference": "hebrew",
+    "nameFrench": null,
+    "fatherNameHebrew": "יצחק",
+    "motherNameHebrew": null,
+    "familyMessage": null,
+    "projectType": "year",
+    "honorific": "ז״ל",
+    "gender": "male",
+    "nameSpanish": null,
+    "tracks": [
+      "mishnayos",
+      "kabalos",
+      "tehillim"
+    ],
+    "createdAt": 1779743365590,
+    "allowAnonymous": true,
+    "nameEnglish": null,
+    "isPublic": true,
+    "createdByEmail": "solomon2145@gmail.com",
+    "createdBy": "qslaGC6OnUP6kFHHcqZ6Z27TRch2",
+    "dateOfPassingHebrew": "י״ח שְׁבָט תשפ״ו",
+    "repeatingSetEnabled": true,
+    "totalPortions": 681,
+    "participantCount": 19,
+    "progressPercent": 32,
+    "completedPortions": 112,
+    "claimedByTrack": {
+      "kabalos": 0,
+      "mishnayos": 157,
+      "tehillim": 63
+    },
+    "claimedPortions": 220,
+    "topMatmidim": [
+      {
+        "count": 88,
+        "name": "משפחת אהרונוביץ-בוצע"
+      },
+      {
+        "count": 17,
+        "name": "אמא אהרונוביץ"
+      },
+      {
+        "count": 14,
+        "name": "שלוימי"
+      },
+      {
+        "count": 12,
+        "name": "אא"
+      },
+      {
+        "count": 12,
+        "name": "דוד"
+      },
+      {
+        "name": "אורה",
+        "count": 11
+      },
+      {
+        "count": 10,
+        "name": "אלעזר"
+      },
+      {
+        "name": "אליעזר ואלחנן אהרונוביץ",
+        "count": 10
+      },
+      {
+        "name": "חיים אהרונוביץ",
+        "count": 9
+      },
+      {
+        "name": "אלחנן",
+        "count": 9
+      }
+    ],
+    "totalSets": 1,
+    "progressPct": 33,
+    "startedByVisible": false,
+    "completedCycles": 0,
+    "startedByText": null,
+    "passwordHash": null,
+    "customDedication": null,
+    "completedProgressPct": 17,
+    "locked": false,
+    "passwordSalt": null,
+    "announcement": null,
+    "updatedAt": 1780085885173
+  },
+  {
+    "id": "DMRLKdcc7etafjnT2ffV",
+    "familyNameHebrew": "דוסטרה",
+    "createdByEmail": "tt7108779@gmail.com",
+    "createdBy": "4yaV3kWNL0gXa0iJC84lgad3qp32",
+    "dateOfPassingHebrew": "י״ד סִיוָן תש״פ",
+    "familyNameEnglish": null,
+    "projectType": "yahrzeit",
+    "completedPortions": 0,
+    "familyMessage": "שלום וברכה,\nהשבוע יתקיים יום האזכרה של אבא שלנו.\nאנו מקימים פרויקט מיוחד לעילוי נשמתו, ונשמח מאוד אם תוכלו לקחת בו חלק ולהיות שותפים בזיכוי הרבים ובעילוי נשמתו.\nתזכו למצוות ובשורות טובות.",
+    "createdAt": 1779783521867,
+    "nameHebrew": "ר' דניאל",
+    "gender": "male",
+    "allowAnonymous": true,
+    "nameFrench": null,
+    "isPublic": true,
+    "motherNameHebrew": "אירן",
+    "datePreference": "hebrew",
+    "dateOfPassing": "2020-06-06",
+    "fatherNameHebrew": "יחזקאל",
+    "photoURL": null,
+    "slug": "memorial-ay5ukw",
+    "nameEnglish": null,
+    "status": "active",
+    "nameSpanish": null,
+    "honorific": "זצ״ל",
+    "biography": "אדם שכל חייו היו חסד, נתינה ולב פתוח לכל אדם.\nאהבת התורה הייתה טבועה בו באמת ובפשטות, וענוותו הגדולה ניכרה בכל מעשיו.\nבמידותיו הטובות, ביושרו ובדרך האמת שבה הלך, זכה להקים דור ישרים ההולך בדרכו ובערכיו.\nמאור פניו, טוב ליבו והמילים הטובות שלו ממשיכים ללוות אותנו בכל יום \nוגם היום -האור שהשאיר אחריו ממשיך להאיר את חיינו.\nזכרו הטהור חקוק בליבנו לעד.",
+    "reportsCount": 1,
+    "repeatingSetEnabled": true,
+    "progressPercent": 21,
+    "participantCount": 33,
+    "totalSets": 2,
+    "updatedBy": "4yaV3kWNL0gXa0iJC84lgad3qp32",
+    "totalPortions": 834,
+    "tracks": [
+      "mishnayos",
+      "kabalos",
+      "tehillim"
+    ],
+    "topMatmidim": [
+      {
+        "count": 39,
+        "name": "אילנית מונדני"
+      },
+      {
+        "count": 24,
+        "name": "אהרון עמיאל"
+      },
+      {
+        "count": 14,
+        "name": "יעל"
+      },
+      {
+        "count": 14,
+        "name": "תהילה"
+      },
+      {
+        "count": 11,
+        "name": "א ב"
+      },
+      {
+        "count": 10,
+        "name": "עמיאל"
+      },
+      {
+        "count": 10,
+        "name": "יעל ב"
+      },
+      {
+        "count": 10,
+        "name": "יצחק עמ"
+      },
+      {
+        "count": 9,
+        "name": "שרה"
+      },
+      {
+        "count": 8,
+        "name": "שאול עמיאל"
+      }
+    ],
+    "progressPct": 31,
+    "startedByVisible": false,
+    "completedCycles": 0,
+    "startedByText": null,
+    "passwordHash": null,
+    "customDedication": null,
+    "claimedByTrack": {
+      "kabalos": 10,
+      "mishnayos": 58,
+      "tehillim": 150
+    },
+    "claimedPortions": 208,
+    "completedProgressPct": 0,
+    "locked": false,
+    "passwordSalt": null,
+    "announcement": null,
+    "updatedAt": 1780085885598
+  },
+  {
+    "id": "JVxClbybtxRxttBQd9vv",
+    "createdByEmail": "0219210@gmail.com",
+    "biography": "כתר תורה\n\nאבינו רוענו נזר ראשנו מאור עינינו ומורה דרכנו\nאציל הנפש ופאר המדות זך הרעיון ומוכתר בשם טוב\n\nהגאון האדיר והחסיד \n\nרבי אברהם שטרנבוך זצ\"ל\nראש ישיבת באבוב בלונדון\nבן יחיד לעמודי ההצלה בשנות הזעם\nשעמדו לישע עמם במסירות נפשם ומאודם",
+    "claimedPortions": 0,
+    "familyNameHebrew": "שטרנבוך",
+    "repeatingSetEnabled": true,
+    "isPublic": false,
+    "nameEnglish": null,
+    "participantCount": 0,
+    "photoURL": null,
+    "dateOfPassingHebrew": "כ״ד אֲדָר תשפ״א",
+    "familyNameEnglish": null,
+    "completedPortions": 0,
+    "nameFrench": null,
+    "nameHebrew": "אברהם",
+    "gender": "male",
+    "nameSpanish": null,
+    "createdAt": 1780001188315,
+    "totalSets": 1,
+    "projectType": "yahrzeit",
+    "tracks": [
+      "mishnayos"
+    ],
+    "status": "active",
+    "motherNameHebrew": "רעכל",
+    "datePreference": "hebrew",
+    "allowAnonymous": true,
+    "fatherNameHebrew": "יצחק",
+    "dateOfPassing": "2021-03-08",
+    "honorific": "זצ\"ל",
+    "reportsCount": 0,
+    "createdBy": "cROa2e9jK4V17NiF9WKuXrkFfDt1",
+    "familyMessage": null,
+    "slug": "memorial-sm1g7n",
+    "totalPortions": 525,
+    "topMatmidim": [],
+    "progressPct": 0,
+    "startedByVisible": false,
+    "completedCycles": 0,
+    "startedByText": null,
+    "passwordHash": null,
+    "customDedication": null,
+    "claimedByTrack": {
+      "mishnayos": 0
+    },
+    "completedProgressPct": 0,
+    "locked": false,
+    "passwordSalt": null,
+    "announcement": null,
+    "updatedAt": 1780085885864
+  },
+  {
+    "id": "VUz2pBevlph2GhNfZKaz",
+    "tracks": [
+      "mishnayos",
+      "kabalos",
+      "tehillim",
+      "shnayim_mikra",
+      "daf_yomi"
+    ],
+    "projectType": "shloshim",
+    "familyMessage": "בואו תעזרו לנו לקחת חלק לעילוי נשמתו",
+    "createdAt": 1779996398355,
+    "slug": "itamar-w3a9n3",
+    "createdBy": "Dzm2eqwEuzdh4uqGtSXNyiDgwTp1",
+    "status": "active",
+    "biography": "איתמרוש, מאור עינינו\nוואו כמה שאתה חסר לנו בנוף\nכמה אנחנו מתגעגעים אליך\nאיזה שמחה הכנסת אלינו למשפחה\nכמו היית בשמחה כל הזמן\nקיבלת את הייסורים באהבה\nוה' רצה אותך קרוב אליו!!\nנפגש בעזרת ה'\nשמשיח צדקינו יבוא\nמתגעגעים ואוהבים בלי סוף",
+    "totalSets": 1,
+    "reportsCount": 0,
+    "motherNameHebrew": "פנינה",
+    "repeatingSetEnabled": true,
+    "datePreference": "hebrew",
+    "dateOfPassingHebrew": "כ״ד אֱלוּל תשפ״ד",
+    "familyNameEnglish": "elcharar",
+    "gender": "male",
+    "photoURL": null,
+    "familyNameHebrew": "אלחרר",
+    "participantCount": 0,
+    "nameSpanish": null,
+    "completedPortions": 0,
+    "honorific": "ז״ל",
+    "fatherNameHebrew": "אברהם",
+    "nameEnglish": "Itamar",
+    "nameHebrew": "איתמר",
+    "isPublic": true,
+    "claimedPortions": 0,
+    "dateOfPassing": "2024-09-27",
+    "nameFrench": null,
+    "createdByEmail": "yaelelcharar122@gmail.com",
+    "allowAnonymous": true,
+    "totalPortions": 736,
+    "topMatmidim": [],
+    "progressPct": 0,
+    "startedByVisible": false,
+    "completedCycles": 0,
+    "startedByText": null,
+    "passwordHash": null,
+    "customDedication": null,
+    "claimedByTrack": {
+      "shnayim_mikra": 0,
+      "mishnayos": 0,
+      "tehillim": 0,
+      "kabalos": 0,
+      "daf_yomi": 0
+    },
+    "completedProgressPct": 0,
+    "locked": false,
+    "passwordSalt": null,
+    "announcement": null,
+    "updatedAt": 1780085886153
+  },
+  {
+    "id": "WqSAXyxOS2z0wHrDbrJp",
+    "familyNameEnglish": null,
+    "slug": "memorial-68jywm",
+    "nameHebrew": "יעקותא פנינה",
+    "allowAnonymous": true,
+    "fatherNameHebrew": null,
+    "dateOfPassingHebrew": "כ׳ שְׁבָט תשפ״ו",
+    "honorific": "ע״ה",
+    "createdAt": 1779804664299,
+    "gender": "female",
+    "nameEnglish": null,
+    "projectType": "permanent",
+    "isPublic": false,
+    "familyNameHebrew": "דמרי",
+    "nameFrench": null,
+    "status": "active",
+    "createdByEmail": "sara4165423@gmail.com",
+    "motherNameHebrew": "חינה",
+    "reportsCount": 0,
+    "photoURL": null,
+    "dateOfPassing": "2026-02-07",
+    "biography": "לזכרה של סבתא פנינה היקרה והאהובה,\n\nסבתא פנינה הייתה דמות מופת, אישה שקרנה ממנה אצילות ומאור פנים שהפכה כל מפגש עמה לחוויה של אור ושמחה. הנהגתה הייתה מופת של ענווה ושקט פנימי, כזו שלא נזקקה למילים רבות כדי להוביל ולהשפיע, אלא עשתה זאת בנוכחותה המרגיעה והבוטחת.\n\nאחד מסימני ההיכר הבולטים ביותר שלה היה יכולתה המופלאה להעניק לכל נכד ונכדה את תחושת ה\"יחיד ומיוחד\".  סבתא ידעה להעניק לכל אחד מאיתנו את מלוא תשומת הלב, ההקשבה והחום, כאילו אנחנו הדבר החשוב ביותר בעולמה באותו הרגע. היא ראתה אותנו באמת, וגרמה לנו להרגיש אהובים ללא תנאי.\n\nסבתא הייתה אישה של אמת צרופה. היא הלכה בדרכה ביושרה פנימית שאין בה פשרות, כזו ששימשה עבורנו מצפן בחיים. בלב פתוח ובאמונה פשוטה וחזקה, והוכיחה לנו יום-יום שגדולה אמיתית נמדדת ביכולת להישאר צנועה וטובת לב גם מול אתגרים גדולים.\n\nהיא הייתה עבורנו עמוד התווך של המשפחה, בזכות הרוח הגדולה שלה, האהבה האינסופית שהפיצה לכל עבר, והזיכרון שהיא מותירה בלב כולנו – זיכרון של אישה שלא חסכה מאיתנו דבר, וחינכה אותנו במעשיה לערכים של יושר, מסירות ואהבת הזולת.\n\nסבתא פנינה, את חסרה לנו מאוד. הלב הטוב שלך, החיוך המאיר והעצות החכמות שלך ילוו אותנו תמיד. אנחנו מבטיחים להמשיך בדרכך, לשמור על הזיכרון החי שלך ולהעביר הלאה את הערכים הגדולים שהנחלת לנו.\n\nיהי זכרה ברוך ושמור בליבנו לעד.",
+    "nameSpanish": null,
+    "createdBy": "sQ7zp5GP5Sd69v67lpqlsydn6TC3",
+    "tracks": [
+      "kabalos",
+      "tehillim"
+    ],
+    "datePreference": "hebrew",
+    "familyMessage": null,
+    "completedPortions": 4,
+    "claimedPortions": 7,
+    "repeatingSetEnabled": true,
+    "progressPercent": 4,
+    "claimedByTrack": {
+      "kabalos": 0,
+      "tehillim": 7
+    },
+    "totalPortions": 156,
+    "participantCount": 2,
+    "topMatmidim": [
+      {
+        "name": "שרה",
+        "count": 5
+      },
+      {
+        "name": "יהודית",
+        "count": 2
+      }
+    ],
+    "totalSets": 1,
+    "progressPct": 5,
+    "startedByVisible": false,
+    "completedCycles": 0,
+    "startedByText": null,
+    "passwordHash": null,
+    "customDedication": null,
+    "completedProgressPct": 3,
+    "locked": false,
+    "passwordSalt": null,
+    "announcement": null,
+    "updatedAt": 1780085886328
+  },
+  {
+    "id": "YLiKKJj5YOWR4WquKcNp",
+    "nameFrench": null,
+    "allowAnonymous": true,
+    "reportsCount": 0,
+    "fatherNameHebrew": "אליעזר",
+    "familyNameEnglish": null,
+    "createdByEmail": "a0533107517@gmail.com",
+    "nameEnglish": null,
+    "dateOfPassing": "2026-05-25",
+    "slug": "memorial-ojq7ld",
+    "isPublic": true,
+    "photoURL": null,
+    "familyNameHebrew": "בלויגרונד",
+    "familyMessage": "לימוד ש''ס משניות לעילוי נשמת מרת רבקה בת רבי אליעזר ע''ה עד יום השלושים",
+    "createdAt": 1779803136194,
+    "honorific": "ע״ה",
+    "dateOfPassingHebrew": "ט׳ סִיוָן תשפ״ו",
+    "status": "active",
+    "nameHebrew": "רבקה",
+    "datePreference": "hebrew",
+    "biography": "לעילוי נשמת הסבתא האהובה שנתנה לכולנו כל כך הרבה וכולנו רוצים לזכות להחזיר לה מה שאנחנו יכולים ומגיע לה.",
+    "createdBy": "G9qq48r74UMtk0axMgBcdGjsyMJ3",
+    "nameSpanish": null,
+    "tracks": [
+      "mishnayos"
+    ],
+    "motherNameHebrew": null,
+    "projectType": "shloshim",
+    "gender": "female",
+    "repeatingSetEnabled": true,
+    "totalSets": 1,
+    "totalPortions": 525,
+    "progressPercent": 26,
+    "completedPortions": 18,
+    "participantCount": 18,
+    "claimedPortions": 182,
+    "topMatmidim": [
+      {
+        "count": 50,
+        "name": "בנימין בלויגרונד"
+      },
+      {
+        "count": 18,
+        "name": "מוטי"
+      },
+      {
+        "count": 15,
+        "name": "אליעזר בלויגרונד"
+      },
+      {
+        "count": 13,
+        "name": "אריה בלויגרונד"
+      },
+      {
+        "count": 10,
+        "name": "שוקי רוט"
+      },
+      {
+        "count": 10,
+        "name": "אריה אנסבכר"
+      },
+      {
+        "count": 10,
+        "name": "יהונתן בלויגרונד"
+      },
+      {
+        "count": 10,
+        "name": "אלחנן אנסבכר"
+      },
+      {
+        "count": 10,
+        "name": "קובי בלוגרונד"
+      },
+      {
+        "count": 9,
+        "name": "אברמי"
+      }
+    ],
+    "progressPct": 35,
+    "startedByVisible": false,
+    "completedCycles": 0,
+    "startedByText": null,
+    "passwordHash": null,
+    "customDedication": null,
+    "claimedByTrack": {
+      "mishnayos": 182
+    },
+    "completedProgressPct": 3,
+    "locked": false,
+    "passwordSalt": null,
+    "announcement": null,
+    "updatedAt": 1780085886560
+  },
+  {
+    "id": "lRQpQzyqNEeCvmsNG7aR",
+    "nameHebrew": "חיה רחל",
+    "createdAt": 1779786717321,
+    "familyMessage": null,
+    "completedPortions": 0,
+    "projectType": "yahrzeit",
+    "dateOfPassingHebrew": "י״א אֱלוּל תשפ״ד",
+    "familyNameEnglish": null,
+    "createdBy": "U772pOJBcjcmcMtSg4ImAzzerhG3",
+    "familyNameHebrew": "ברים",
+    "createdByEmail": "a0527185263@gmail.com",
+    "honorific": "ע״ה",
+    "biography": null,
+    "reportsCount": 0,
+    "status": "active",
+    "nameSpanish": null,
+    "tracks": [
+      "mishnayos",
+      "kabalos"
+    ],
+    "photoURL": null,
+    "slug": "memorial-mczhjv",
+    "nameEnglish": null,
+    "fatherNameHebrew": "מרדכי",
+    "dateOfPassing": "2024-09-14",
+    "motherNameHebrew": null,
+    "datePreference": "hebrew",
+    "isPublic": true,
+    "allowAnonymous": true,
+    "nameFrench": null,
+    "gender": "female",
+    "participantCount": 1,
+    "claimedPortions": 9,
+    "repeatingSetEnabled": true,
+    "progressPercent": 2,
+    "claimedByTrack": {
+      "kabalos": 0,
+      "mishnayos": 9
+    },
+    "totalPortions": 531,
+    "topMatmidim": [
+      {
+        "name": "שטרן",
+        "count": 9
+      }
+    ],
+    "totalSets": 1,
+    "progressPct": 2,
+    "startedByVisible": false,
+    "completedCycles": 0,
+    "startedByText": null,
+    "passwordHash": null,
+    "customDedication": null,
+    "completedProgressPct": 0,
+    "locked": false,
+    "passwordSalt": null,
+    "announcement": null,
+    "updatedAt": 1780085886789
+  },
+  {
+    "id": "pT17oUT4goMytK4iav4V",
+    "allowAnonymous": false,
+    "familyNameHebrew": "קוריץ",
+    "photoURL": null,
+    "nameSpanish": null,
+    "nameEnglish": null,
+    "slug": "memorial-upvad8",
+    "honorific": "ז״ל",
+    "tracks": [
+      "mishnayos"
+    ],
+    "isPublic": false,
+    "gender": "male",
+    "totalSets": 1,
+    "nameFrench": null,
+    "nameHebrew": "צבי חיים",
+    "status": "active",
+    "createdByEmail": "yhwsnhpdr@gmail.com",
+    "completedPortions": 0,
+    "repeatingSetEnabled": true,
+    "createdBy": "OrbvOHyP6FMeybCyFCFLTVsiM1j2",
+    "dateOfPassing": "2018-02-26",
+    "reportsCount": 0,
+    "dateOfPassingHebrew": "י״א אֲדָר תשע״ח",
+    "projectType": "yahrzeit",
+    "biography": "איש ירא אלוקים ואוהב את הבריות",
+    "motherNameHebrew": "העניא בילא",
+    "datePreference": "hebrew",
+    "fatherNameHebrew": "יהושע נח",
+    "createdAt": 1779897492002,
+    "familyMessage": null,
+    "familyNameEnglish": null,
+    "totalPortions": 525,
+    "participantCount": 1,
+    "claimedPortions": 1,
+    "progressPercent": 0,
+    "claimedByTrack": {
+      "mishnayos": 1
+    },
+    "topMatmidim": [
+      {
+        "count": 1,
+        "name": "י"
+      }
+    ],
+    "customDedication": null,
+    "progressPct": 0,
+    "startedByVisible": false,
+    "completedCycles": 0,
+    "completedProgressPct": 0,
+    "startedByText": null,
+    "locked": false,
+    "passwordSalt": null,
+    "passwordHash": null,
+    "announcement": null,
+    "updatedAt": 1780085887010
+  },
+  {
+    "id": "pfDMnJfngFJ6Gt5HyVeh",
+    "biography": "לעילוי נשמת הסבתא האהובה שנתנה לכולנו כל כך הרבה וכולנו רוצים לזכות להחזיר לה מה שאנחנו יכולים ומגיע לה.",
+    "familyNameEnglish": null,
+    "nameEnglish": null,
+    "familyNameHebrew": "בלויגרונד",
+    "allowAnonymous": true,
+    "completedPortions": 0,
+    "fatherNameHebrew": "אליעזר",
+    "tracks": [
+      "tehillim"
+    ],
+    "status": "active",
+    "reportsCount": 0,
+    "datePreference": "hebrew",
+    "nameHebrew": "רבקה",
+    "dateOfPassingHebrew": "ט׳ סִיוָן תשפ״ו",
+    "createdAt": 1779804300582,
+    "slug": "memorial-a4usua",
+    "gender": "female",
+    "createdBy": "G9qq48r74UMtk0axMgBcdGjsyMJ3",
+    "projectType": "shloshim",
+    "nameSpanish": null,
+    "isPublic": true,
+    "honorific": "ע״ה",
+    "motherNameHebrew": null,
+    "nameFrench": null,
+    "photoURL": null,
+    "createdByEmail": "a0533107517@gmail.com",
+    "familyMessage": "קריאת פרקי תהילים לעילוי נשמת מרת רבקה בת רבי אליעזר ע''ה עד יום השלושים",
+    "dateOfPassing": "2026-05-25",
+    "repeatingSetEnabled": true,
+    "progressPercent": 91,
+    "participantCount": 15,
+    "totalSets": 2,
+    "totalPortions": 300,
+    "claimedByTrack": {
+      "tehillim": 164
+    },
+    "claimedPortions": 164,
+    "topMatmidim": [
+      {
+        "count": 27,
+        "name": "ד"
+      },
+      {
+        "count": 17,
+        "name": "בתי אנסבכר"
+      },
+      {
+        "count": 17,
+        "name": "אלישבע בלויגרונד"
+      },
+      {
+        "count": 17,
+        "name": "אנסבכר פתח תקווה"
+      },
+      {
+        "count": 15,
+        "name": "א מ"
+      },
+      {
+        "count": 13,
+        "name": "ט.ב."
+      },
+      {
+        "count": 12,
+        "name": "צ.ד"
+      },
+      {
+        "count": 10,
+        "name": "גילה"
+      },
+      {
+        "count": 10,
+        "name": "שרי.ח"
+      },
+      {
+        "count": 8,
+        "name": "יששכר"
+      }
+    ],
+    "customDedication": null,
+    "progressPct": 9,
+    "startedByVisible": false,
+    "completedCycles": 1,
+    "completedProgressPct": 0,
+    "startedByText": null,
+    "locked": false,
+    "passwordSalt": null,
+    "passwordHash": null,
+    "announcement": null,
+    "updatedAt": 1780085887203
+  },
+  {
+    "id": "rSlrkcqPJREz6GIoN8sQ",
+    "familyNameEnglish": null,
+    "dateOfPassingHebrew": "כ״ד אִיָּיר תשפ״ו",
+    "gender": "male",
+    "createdByEmail": "a0583256432@gmail.com",
+    "datePreference": "both",
+    "reportsCount": 0,
+    "status": "active",
+    "createdAt": 1779878361354,
+    "totalSets": 1,
+    "motherNameHebrew": "אסתר רבקה",
+    "nameHebrew": "יחזקאל דוד",
+    "projectType": "year",
+    "allowAnonymous": true,
+    "tracks": [
+      "mishnayos",
+      "kabalos",
+      "tehillim"
+    ],
+    "dateOfPassing": "2026-05-11",
+    "biography": "איש התורה והדעת, שהקדיש את חייו ללימוד ולהרבצת תורה. מדי שבוע מסר בטוב טעם ודעת שיעורים קבועים בתלמוד הירושלמי, והאיר את עיני שומעיו. התורה הייתה שגורה על פיו בכל רגע – כל שיחה עמו, ולו הקצרה ביותר, הייתה רצופה בדברי תורה עמוקים, חידושים וגימטריות נפלאות שהותאמו בדיוק רב לבן שיחו. הותיר אחריו חלל גדול וגעגוע עמוק למאור פניו ולתורתו. יהי זכרו ברוך.",
+    "nameFrench": null,
+    "nameSpanish": null,
+    "familyMessage": null,
+    "photoURL": null,
+    "honorific": "ז״ל",
+    "isPublic": true,
+    "familyNameHebrew": "נחשון",
+    "fatherNameHebrew": "אברהם",
+    "repeatingSetEnabled": true,
+    "slug": "memorial-0xowxi",
+    "createdBy": "uoFmtFS5XDdJQgwMTdiSUdLfQnD2",
+    "nameEnglish": null,
+    "totalPortions": 681,
+    "progressPercent": 13,
+    "completedPortions": 2,
+    "participantCount": 17,
+    "claimedPortions": 235,
+    "topMatmidim": [
+      {
+        "count": 75,
+        "name": "יהודה שלנג"
+      },
+      {
+        "count": 44,
+        "name": "תמר"
+      },
+      {
+        "count": 27,
+        "name": "בן ציון"
+      },
+      {
+        "name": "מיכאל וסרשטיין",
+        "count": 13
+      },
+      {
+        "name": "אליהו פולק",
+        "count": 11
+      },
+      {
+        "count": 11,
+        "name": "נתן צבי שלנג"
+      },
+      {
+        "name": "מוריה",
+        "count": 11
+      },
+      {
+        "name": "יצחק ב״ש",
+        "count": 10
+      },
+      {
+        "name": "משה שלנג",
+        "count": 10
+      },
+      {
+        "count": 9,
+        "name": "יצחק בש"
+      }
+    ],
+    "progressPct": 35,
+    "startedByVisible": false,
+    "completedCycles": 0,
+    "startedByText": null,
+    "passwordHash": null,
+    "customDedication": null,
+    "claimedByTrack": {
+      "tehillim": 57,
+      "mishnayos": 178,
+      "kabalos": 0
+    },
+    "completedProgressPct": 0,
+    "locked": false,
+    "passwordSalt": null,
+    "announcement": null,
+    "updatedAt": 1780085887473
+  }
+]

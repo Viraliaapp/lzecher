@@ -26,7 +26,29 @@ export interface RecomputedStats {
   completedProgressPct: number;
   completedCycles: number;
   claimedByTrack: Record<string, number>;
+  participantCount: number;
   topMatmidim: Matmid[];
+}
+
+/**
+ * Unique-participant count for a project from its claim docs: deduped by userId
+ * (when not anonymous) else by name+email. Excludes bulk "parent" summary claims.
+ * Authoritative (can't drift) — replaces the fragile per-claim increments.
+ */
+export async function recomputeParticipantCount(
+  db: FirebaseFirestore.Firestore,
+  projectId: string
+): Promise<number> {
+  const claimsSnap = await db.collection("lzecher_claims").where("projectId", "==", projectId).get();
+  const keys = new Set<string>();
+  for (const d of claimsSnap.docs) {
+    const c = d.data();
+    if (c.isParent === true) continue;
+    const key = c.userId && c.userId !== "anonymous" ? `u:${c.userId}` : `n:${(c.userName || "").trim()}__${(c.userEmail || "").trim()}`;
+    if (key === "n:__") continue; // no identity at all
+    keys.add(key);
+  }
+  return keys.size;
 }
 
 /**
@@ -89,6 +111,7 @@ export async function recomputeProjectProgress(
 
   const prog = computeProgress(portions as { trackType?: string; setNumber?: number | null; status?: string }[]);
   const topMatmidim = computeTopMatmidim(portions as { claimMode?: string; status?: string; claimedByName?: string; claimerNames?: string[] }[]);
+  const participantCount = await recomputeParticipantCount(db, projectId);
 
   const stats: RecomputedStats = {
     totalPortions,
@@ -99,6 +122,7 @@ export async function recomputeProjectProgress(
     completedProgressPct: prog.completedPct,
     completedCycles: prog.cycles,
     claimedByTrack,
+    participantCount,
     topMatmidim,
   };
 
