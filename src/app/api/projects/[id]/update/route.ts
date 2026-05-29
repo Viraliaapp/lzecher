@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { verifyToken } from "@/lib/auth-roles";
 import { MITZVAH_TEMPLATES } from "@/lib/seed-data";
+import { hashPassword } from "@/lib/password";
 import type { TrackType } from "@/lib/types";
 
 const EDITABLE_FIELDS = new Set([
@@ -18,6 +19,8 @@ const EDITABLE_FIELDS = new Set([
   "biography", "familyMessage", "isPublic", "allowAnonymous",
   "photoURL", "projectType", "completionTargetDate", "completionTargetType",
   "repeatingSetEnabled",
+  // password protection + attribution + admin display
+  "startedByText", "startedByVisible", "announcement", "locked", "customDedication",
 ]);
 
 const VALID_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
@@ -29,10 +32,11 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { updates, trackChanges, idToken } = body as {
+    const { updates, trackChanges, idToken, password } = body as {
       updates?: Record<string, unknown>;
       trackChanges?: { add?: TrackType[]; remove?: TrackType[]; confirmDestructive?: string };
       idToken?: string;
+      password?: string | null; // non-empty = set/change; "" or null = remove
     };
 
     if (!idToken) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -70,6 +74,26 @@ export async function POST(
     }
     if (Object.keys(cleanedUpdates).length > 0) {
       ops.push(`update_fields:${Object.keys(cleanedUpdates).join(",")}`);
+    }
+
+    // Password set/change/remove — hashed, handled separately from plain fields.
+    if (password !== undefined) {
+      const pw = typeof password === "string" ? password.trim() : "";
+      if (pw) {
+        const { passwordHash, passwordSalt } = hashPassword(pw);
+        cleanedUpdates.passwordHash = passwordHash;
+        cleanedUpdates.passwordSalt = passwordSalt;
+        ops.push("set_password");
+      } else {
+        cleanedUpdates.passwordHash = null;
+        cleanedUpdates.passwordSalt = null;
+        ops.push("remove_password");
+      }
+    }
+
+    // Stamp announcement time when an announcement is (re)set.
+    if (typeof cleanedUpdates.announcement === "string" && cleanedUpdates.announcement.trim()) {
+      cleanedUpdates.announcementAt = Date.now();
     }
 
     let newTracks: TrackType[] = Array.isArray(currentData.tracks) ? [...currentData.tracks] : [];

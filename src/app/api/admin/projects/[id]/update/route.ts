@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdmin } from "@/lib/auth-roles";
 import { MITZVAH_TEMPLATES } from "@/lib/seed-data";
+import { hashPassword } from "@/lib/password";
 import type { TrackType } from "@/lib/types";
 
 const EDITABLE_FIELDS = new Set([
@@ -31,6 +32,14 @@ const EDITABLE_FIELDS = new Set([
   "allowAnonymous",
   "photoURL",
   "projectType",
+  "completionTargetDate",
+  "completionTargetType",
+  "repeatingSetEnabled",
+  "startedByText",
+  "startedByVisible",
+  "announcement",
+  "locked",
+  "customDedication",
 ]);
 
 const VALID_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
@@ -42,7 +51,7 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { updates, trackChanges, idToken } = body as {
+    const { updates, trackChanges, idToken, password } = body as {
       updates?: Record<string, unknown>;
       trackChanges?: {
         add?: TrackType[];
@@ -50,6 +59,7 @@ export async function POST(
         confirmDestructive?: string; // typed project ID to allow destructive removal
       };
       idToken?: string;
+      password?: string | null; // non-empty = set/change; "" or null = remove
     };
 
     if (!idToken) {
@@ -84,6 +94,24 @@ export async function POST(
     }
     if (Object.keys(cleanedUpdates).length > 0) {
       ops.push(`update_fields:${Object.keys(cleanedUpdates).join(",")}`);
+    }
+
+    // Password set/change/remove — hashed, handled separately from plain fields.
+    if (password !== undefined) {
+      const pw = typeof password === "string" ? password.trim() : "";
+      if (pw) {
+        const { passwordHash, passwordSalt } = hashPassword(pw);
+        cleanedUpdates.passwordHash = passwordHash;
+        cleanedUpdates.passwordSalt = passwordSalt;
+        ops.push("set_password");
+      } else {
+        cleanedUpdates.passwordHash = null;
+        cleanedUpdates.passwordSalt = null;
+        ops.push("remove_password");
+      }
+    }
+    if (typeof cleanedUpdates.announcement === "string" && cleanedUpdates.announcement.trim()) {
+      cleanedUpdates.announcementAt = Date.now();
     }
 
     // ── Track changes ───────────────────────────────────────────────────────

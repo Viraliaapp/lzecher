@@ -39,6 +39,8 @@ const limiters = {
   bulkCompleteOp: () => createLimiter("bulk-complete-op", 200, 3600),// 200 bulk-complete OPs/hr (each op = 1 batch call, not 1 item)
   ogImage: () => createLimiter("og", 100, 60),
   contactFamily: () => createLimiter("contact-family", 3, 86400),
+  passwordAttemptPerProjectIp: () => createLimiter("pw-proj-ip", 10, 600), // 10 tries / 10 min per project+IP
+  adminEmailBlast: () => createLimiter("admin-email-blast", 5, 3600),      // 5 participant-update sends/hr per project
 };
 
 export interface RateLimitResult {

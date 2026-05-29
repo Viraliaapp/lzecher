@@ -6,9 +6,12 @@ import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
-import { Search } from "lucide-react";
+import { Search, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import type { MemorialProject, TrackType } from "@/lib/types";
+import { progressFromProject, cyclesLabel } from "@/lib/progress";
+import { GlobalCounter } from "@/components/activity/GlobalCounter";
+import { ActivityBubbles } from "@/components/activity/ActivityBubbles";
 
 interface HomeClientProps {
   memorials?: MemorialProject[];
@@ -90,6 +93,12 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
         </div>
       </section>
 
+      {/* ── GLOBAL LIVE COUNTER ── */}
+      <GlobalCounter />
+
+      {/* ── LIVE ACTIVITY BUBBLES ── */}
+      <ActivityBubbles />
+
       {/* ── MEMORIALS DIRECTORY ── */}
       <section className="bg-cream py-8 sm:py-12">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -124,22 +133,12 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
               {filtered.map((m, i) => {
-                // Progress % uses Tehillim+Mishnayos only if per-track data is available
+                // Canonical progress — same definition as the inside memorial hero.
+                // Reads denormalized fields written by recomputeProjectProgress().
                 const byTrack = (m as MemorialProject & { claimedByTrack?: Record<string, number> }).claimedByTrack || {};
-                const tmHasTracks = m.tracks.some(t => t === "mishnayos" || t === "tehillim");
-                const hasByTrack = Object.keys(byTrack).length > 0;
-                let pct: number;
-                if (tmHasTracks && hasByTrack) {
-                  // estimate TM total: mishnayos=525/set, tehillim=150/set (single set approx)
-                  const mClaimed = byTrack.mishnayos || 0;
-                  const tClaimed = byTrack.tehillim || 0;
-                  const mTotal = m.tracks.includes("mishnayos") ? 525 : 0;
-                  const tTotal = m.tracks.includes("tehillim") ? 150 : 0;
-                  const tmTotal = mTotal + tTotal;
-                  pct = tmTotal > 0 ? Math.min(100, Math.round(((mClaimed + tClaimed) / tmTotal) * 100)) : 0;
-                } else {
-                  pct = m.totalPortions > 0 ? Math.round((m.claimedPortions / m.totalPortions) * 100) : 0;
-                }
+                const prog = progressFromProject(m);
+                const pct = prog.pct;
+                const cyclesText = cyclesLabel(prog.cycles, locale);
                 const honorific =
                   (m as MemorialProject & { honorific?: string }).honorific ||
                   (m.gender === "female" ? "ע״ה" : "ז״ל");
@@ -191,6 +190,14 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
                               pointerEvents: "none",
                             }}
                           />
+                          {/* Lock badge for password-protected memorials */}
+                          {(m as MemorialProject & { isPasswordProtected?: boolean }).isPasswordProtected && (
+                            <div className="absolute top-2 right-2 z-20" title={t("protectedBadge")}>
+                              <span className="inline-flex items-center justify-center h-6 w-6 rounded-full" style={{ background: "rgba(201,162,75,0.18)" }}>
+                                <Lock className="h-3 w-3" style={{ color: "rgba(201,162,75,0.9)" }} />
+                              </span>
+                            </div>
+                          )}
                           {/* Mini candle */}
                           <div className="flex justify-center mb-2 relative z-10">
                             <YahrzeitCandle size="sm" />
@@ -233,9 +240,14 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
                           >
                             {pct}%
                           </p>
-                          <p style={{ fontSize: "11px", color: "#8B7355", marginTop: "3px", marginBottom: "8px" }}>
+                          <p style={{ fontSize: "11px", color: "#8B7355", marginTop: "3px", marginBottom: cyclesText ? "4px" : "8px" }}>
                             {t("takenLabel")}
                           </p>
+                          {cyclesText && (
+                            <p style={{ fontSize: "10px", fontWeight: 700, color: "#5B7A52", marginBottom: "8px" }} dir={locale === "he" ? "rtl" : "ltr"}>
+                              {cyclesText}
+                            </p>
+                          )}
                           {/* Thin progress bar */}
                           <div
                             style={{ height: "5px", borderRadius: "3px", background: "rgba(15,27,45,0.08)", overflow: "hidden" }}

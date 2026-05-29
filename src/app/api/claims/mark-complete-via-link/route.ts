@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import * as crypto from "crypto";
 
 const SECRET = process.env.REMINDER_ACTION_SECRET || "default-dev-secret";
@@ -101,6 +102,11 @@ export async function GET(req: NextRequest) {
           await projectRef.update({
             completedPortions: (projectData.completedPortions || 0) + 1,
           });
+          try {
+            await recomputeProjectProgress(db, claimData.projectId);
+          } catch (e) {
+            console.error("[mark-complete-via-link] recompute failed:", e);
+          }
         }
       }
     } else if (action === "check_in") {

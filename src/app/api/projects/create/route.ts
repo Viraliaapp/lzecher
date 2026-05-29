@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { hashPassword } from "@/lib/password";
 
 function slugify(text: string): string {
   const base = text
@@ -35,6 +36,9 @@ export async function POST(request: NextRequest) {
       allowAnonymous,
       tracks,
       projectType,
+      password,
+      startedByText,
+      startedByVisible,
     } = body;
 
     if (!idToken) {
@@ -77,6 +81,10 @@ export async function POST(request: NextRequest) {
     const db = getAdminDb();
     const slug = slugify(nameEnglish?.trim() || nameHebrew);
 
+    // Optional password protection (hashed, never stored plaintext)
+    const pw = typeof password === "string" ? password.trim() : "";
+    const pwFields = pw ? hashPassword(pw) : { passwordHash: null, passwordSalt: null };
+
     const projectRef = db.collection("lzecher_projects").doc();
     const projectData = {
       id: projectRef.id,
@@ -101,7 +109,11 @@ export async function POST(request: NextRequest) {
       photoURL: null,
       biography: biography?.trim() || null,
       familyMessage: familyMessage?.trim() || null,
-      isPublic: isPublic !== false,
+      isPublic: isPublic !== false, // deprecated; retained for backward-compat
+      passwordHash: pwFields.passwordHash,
+      passwordSalt: pwFields.passwordSalt,
+      startedByText: typeof startedByText === "string" && startedByText.trim() ? startedByText.trim() : null,
+      startedByVisible: Boolean(startedByVisible),
       allowAnonymous: allowAnonymous !== false,
       status: "active",
       reportsCount: 0,

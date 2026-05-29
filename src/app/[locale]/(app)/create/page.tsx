@@ -20,7 +20,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Globe,
   Lock,
   Users,
   Calendar,
@@ -107,6 +106,9 @@ export default function CreateMemorialPage() {
   const [isPublic, setIsPublic] = useState(true);
   const [allowAnonymous, setAllowAnonymous] = useState(true);
   const [familyMessage, setFamilyMessage] = useState("");
+  const [password, setPassword] = useState("");
+  const [startedByText, setStartedByText] = useState("");
+  const [startedByVisible, setStartedByVisible] = useState(false);
 
   function toggleTrack(track: TrackType) {
     setSelectedTracks((prev) =>
@@ -154,6 +156,9 @@ export default function CreateMemorialPage() {
         familyMessage: familyMessage.trim() || null,
         isPublic,
         allowAnonymous,
+        password: password.trim() || undefined,
+        startedByText: startedByText.trim() || null,
+        startedByVisible,
         tracks: selectedTracks,
         projectType,
       };
@@ -625,22 +630,40 @@ export default function CreateMemorialPage() {
             <CardDescription>{t("sharingSubtitle")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Public/Private */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                {isPublic ? (
-                  <Globe className="h-5 w-5 text-gold mt-0.5 shrink-0" />
-                ) : (
-                  <Lock className="h-5 w-5 text-muted mt-0.5 shrink-0" />
-                )}
+            {/* Password protection (replaces public/private) */}
+            <div>
+              <div className="flex items-start gap-3 mb-2">
+                <Lock className="h-5 w-5 text-gold mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-medium text-navy">{t("publicProject")}</p>
-                  <p className="text-xs text-muted">
-                    {t("publicProjectDesc")}
-                  </p>
+                  <p className="font-medium text-navy">{t("passwordSectionTitle")}</p>
+                  <p className="text-xs text-muted">{t("passwordSectionDesc")}</p>
                 </div>
               </div>
-              <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+              <Input
+                type="text"
+                placeholder={t("passwordPlaceholder")}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+
+            {/* Started by */}
+            <div>
+              <label className="text-sm font-medium text-navy mb-1 block">
+                {t("startedByLabel")}
+              </label>
+              <Input
+                placeholder={t("startedByPlaceholder")}
+                value={startedByText}
+                onChange={(e) => setStartedByText(e.target.value)}
+              />
+              {startedByText.trim() && (
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <Switch checked={startedByVisible} onCheckedChange={setStartedByVisible} />
+                  <span className="text-xs text-muted">{t("startedByShow")}</span>
+                </label>
+              )}
             </div>
 
             {/* Anonymous */}
@@ -776,10 +799,13 @@ export default function CreateMemorialPage() {
               onEdit={() => setStep(4)}
               editLabel={t("edit")}
             >
-              <div className="flex gap-2">
-                <Badge variant={isPublic ? "success" : "secondary"}>
-                  {isPublic ? t("public") : t("private")}
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant={password.trim() ? "secondary" : "success"}>
+                  {password.trim() ? t("protected") : t("open")}
                 </Badge>
+                {startedByText.trim() && startedByVisible && (
+                  <Badge variant="default">{t("startedByLabel")}</Badge>
+                )}
                 {allowAnonymous && (
                   <Badge variant="default">{t("anonymousAllowed")}</Badge>
                 )}

@@ -32,6 +32,9 @@ import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Portion, TrackType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { heClaimButton, getClaimVerbForm } from "@/lib/track-config";
+import { computeProgress, cyclesLabel } from "@/lib/progress";
+import { Leaderboard } from "@/components/activity/Leaderboard";
+import { ActivityBubbles } from "@/components/activity/ActivityBubbles";
 import { toHebrewCalendarDate } from "@/lib/hebrew-date";
 
 const TRACK_EMOJI: Record<TrackType, string> = {
@@ -245,31 +248,12 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const claimed = portions.filter((p) => p.status !== "available").length;
   const completed = portions.filter((p) => p.status === "completed").length;
 
-  // Progress % counts Tehillim + Mishnayos only; overflows 100% when repeating sets open
-  const tmPortions = portions.filter(p => p.trackType === "mishnayos" || p.trackType === "tehillim");
-  const maxSet = tmPortions.length > 0 ? Math.max(...tmPortions.map(p => p.setNumber || 1)) : 1;
-  let pct: number;
-  if (tmPortions.length === 0) {
-    pct = 0;
-  } else if (maxSet <= 1) {
-    const tmClaimed = tmPortions.filter(p => p.status !== "available").length;
-    pct = Math.round((tmClaimed / tmPortions.length) * 100);
-  } else {
-    let completedSetCount = 0;
-    let activeSetPct = 0;
-    for (let s = 1; s <= maxSet; s++) {
-      const sp = tmPortions.filter(p => (p.setNumber || 1) === s);
-      const sc = sp.filter(p => p.status !== "available").length;
-      if (sp.length > 0 && sc === sp.length) completedSetCount++;
-      else if (sp.length > 0) activeSetPct = Math.round((sc / sp.length) * 100);
-    }
-    pct = completedSetCount * 100 + activeSetPct;
-  }
-
-  // Green bar: completed / one-set-denominator for TM only
-  const tmSet1Count = tmPortions.filter(p => (p.setNumber || 1) === 1).length;
-  const tmCompletedCount = tmPortions.filter(p => p.status === "completed").length;
-  const completedPct = tmSet1Count > 0 ? Math.min(100, Math.round((tmCompletedCount / tmSet1Count) * 100)) : 0;
+  // Canonical progress — SAME definition as the homepage card (src/lib/progress.ts),
+  // computed live from portions so it can't drift. Current-set % (0–100) + cycles.
+  const heroProgress = computeProgress(portions);
+  const pct = heroProgress.pct;
+  const completedPct = heroProgress.completedPct;
+  const cyclesText = cyclesLabel(heroProgress.cycles, locale);
 
   const trackGroups = useMemo(() => {
     const groups: Record<string, Portion[]> = {};
@@ -671,9 +655,14 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
               <p className="font-heading font-black text-5xl sm:text-6xl" style={{ color: "#C9A961" }}>
                 {pct}%
               </p>
-              <p className="text-sm mt-1 mb-3" style={{ color: "rgba(250,246,236,0.55)" }}>
+              <p className="text-sm mt-1 mb-1" style={{ color: "rgba(250,246,236,0.55)" }}>
                 {t("taken")}
               </p>
+              {cyclesText && (
+                <p className="text-xs font-bold mb-2" style={{ color: "#8FB07F" }} dir={locale === "he" ? "rtl" : "ltr"}>
+                  {cyclesText}
+                </p>
+              )}
               <Progress value={pct} className="h-2 mb-3" style={{ background: "rgba(250,246,236,0.10)" }} indicatorClassName="bg-gold" />
               {completedPct > 0 && (
                 <div className="mt-2">
@@ -749,6 +738,29 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
               הדרן עלך ועלן דעתך. לא נתנשי מינך ולא תתנשי מינן, לא בעלמא הדין ולא בעלמא דאתי.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Pinned announcement (admin) */}
+      {project.announcement && (
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 pt-6">
+          <div
+            className="rounded-xl px-5 py-4 text-center"
+            style={{ background: "rgba(201,162,75,0.12)", border: "1px solid rgba(201,162,75,0.4)" }}
+          >
+            <p className="text-sm text-navy leading-relaxed font-medium whitespace-pre-line" dir={locale === "he" ? "rtl" : "ltr"}>
+              {project.announcement}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Custom dedication shown at the top (admin) */}
+      {project.customDedication && (
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 pt-6 text-center">
+          <p className="font-serif italic text-base whitespace-pre-line" style={{ color: "rgba(15,27,45,0.7)" }} dir={locale === "he" ? "rtl" : "ltr"}>
+            {project.customDedication}
+          </p>
         </div>
       )}
 
@@ -828,6 +840,24 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           </Card>
         </div>
       )}
+
+      {/* "Started by" attribution — small, dignified, near the tribute */}
+      {project.startedByVisible && project.startedByText && (
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 pb-6 text-center">
+          <p className="text-xs tracking-wide" style={{ color: "rgba(15,27,45,0.45)" }} dir={locale === "he" ? "rtl" : "ltr"}>
+            {t("startedByLabel")} · <span className="font-medium" style={{ color: "rgba(15,27,45,0.6)" }}>{project.startedByText}</span>
+          </p>
+        </div>
+      )}
+
+      {/* המתמידים — leaderboard of top takers in this project */}
+      <Leaderboard
+        projectId={project.id}
+        initial={(project as MemorialProject & { topMatmidim?: { name: string; count: number }[] }).topMatmidim}
+      />
+
+      {/* Live activity bubbles */}
+      <ActivityBubbles />
 
       {/* Track Selector — Square Tile Grid (Phase 4.2) */}
       {totalPortions > 0 && (

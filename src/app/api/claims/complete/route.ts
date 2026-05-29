@@ -3,6 +3,7 @@ import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { getClaimMode } from "@/lib/track-config";
 import { getChizukMessage } from "@/lib/chizuk-messages";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import type { TrackType } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
@@ -219,6 +220,13 @@ export async function POST(request: NextRequest) {
           completedPortions: (proj.completedPortions || 0) + 1,
         });
       }
+    }
+
+    // Authoritative stat recompute (self-healing; can't drift). Non-fatal.
+    try {
+      await recomputeProjectProgress(db, projectId);
+    } catch (e) {
+      console.error("[complete] recompute failed:", e);
     }
 
     // Build chizuk response

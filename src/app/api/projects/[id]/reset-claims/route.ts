@@ -8,6 +8,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { recomputeGlobalStats } from "@/lib/recompute-global";
 import { verifyToken } from "@/lib/auth-roles";
 
 const BATCH_CHUNK = 400;
@@ -92,8 +93,20 @@ export async function POST(
       participantCount: 0,
       totalPortions: setOnePortions.length,
       totalSets: 1,
+      progressPct: 0,
+      completedProgressPct: 0,
+      completedCycles: 0,
+      claimedByTrack: {},
+      topMatmidim: [],
       updatedAt: Date.now(),
     });
+
+    // Refresh the platform-wide aggregate after the reset. Non-fatal.
+    try {
+      await recomputeGlobalStats(db);
+    } catch (e) {
+      console.error("[reset-claims] global recompute failed:", e);
+    }
 
     // Audit log
     await db.collection("lzecher_admin_audit").add({

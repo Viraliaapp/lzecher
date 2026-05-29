@@ -3,6 +3,8 @@ import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { queueRemindersForClaim } from "@/lib/queue-reminders";
 import { maybeOpenNextSet } from "@/lib/open-next-set";
+import { recomputeProjectProgress } from "@/lib/recompute-progress";
+import { recomputeGlobalStats } from "@/lib/recompute-global";
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,6 +42,12 @@ export async function POST(request: NextRequest) {
 
     const db = getAdminDb();
     const now = Date.now();
+
+    // Reject new claims when the project is locked.
+    const lockSnap = await db.collection("lzecher_projects").doc(projectId).get();
+    if (lockSnap.exists && lockSnap.data()!.locked === true) {
+      return NextResponse.json({ error: "This project is locked — no new claims." }, { status: 423 });
+    }
 
     // Build query to find matching portions
     let query = db.collection("lzecher_portions").where("projectId", "==", projectId);
@@ -214,6 +222,14 @@ export async function POST(request: NextRequest) {
       }
     } catch (setErr) {
       console.error("[bulk-claim] set-completion check failed:", setErr);
+    }
+
+    // Authoritative stat recompute (self-healing; can't drift). Non-fatal.
+    try {
+      await recomputeProjectProgress(db, projectId);
+      await recomputeGlobalStats(db);
+    } catch (e) {
+      console.error("[bulk-claim] recompute failed:", e);
     }
 
     return NextResponse.json({

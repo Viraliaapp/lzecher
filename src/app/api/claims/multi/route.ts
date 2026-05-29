@@ -3,6 +3,8 @@ import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { queueRemindersForClaim } from "@/lib/queue-reminders";
 import { maybeOpenNextSet } from "@/lib/open-next-set";
+import { recomputeProjectProgress } from "@/lib/recompute-progress";
+import { recomputeGlobalStats } from "@/lib/recompute-global";
 import type { TrackType } from "@/lib/types";
 import type * as FirebaseFirestore from "@google-cloud/firestore";
 
@@ -59,6 +61,12 @@ export async function POST(request: NextRequest) {
 
     const db = getAdminDb();
     const now = Date.now();
+
+    // Reject new claims when the project is locked.
+    const lockSnap = await db.collection("lzecher_projects").doc(projectId).get();
+    if (lockSnap.exists && lockSnap.data()!.locked === true) {
+      return NextResponse.json({ error: "This project is locked — no new claims." }, { status: 423 });
+    }
 
     // Fetch all portions in one query (Firestore supports up to 30 in-clause items,
     // so we fetch by projectId + status and filter in JS for larger sets)
@@ -192,6 +200,14 @@ export async function POST(request: NextRequest) {
       }
     } catch (setErr) {
       console.error("[multi-claim] set-completion check failed:", setErr);
+    }
+
+    // Authoritative stat recompute (self-healing; can't drift). Non-fatal.
+    try {
+      await recomputeProjectProgress(db, projectId);
+      await recomputeGlobalStats(db);
+    } catch (e) {
+      console.error("[multi-claim] recompute failed:", e);
     }
 
     return NextResponse.json({

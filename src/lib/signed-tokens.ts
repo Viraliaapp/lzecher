@@ -11,7 +11,7 @@ const SECRET =
   process.env.CRON_SECRET ||
   "default-dev-secret-not-for-prod";
 
-export type TokenPurpose = "email_signin" | "auto_signin" | "mark_complete" | "unsubscribe";
+export type TokenPurpose = "email_signin" | "auto_signin" | "mark_complete" | "unsubscribe" | "project_access";
 
 export interface TokenPayload {
   purpose: TokenPurpose;
@@ -19,6 +19,7 @@ export interface TokenPayload {
   uid?: string;
   locale?: string;
   claimId?: string;
+  projectId?: string; // for project_access — gates a specific password-protected project
   redirect?: string;
   iat: number;
   exp: number;
@@ -62,4 +63,5 @@ export const TTL = {
   AUTO_SIGNIN: 30 * 24 * 60 * 60 * 1000, // 30 days
   MARK_COMPLETE: 90 * 24 * 60 * 60 * 1000, // 90 days
   UNSUBSCRIBE: 30 * 24 * 60 * 60 * 1000,
+  PROJECT_ACCESS: 180 * 24 * 60 * 60 * 1000, // 180 days — remember password per device
 };

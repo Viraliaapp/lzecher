@@ -75,7 +75,8 @@
     "searchPlaceholder": "Buscar por nombre...",
     "noResults": "No se encontraron memoriales que coincidan con su busqueda.",
     "takenLabel": "Tomados para el estudio",
-    "cardCta": "→ Únete al estudio"
+    "cardCta": "→ Únete al estudio",
+    "protectedBadge": "Protegido con contraseña"
   },
   "auth": {
     "signInTitle": "Iniciar sesion",
@@ -255,7 +256,16 @@
     "successDesc": "Tu memorial ha sido publicado y ahora es accesible para cualquiera con el enlace.",
     "viewMemorial": "Ver memorial",
     "shareLink": "Copiar enlace",
-    "linkCopied": "Enlace copiado!"
+    "linkCopied": "Enlace copiado!",
+    "passwordSectionTitle": "Protección con contraseña (opcional)",
+    "passwordSectionDesc": "Déjalo en blanco para un memorial abierto que cualquiera pueda ver. Establece una contraseña para requerirla antes de ver la página completa (la tarjeta sigue visible en el directorio).",
+    "passwordLabel": "Contraseña",
+    "passwordPlaceholder": "Una palabra o frase",
+    "startedByLabel": "Iniciado por (opcional)",
+    "startedByPlaceholder": "p. ej. La familia Cohen",
+    "startedByShow": "Mostrar en la página del memorial",
+    "protected": "Protegido con contraseña",
+    "open": "Abierto a todos"
   },
   "memorial": {
     "lIluyNishmas": "L'iluy Nishmas",
@@ -341,7 +351,9 @@
     "tributeSignature": "— La Familia",
     "contactFamily": "Contactar a la familia",
     "trackPickSubtitle": "Elige el area que te convenga",
-    "trackTileCta": "Haz clic para elegir →"
+    "trackTileCta": "Haz clic para elegir →",
+    "startedByLabel": "Iniciado por",
+    "announcementLabel": "Anuncio"
   },
   "memorials": {
     "title": "Todos los memoriales",
@@ -572,5 +584,25 @@
     "messageLabel": "Mensaje",
     "send": "Enviar Mensaje",
     "sent": "Mensaje enviado exitosamente!"
+  },
+  "passwordGate": {
+    "title": "Este memorial está protegido con contraseña",
+    "subtitle": "Ingresa la contraseña que te compartieron para ver la página completa.",
+    "placeholder": "Contraseña",
+    "submit": "Ver memorial",
+    "checking": "Comprobando…",
+    "wrong": "Contraseña incorrecta. Inténtalo de nuevo.",
+    "tooMany": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+    "error": "Algo salió mal. Inténtalo de nuevo."
+  },
+  "globalCounter": {
+    "heading": "El pueblo de Israel aprende junto",
+    "mishnayos": "Mishnayot",
+    "tehillim": "capítulos de Tehilim",
+    "kabalos": "Kabalot"
+  },
+  "leaderboard": {
+    "title": "Los Constantes · המתמידים",
+    "subtitle": "Por porciones tomadas"
   }
 }

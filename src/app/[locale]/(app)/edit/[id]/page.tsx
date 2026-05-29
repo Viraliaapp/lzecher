@@ -50,6 +50,15 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
   const [isPublic, setIsPublic] = useState(true);
   const [allowAnonymous, setAllowAnonymous] = useState(true);
   const [repeatingSetEnabled, setRepeatingSetEnabled] = useState(true);
+  // Protection + attribution + admin display
+  const [passwordCurrentlySet, setPasswordCurrentlySet] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [removePassword, setRemovePassword] = useState(false);
+  const [startedByText, setStartedByText] = useState("");
+  const [startedByVisible, setStartedByVisible] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
+  const [customDedication, setCustomDedication] = useState("");
+  const [locked, setLocked] = useState(false);
   const [originalTracks, setOriginalTracks] = useState<TrackType[]>([]);
   const [selectedTracks, setSelectedTracks] = useState<TrackType[]>([]);
 
@@ -92,6 +101,12 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         setIsPublic(data.isPublic !== false);
         setAllowAnonymous(data.allowAnonymous !== false);
         setRepeatingSetEnabled(data.repeatingSetEnabled !== false);
+        setPasswordCurrentlySet(Boolean(data.isPasswordProtected));
+        setStartedByText(data.startedByText || "");
+        setStartedByVisible(Boolean(data.startedByVisible));
+        setAnnouncement(data.announcement || "");
+        setCustomDedication(data.customDedication || "");
+        setLocked(Boolean(data.locked));
         const tracks = Array.isArray(data.tracks) ? data.tracks : [];
         setOriginalTracks(tracks);
         setSelectedTracks(tracks);
@@ -128,7 +143,17 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         biography: biography || null,
         familyMessage: familyMessage || null,
         isPublic, allowAnonymous, repeatingSetEnabled,
+        startedByText: startedByText.trim() || null,
+        startedByVisible,
+        announcement: announcement.trim() || null,
+        customDedication: customDedication.trim() || null,
+        locked,
       };
+
+      // Password: only send when changing (set new or remove). Omit to keep unchanged.
+      let passwordArg: string | undefined;
+      if (removePassword) passwordArg = "";
+      else if (newPassword.trim()) passwordArg = newPassword.trim();
 
       const trackChanges: { add?: TrackType[]; remove?: TrackType[]; confirmDestructive?: string } = {};
       const added = selectedTracks.filter(t => !originalTracks.includes(t));
@@ -139,7 +164,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
       let res = await fetch(`/api/projects/${id}/update`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates, trackChanges, idToken }),
+        body: JSON.stringify({ updates, trackChanges, idToken, password: passwordArg }),
       });
       let data = await res.json().catch(() => ({}));
 
@@ -153,7 +178,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         res = await fetch(`/api/projects/${id}/update`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ updates, trackChanges, idToken }),
+          body: JSON.stringify({ updates, trackChanges, idToken, password: passwordArg }),
         });
         data = await res.json().catch(() => ({}));
       }
@@ -161,6 +186,11 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
       if (!res.ok) { toast.error(data.error || "Save failed"); return; }
       toast.success(locale === "he" ? "השינויים נשמרו" : "Changes saved");
       setOriginalTracks(selectedTracks);
+      if (passwordArg !== undefined) {
+        setPasswordCurrentlySet(passwordArg !== "");
+        setNewPassword("");
+        setRemovePassword(false);
+      }
     } catch (err) {
       console.error("[edit] save failed", err);
       toast.error("Save failed");
@@ -329,6 +359,74 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
 
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" onClick={() => router.push("/dashboard" as "/dashboard")} disabled={saving}>ביטול</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Spinner className="h-4 w-4" /> : "שמור שינויים"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Protection, attribution & page controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle dir="rtl" className="text-base">הגנה, ייחוס וכלי עמוד</CardTitle>
+          <CardDescription dir="rtl">סיסמה, &quot;הוקם על ידי&quot;, הודעה והקפאת קבלות</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Password */}
+          <div>
+            <label className="text-sm font-medium text-navy mb-1 block" dir="rtl">
+              סיסמה {passwordCurrentlySet ? "· (מוגדרת כעת)" : "· (אין סיסמה — פתוח לכולם)"}
+            </label>
+            <Input
+              type="text"
+              dir="rtl"
+              value={newPassword}
+              onChange={e => { setNewPassword(e.target.value); if (e.target.value) setRemovePassword(false); }}
+              placeholder={passwordCurrentlySet ? "הזן סיסמה חדשה לשינוי" : "הגדר סיסמה (מילה או ביטוי)"}
+              autoComplete="off"
+              disabled={removePassword}
+            />
+            {passwordCurrentlySet && (
+              <label className="flex items-center gap-2 mt-2 cursor-pointer" dir="rtl">
+                <Switch checked={removePassword} onCheckedChange={(v) => { setRemovePassword(v); if (v) setNewPassword(""); }} />
+                <span className="text-xs text-muted">הסר סיסמה (הפוך לפתוח לכולם)</span>
+              </label>
+            )}
+          </div>
+
+          {/* Started by */}
+          <div>
+            <label className="text-sm font-medium text-navy mb-1 block" dir="rtl">הוקם על ידי</label>
+            <Input dir="rtl" value={startedByText} onChange={e => setStartedByText(e.target.value)} placeholder="לדוגמה: משפחת כהן" />
+            <label className="flex items-center gap-2 mt-2 cursor-pointer" dir="rtl">
+              <Switch checked={startedByVisible} onCheckedChange={setStartedByVisible} />
+              <span className="text-xs text-muted">הצג בעמוד ההנצחה</span>
+            </label>
+          </div>
+
+          {/* Announcement */}
+          <div>
+            <label className="text-sm font-medium text-navy mb-1 block" dir="rtl">הודעה מוצמדת</label>
+            <Textarea dir="rtl" value={announcement} onChange={e => setAnnouncement(e.target.value)} rows={2} placeholder="לדוגמה: סיימנו 80% — תודה לכולם!" />
+          </div>
+
+          {/* Custom dedication */}
+          <div>
+            <label className="text-sm font-medium text-navy mb-1 block" dir="rtl">הקדשה בראש העמוד</label>
+            <Textarea dir="rtl" value={customDedication} onChange={e => setCustomDedication(e.target.value)} rows={2} />
+          </div>
+
+          {/* Lock */}
+          <div className="flex items-center justify-between border-t border-navy/5 pt-4">
+            <div>
+              <span className="text-sm font-medium text-navy" dir="rtl">נעל את הפרויקט (עצור קבלות חדשות)</span>
+              <p className="text-xs text-muted" dir="rtl">ההנצחה נשארת לצפייה; לא ניתן לקחת חלקים חדשים</p>
+            </div>
+            <Switch checked={locked} onCheckedChange={setLocked} />
+          </div>
+
+          <div className="flex justify-end pt-1">
             <Button onClick={handleSave} disabled={saving}>
               {saving ? <Spinner className="h-4 w-4" /> : "שמור שינויים"}
             </Button>

@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MemorialPageClient } from "@/components/memorial/MemorialPageClient";
+import { PasswordGate } from "@/components/memorial/PasswordGate";
+import { hasProjectAccess } from "@/lib/project-access";
+import { isProtected } from "@/lib/password";
 import type { MemorialProject, Portion } from "@/lib/types";
 import type { Metadata } from "next";
 
@@ -56,6 +59,27 @@ export default async function MemorialPage({ params }: Props) {
   // Only show active/completed/pending_moderation projects
   if (!["active", "completed", "pending_moderation"].includes(project.status)) {
     notFound();
+  }
+
+  // ── Password gate ──────────────────────────────────────────────────────────
+  // Protected projects: do NOT fetch or ship full detail (portions/tribute) until
+  // the device cookie proves the password was entered. Card-level info only.
+  if (isProtected(project) && !(await hasProjectAccess(project.id))) {
+    const hebrewName = `${project.nameHebrew} ${project.familyNameHebrew || ""}`.trim();
+    const englishName = `${project.nameEnglish || ""} ${project.familyNameEnglish || ""}`.trim();
+    const hebrewDate = (project as MemorialProject & { dateOfPassingHebrew?: string }).dateOfPassingHebrew;
+    return (
+      <>
+        <Navbar />
+        <PasswordGate
+          slug={project.slug}
+          hebrewName={hebrewName}
+          englishName={englishName || undefined}
+          hebrewDate={hebrewDate}
+        />
+        <Footer />
+      </>
+    );
   }
 
   let portions: Portion[] = [];

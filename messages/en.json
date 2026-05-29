@@ -75,7 +75,8 @@
     "searchPlaceholder": "Search by name...",
     "noResults": "No memorials match your search.",
     "takenLabel": "Taken for learning",
-    "cardCta": "→ Join the Learning"
+    "cardCta": "→ Join the Learning",
+    "protectedBadge": "Password protected"
   },
   "auth": {
     "signInTitle": "Sign In",
@@ -255,7 +256,16 @@
     "successDesc": "Your memorial has been published and is now accessible to anyone with the link.",
     "viewMemorial": "View Memorial",
     "shareLink": "Copy Link",
-    "linkCopied": "Link copied to clipboard!"
+    "linkCopied": "Link copied to clipboard!",
+    "passwordSectionTitle": "Password protection (optional)",
+    "passwordSectionDesc": "Leave blank for an open memorial anyone can view. Set a password to require it before viewing the full page (the card stays visible in the directory).",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "A word or phrase",
+    "startedByLabel": "Started by (optional)",
+    "startedByPlaceholder": "e.g. The Cohen family",
+    "startedByShow": "Show on the memorial page",
+    "protected": "Password protected",
+    "open": "Open to all"
   },
   "memorial": {
     "lIluyNishmas": "L'iluy Nishmas",
@@ -341,7 +351,9 @@
     "tributeSignature": "— The Family",
     "contactFamily": "Contact the family",
     "trackPickSubtitle": "Choose the area that suits you",
-    "trackTileCta": "Click to choose a chapter"
+    "trackTileCta": "Click to choose a chapter",
+    "startedByLabel": "Started by",
+    "announcementLabel": "Announcement"
   },
   "memorials": {
     "title": "All Memorials",
@@ -572,5 +584,25 @@
     "messageLabel": "Message",
     "send": "Send Message",
     "sent": "Your message has been sent successfully!"
+  },
+  "passwordGate": {
+    "title": "This memorial is password protected",
+    "subtitle": "Enter the password shared with you to view the full page.",
+    "placeholder": "Password",
+    "submit": "View memorial",
+    "checking": "Checking…",
+    "wrong": "Incorrect password. Please try again.",
+    "tooMany": "Too many attempts. Please wait a few minutes and try again.",
+    "error": "Something went wrong. Please try again."
+  },
+  "globalCounter": {
+    "heading": "Klal Yisrael learning together",
+    "mishnayos": "Mishnayos",
+    "tehillim": "Tehillim chapters",
+    "kabalos": "Kabbalos"
+  },
+  "leaderboard": {
+    "title": "The Dedicated · המתמידים",
+    "subtitle": "By portions taken"
   }
 }

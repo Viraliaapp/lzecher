@@ -29,7 +29,10 @@ export async function POST(
     const isOwner = data.createdBy === uid;
     if (!isOwner && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    return NextResponse.json({ ...data, id: snap.id });
+    // Never ship the password hash/salt to the client — only whether one is set.
+    const { passwordHash, passwordSalt, ...safe } = data;
+    void passwordHash; void passwordSalt;
+    return NextResponse.json({ ...safe, id: snap.id, isPasswordProtected: Boolean(passwordHash) });
   } catch (err) {
     console.error("[projects/:id GET] error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

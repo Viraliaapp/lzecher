@@ -75,7 +75,8 @@
     "searchPlaceholder": "Rechercher par nom...",
     "noResults": "Aucun memorial ne correspond a votre recherche.",
     "takenLabel": "Pris pour l'etude",
-    "cardCta": "→ Rejoindre l'etude"
+    "cardCta": "→ Rejoindre l'etude",
+    "protectedBadge": "Protégé par mot de passe"
   },
   "auth": {
     "signInTitle": "Connexion",
@@ -255,7 +256,16 @@
     "successDesc": "Votre memorial a ete publie et est maintenant accessible a toute personne disposant du lien.",
     "viewMemorial": "Voir le memorial",
     "shareLink": "Copier le lien",
-    "linkCopied": "Lien copie !"
+    "linkCopied": "Lien copie !",
+    "passwordSectionTitle": "Protection par mot de passe (facultatif)",
+    "passwordSectionDesc": "Laissez vide pour un mémorial ouvert que tout le monde peut voir. Définissez un mot de passe pour l'exiger avant d'afficher la page complète (la carte reste visible dans l'annuaire).",
+    "passwordLabel": "Mot de passe",
+    "passwordPlaceholder": "Un mot ou une phrase",
+    "startedByLabel": "Lancé par (facultatif)",
+    "startedByPlaceholder": "ex. La famille Cohen",
+    "startedByShow": "Afficher sur la page du mémorial",
+    "protected": "Protégé par mot de passe",
+    "open": "Ouvert à tous"
   },
   "memorial": {
     "lIluyNishmas": "L'iluy Nishmas",
@@ -341,7 +351,9 @@
     "tributeSignature": "— La Famille",
     "contactFamily": "Contacter la famille",
     "trackPickSubtitle": "Choisissez le domaine qui vous convient",
-    "trackTileCta": "Cliquez pour choisir →"
+    "trackTileCta": "Cliquez pour choisir →",
+    "startedByLabel": "Lancé par",
+    "announcementLabel": "Annonce"
   },
   "memorials": {
     "title": "Tous les memoriaux",
@@ -572,5 +584,25 @@
     "checkEmailDesc": "Nous avons envoye un lien de connexion a {email}. Cliquez sur le lien pour vous connecter et sauvegarder votre engagement.",
     "orAnonymous": "Ou reclamer anonymement sans rappels",
     "anonymousNote": "Vous pouvez fermer cet onglet — le lien de connexion fonctionnera encore quand vous serez pret."
+  },
+  "passwordGate": {
+    "title": "Ce mémorial est protégé par un mot de passe",
+    "subtitle": "Saisissez le mot de passe qui vous a été communiqué pour voir la page complète.",
+    "placeholder": "Mot de passe",
+    "submit": "Voir le mémorial",
+    "checking": "Vérification…",
+    "wrong": "Mot de passe incorrect. Veuillez réessayer.",
+    "tooMany": "Trop de tentatives. Veuillez patienter quelques minutes et réessayer.",
+    "error": "Une erreur s'est produite. Veuillez réessayer."
+  },
+  "globalCounter": {
+    "heading": "Le peuple d'Israël étudie ensemble",
+    "mishnayos": "Mishnayot",
+    "tehillim": "chapitres de Tehilim",
+    "kabalos": "Kabbalot"
+  },
+  "leaderboard": {
+    "title": "Les Assidus · המתמידים",
+    "subtitle": "Par portions prises"
   }
 }

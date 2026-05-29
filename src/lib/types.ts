@@ -25,8 +25,29 @@ export interface MemorialProject {
   familyMessage?: string;
 
   // Settings
+  // NOTE: isPublic is DEPRECATED — replaced by optional password protection below.
+  // Kept for backward-compat / migration only. All projects are now visible in the
+  // directory; `passwordHash` gates opening the full memorial page.
   isPublic: boolean;
   allowAnonymous: boolean;
+
+  // ── Optional password protection (replaces public/private) ──
+  // A project is "protected" iff passwordHash is set. Card-level info (name, candle,
+  // dates, progress) is always public; full memorial detail requires the password.
+  // Stored hashed (scrypt) — never plaintext. Verified server-side only.
+  passwordHash?: string | null;
+  passwordSalt?: string | null;
+  isPasswordProtected?: boolean; // client-safe derived flag (hash/salt are stripped before sending to browser)
+
+  // ── "Started by" / "dedicated by" attribution (optional) ──
+  startedByText?: string | null;
+  startedByVisible?: boolean;
+
+  // ── Admin: pinned announcement + lock ──
+  announcement?: string | null; // highlighted note pinned to the memorial page
+  announcementAt?: number | null;
+  locked?: boolean; // when true, no new claims accepted (still viewable)
+  customDedication?: string | null; // message shown at the top of the memorial page
   status: "active" | "completed" | "archived" | "pending_moderation" | "hidden";
   repeatingSetEnabled?: boolean; // default true for mishnayos/tehillim
 
@@ -44,6 +65,15 @@ export interface MemorialProject {
   participantCount: number;
   totalSets?: number; // total sets seeded (including completed), default 1
   claimedByTrack?: Record<string, number>; // per-track claimed counts for stat line
+
+  // Canonical progress (written by recomputeProjectProgress, read by card + hero).
+  // See src/lib/progress.ts — single source of truth, can't drift.
+  progressPct?: number; // 0–100 taken % of current active set (TM only)
+  completedProgressPct?: number; // 0–100 completed % of current active set (TM only)
+  completedCycles?: number; // number of fully-taken TM sets ("מחזורים")
+
+  // Leaderboard "המתמידים" — top takers by portions taken (denormalized, see recompute-progress).
+  topMatmidim?: { name: string; count: number }[];
 }
 
 export type TrackType =

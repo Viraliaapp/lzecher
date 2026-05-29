@@ -36,12 +36,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const db = getAdminDb();
     const snap = await db
       .collection("lzecher_projects")
-      .where("isPublic", "==", true)
       .where("status", "==", "active")
       .get();
 
     for (const doc of snap.docs) {
       const data = doc.data();
+      // Do not list password-protected projects' detail in the sitemap.
+      if (data.passwordHash) continue;
       for (const locale of LOCALES) {
         entries.push({
           url: `${BASE_URL}/${locale}/memorial/${data.slug}`,

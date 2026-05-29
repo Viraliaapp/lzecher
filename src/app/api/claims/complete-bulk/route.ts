@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { getChizukMessage, type ChizukScenario } from "@/lib/chizuk-messages";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { recomputeProjectProgress } from "@/lib/recompute-progress";
 
 type Scope = "masechta" | "seder" | "shas" | "tehillim_book" | "whole_tehillim" | "all_my_claims_in_project" | "all_my_claims";
 
@@ -133,6 +134,11 @@ export async function POST(request: NextRequest) {
       const psnap = await pref.get();
       if (psnap.exists) {
         await pref.update({ completedPortions: ((psnap.data()!.completedPortions || 0) as number) + count });
+      }
+      try {
+        await recomputeProjectProgress(db, pid);
+      } catch (e) {
+        console.error("[complete-bulk] recompute failed:", e);
       }
     }
 

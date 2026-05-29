@@ -5,6 +5,8 @@ import { getClaimMode } from "@/lib/track-config";
 import type { TrackType, CommitmentDuration } from "@/lib/types";
 import { queueRemindersForClaim } from "@/lib/queue-reminders";
 import { maybeOpenNextSet } from "@/lib/open-next-set";
+import { recomputeProjectProgress } from "@/lib/recompute-progress";
+import { recomputeGlobalStats } from "@/lib/recompute-global";
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,6 +53,12 @@ export async function POST(request: NextRequest) {
     email = email || body.claimerEmail || null;
 
     const db = getAdminDb();
+
+    // Reject new claims when the project is locked.
+    const lockSnap = await db.collection("lzecher_projects").doc(projectId).get();
+    if (lockSnap.exists && lockSnap.data()!.locked === true) {
+      return NextResponse.json({ error: "This project is locked — no new claims." }, { status: 423 });
+    }
 
     // Verify portion exists
     const portionRef = db.collection("lzecher_portions").doc(portionId);
@@ -197,6 +205,14 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Authoritative stat recompute (self-healing; can't drift). Non-fatal.
+      try {
+        await recomputeProjectProgress(db, projectId);
+        await recomputeGlobalStats(db);
+      } catch (e) {
+        console.error("[claims] recompute failed:", e);
+      }
+
       return NextResponse.json({ success: true, claimId: claimRef.id, claimMode: "exclusive", newSetOpened, newSetNumber });
     } else {
       // Inclusive — auth required
@@ -275,6 +291,14 @@ export async function POST(request: NextRequest) {
         } catch (e) {
           console.error("Failed to queue reminders:", e);
         }
+      }
+
+      // Authoritative stat recompute (self-healing; can't drift). Non-fatal.
+      try {
+        await recomputeProjectProgress(db, projectId);
+        await recomputeGlobalStats(db);
+      } catch (e) {
+        console.error("[claims] recompute failed:", e);
       }
 
       return NextResponse.json({ success: true, claimId: claimRef.id, claimMode: "inclusive" });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { recomputeProjectProgress } from "@/lib/recompute-progress";
 
 // Max IDs per batch call — covers full Shas (525) plus headroom
 const MAX_BATCH_IDS = 600;
@@ -81,6 +82,11 @@ export async function POST(request: NextRequest) {
       const projSnap = await projRef.get();
       if (projSnap.exists) {
         await projRef.update({ completedPortions: (projSnap.data()!.completedPortions || 0) + count });
+      }
+      try {
+        await recomputeProjectProgress(db, projectId);
+      } catch (e) {
+        console.error("[complete-batch] recompute failed:", e);
       }
     }
 

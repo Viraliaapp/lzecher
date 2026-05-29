@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
+import { recomputeProjectProgress } from "@/lib/recompute-progress";
+import { recomputeGlobalStats } from "@/lib/recompute-global";
 
 // DELETE — remove a claim and release the portion back to available
 export async function DELETE(
@@ -64,6 +66,14 @@ export async function DELETE(
       participantCount: Math.max(0, (proj.participantCount || 0) - 1),
       [trackKey]: Math.max(0, existingTrackCount - 1),
     });
+
+    // Authoritative stat recompute (self-healing; can't drift). Non-fatal.
+    try {
+      await recomputeProjectProgress(db, projectId);
+      await recomputeGlobalStats(db);
+    } catch (e) {
+      console.error("[delete-claim] recompute failed:", e);
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {

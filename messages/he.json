@@ -75,7 +75,8 @@
     "searchPlaceholder": "חיפוש לפי שם...",
     "noResults": "לא נמצאו דפי הנצחה התואמים את החיפוש.",
     "takenLabel": "נלקחו ללימוד",
-    "cardCta": "→ הצטרפו ללימוד"
+    "cardCta": "→ הצטרפו ללימוד",
+    "protectedBadge": "מוגן בסיסמה"
   },
   "auth": {
     "signInTitle": "התחברות",
@@ -255,7 +256,16 @@
     "successDesc": "ההנצחה שלך פורסמה וכעת נגישה לכל מי שיש לו את הקישור.",
     "viewMemorial": "צפה בהנצחה",
     "shareLink": "העתק קישור",
-    "linkCopied": "הקישור הועתק!"
+    "linkCopied": "הקישור הועתק!",
+    "passwordSectionTitle": "הגנה בסיסמה (רשות)",
+    "passwordSectionDesc": "השאר ריק להנצחה פתוחה שכל אחד יכול לצפות בה. הגדר סיסמה כדי לדרוש אותה לפני צפייה בעמוד המלא (הכרטיס נשאר גלוי בספרייה).",
+    "passwordLabel": "סיסמה",
+    "passwordPlaceholder": "מילה או ביטוי",
+    "startedByLabel": "הוקם על ידי (רשות)",
+    "startedByPlaceholder": "לדוגמה: משפחת כהן",
+    "startedByShow": "הצג בעמוד ההנצחה",
+    "protected": "מוגן בסיסמה",
+    "open": "פתוח לכולם"
   },
   "memorial": {
     "lIluyNishmas": "לעילוי נשמת",
@@ -341,7 +351,9 @@
     "tributeSignature": "— המשפחה",
     "contactFamily": "צור קשר עם המשפחה",
     "trackPickSubtitle": "בחרו את התחום שמתאים לכם",
-    "trackTileCta": "לחצו לבחור פרק ←"
+    "trackTileCta": "לחצו לבחור פרק ←",
+    "startedByLabel": "הוקם על ידי",
+    "announcementLabel": "הודעה"
   },
   "memorials": {
     "title": "כל ההנצחות",
@@ -572,5 +584,25 @@
     "messageLabel": "הודעה",
     "send": "שלח",
     "sent": "ההודעה נשלחה בהצלחה!"
+  },
+  "passwordGate": {
+    "title": "הנצחה זו מוגנת בסיסמה",
+    "subtitle": "הזן את הסיסמה ששותפה איתך כדי לצפות בעמוד המלא.",
+    "placeholder": "סיסמה",
+    "submit": "צפייה בהנצחה",
+    "checking": "בודק…",
+    "wrong": "סיסמה שגויה. נסה שוב.",
+    "tooMany": "יותר מדי ניסיונות. המתן מספר דקות ונסה שוב.",
+    "error": "משהו השתבש. נסה שוב."
+  },
+  "globalCounter": {
+    "heading": "כלל ישראל לומד יחד",
+    "mishnayos": "משניות",
+    "tehillim": "פרקי תהילים",
+    "kabalos": "קבלות"
+  },
+  "leaderboard": {
+    "title": "המתמידים",
+    "subtitle": "לפי מספר החלקים שנלקחו"
   }
 }
