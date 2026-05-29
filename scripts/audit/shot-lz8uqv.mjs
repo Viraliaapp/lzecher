@@ -1,0 +1,11 @@
+import { chromium } from "playwright";
+const b = await chromium.launch();
+const p = await (await b.newContext({ viewport: { width: 1200, height: 2600 } })).newPage();
+await p.goto("https://lzecher.com/he/memorial/memorial-lz8uqv", { waitUntil: "networkidle", timeout: 40000 });
+await p.waitForTimeout(2500);
+const t = await p.locator("body").innerText();
+console.log("green 'הושלמו' bar present:", /הושלמו/.test(t));
+console.log("started-by 'הוקם על ידי' present:", /הוקם על ידי/.test(t));
+console.log("started-by name present:", /משפחת אהרונוביץ/.test(t));
+await p.screenshot({ path: "scripts/audit/prompt-c/memorial-lz8uqv-dualbars-startedby.png", fullPage: true });
+await b.close();

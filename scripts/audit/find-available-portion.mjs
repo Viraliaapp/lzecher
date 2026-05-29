@@ -1,0 +1,14 @@
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+const pk = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+if (!getApps().length) initializeApp({ credential: cert({ projectId: process.env.FIREBASE_ADMIN_PROJECT_ID, clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL, privateKey: pk }) });
+const db = getFirestore();
+const ps = await db.collection("lzecher_projects").where("slug", "==", "memorial-mczhjv").limit(1).get();
+const id = ps.docs[0].id;
+const av = await db.collection("lzecher_portions").where("projectId", "==", id).where("trackType", "==", "mishnayos").limit(40).get();
+const one = av.docs.find((d) => d.data().status === "available");
+console.log("projectId:", id);
+console.log("portionId:", one ? one.id : "NONE");
+console.log("reference:", one ? one.data().reference : "");
+console.log("project progressPct:", ps.docs[0].data().progressPct, "participantCount:", ps.docs[0].data().participantCount);
+process.exit(0);

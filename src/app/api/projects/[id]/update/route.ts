@@ -41,7 +41,12 @@ export async function POST(
 
     if (!idToken) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-    const decoded = await verifyToken(idToken);
+    let decoded: Awaited<ReturnType<typeof verifyToken>>;
+    try {
+      decoded = await verifyToken(idToken);
+    } catch {
+      return NextResponse.json({ error: "Invalid auth token" }, { status: 401 });
+    }
     const db = getAdminDb();
     const projectRef = db.collection("lzecher_projects").doc(id);
     const projectSnap = await projectRef.get();
