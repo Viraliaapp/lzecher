@@ -162,7 +162,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
   }
 
   async function removeClaim(claimId: string) {
-    if (!confirm(locale === "he" ? "האם למחוק תביעה זו?" : "Remove this claim?")) return;
+    if (!confirm(locale === "he" ? "להסיר את המשתתף מחלק זה?" : "Remove this participant entry?")) return;
     setSaving(true);
     try {
       const idToken = await auth.currentUser?.getIdToken();
@@ -202,7 +202,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
 
   function exportClaimsCsv() {
     const rows = [
-      ["name", "email", "track", "reference", "status", "claimed_at"],
+      ["name", "email", "track", "reference", "status", "taken_at"],
       ...claims.map((c) => {
         return [
           c.userName || "",
@@ -280,13 +280,13 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "10px" }}>
           <div style={{ borderRadius: "10px", background: "rgba(201,169,97,0.08)", padding: "8px 10px" }}>
             <p style={{ fontSize: "10px", color: "#8B7355", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              {locale === "he" ? "נותר" : "Still needed"}
+              {locale === "he" ? "חסרים" : "Still needed"}
             </p>
             <p className="font-heading font-bold" style={{ color: "#0F1B2D", fontSize: "18px", lineHeight: 1.1 }}>{remainingPortions}</p>
           </div>
           <div style={{ borderRadius: "10px", background: "rgba(91,122,82,0.08)", padding: "8px 10px" }}>
             <p style={{ fontSize: "10px", color: "#5B7A52", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              {locale === "he" ? "הושלם" : "Completed"}
+              {locale === "he" ? "נלמדו" : "Learned"}
             </p>
             <p className="font-heading font-bold" style={{ color: "#0F1B2D", fontSize: "18px", lineHeight: 1.1 }}>{completedPortions}</p>
           </div>
@@ -311,13 +311,13 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
         </Link>
       </div>
 
-      {/* Manage claims section */}
+      {/* Manage participants section */}
       <div style={{ borderTop: "1px solid rgba(232,223,200,0.7)", background: "#FAF6EC" }}>
         <button
           onClick={() => { setManageOpen(o => !o); if (!manageOpen) loadClaims(); }}
           style={{ width: "100%", padding: "9px 16px", fontSize: "12px", fontWeight: 600, color: "#0F1B2D", background: "transparent", border: "none", cursor: "pointer", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
         >
-          ⚙ {locale === "he" ? "ניהול תביעות" : "Manage Claims"}
+          ⚙ {locale === "he" ? "ניהול משתתפים" : "Manage Participants"}
           {manageOpen ? <span>▲</span> : <span>▼</span>}
         </button>
         {manageOpen && (
@@ -328,15 +328,15 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px", marginBottom: "8px" }}>
                   <div className="dashboard-mini-stat">
                     <strong>{claims.length}</strong>
-                    <span>{locale === "he" ? "תביעות" : "claims"}</span>
+                    <span>{locale === "he" ? "משתתפים" : "participants"}</span>
                   </div>
                   <div className="dashboard-mini-stat">
                     <strong>{claims.filter((c) => c.status === "active").length}</strong>
-                    <span>{locale === "he" ? "פעיל" : "active"}</span>
+                    <span>{locale === "he" ? "בלימוד" : "learning"}</span>
                   </div>
                   <div className="dashboard-mini-stat">
                     <strong>{claims.filter((c) => c.status === "completed").length}</strong>
-                    <span>{locale === "he" ? "למדו" : "learned"}</span>
+                    <span>{locale === "he" ? "נלמד" : "learned"}</span>
                   </div>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
@@ -362,7 +362,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
             )}
             {!loadingClaims && claims.length === 0 && (
               <p style={{ fontSize: "12px", color: "#8B7355", textAlign: "center", padding: "8px" }}>
-                {locale === "he" ? "אין תביעות עדיין" : "No claims yet"}
+                {locale === "he" ? "אין משתתפים עדיין" : "No participants yet"}
               </p>
             )}
             {claims.map((c) => {
@@ -385,7 +385,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                         <span style={{ fontWeight: 600, color: "#0F1B2D" }} dir="rtl">{cl.userName}</span>
                         <span style={{ color: "#8B7355", marginLeft: "4px" }}>{cl.reference}</span>
                         <span style={{ color: statusColor, marginLeft: "4px", fontSize: "10px", fontWeight: 700 }}>
-                          {cl.status === "completed" ? (locale === "he" ? "הושלם" : "done") : (locale === "he" ? "פעיל" : "active")}
+                          {cl.status === "completed" ? (locale === "he" ? "נלמד" : "learned") : (locale === "he" ? "בלימוד" : "learning")}
                         </span>
                         {cl.userEmail && (
                           <span style={{ color: "#8B7355", marginLeft: "4px", fontSize: "11px" }}>{cl.userEmail}</span>

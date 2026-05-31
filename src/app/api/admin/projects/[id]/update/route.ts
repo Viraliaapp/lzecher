@@ -150,7 +150,7 @@ export async function POST(
         if (hasClaims) {
           if (trackChanges.confirmDestructive !== id) {
             return NextResponse.json({
-              error: "Track has claims. Pass trackChanges.confirmDestructive=<projectId> to confirm.",
+              error: "Track has participant entries. Pass trackChanges.confirmDestructive=<projectId> to confirm.",
               hasClaims: true,
               activeCount: claimsSnap.docs.filter((d) => d.data().status === "active").length,
               completedCount: claimsSnap.docs.filter((d) => d.data().status === "completed").length,

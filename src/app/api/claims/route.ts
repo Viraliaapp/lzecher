@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     // Reject new claims when the project is locked.
     const lockSnap = await db.collection("lzecher_projects").doc(projectId).get();
     if (lockSnap.exists && lockSnap.data()!.locked === true) {
-      return NextResponse.json({ error: "This project is locked — no new claims." }, { status: 423 });
+      return NextResponse.json({ error: "This memorial is locked. No new portions can be taken." }, { status: 423 });
     }
 
     // Verify portion exists
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     if (claimMode === "exclusive") {
       // Inclusive auth enforcement not needed here, anonymous allowed
       if (portionData.status !== "available") {
-        return NextResponse.json({ error: "Portion already claimed" }, { status: 409 });
+        return NextResponse.json({ error: "This portion was already taken." }, { status: 409 });
       }
 
       // Atomically claim the portion
@@ -305,6 +305,6 @@ export async function POST(request: NextRequest) {
     }
   } catch (err) {
     console.error("Claim error:", err);
-    return NextResponse.json({ error: "Failed to claim portion" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to reserve portion" }, { status: 500 });
   }
 }

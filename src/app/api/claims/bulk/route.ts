@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Reject new claims when the project is locked.
     const lockSnap = await db.collection("lzecher_projects").doc(projectId).get();
     if (lockSnap.exists && lockSnap.data()!.locked === true) {
-      return NextResponse.json({ error: "This project is locked — no new claims." }, { status: 423 });
+      return NextResponse.json({ error: "This memorial is locked. No new portions can be taken." }, { status: 423 });
     }
 
     // Build query to find matching portions
@@ -242,6 +242,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("Bulk claim error:", err);
-    return NextResponse.json({ error: "Failed to process bulk claim" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to reserve the selected learning" }, { status: 500 });
   }
 }

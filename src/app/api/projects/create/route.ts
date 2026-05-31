@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
             id: ref.id, projectId: projectRef.id, trackType: "tehillim",
             claimMode: "exclusive",
             reference: `Tehillim ${mz.number}`, displayName: `Psalm ${mz.number}`,
-            displayNameHebrew: `תהילים ${mz.number}`,
+            displayNameHebrew: `תהלים ${mz.number}`,
             order, status: "available", mizmor: mz.number,
             setNumber: 1,
           });

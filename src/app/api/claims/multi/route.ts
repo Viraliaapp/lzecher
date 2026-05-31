@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "portionIds must be a non-empty array" }, { status: 400 });
     }
     if (portionIds.length > 150) {
-      return NextResponse.json({ error: "Maximum 150 portions per multi-claim" }, { status: 400 });
+      return NextResponse.json({ error: "Maximum 150 portions at a time" }, { status: 400 });
     }
     if (!projectId || !claimerName?.trim()) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     // Reject new claims when the project is locked.
     const lockSnap = await db.collection("lzecher_projects").doc(projectId).get();
     if (lockSnap.exists && lockSnap.data()!.locked === true) {
-      return NextResponse.json({ error: "This project is locked — no new claims." }, { status: 423 });
+      return NextResponse.json({ error: "This memorial is locked. No new portions can be taken." }, { status: 423 });
     }
 
     // Fetch all portions in one query (Firestore supports up to 30 in-clause items,
@@ -217,6 +217,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("[multi-claim] error:", err);
-    return NextResponse.json({ error: "Failed to process multi-claim" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to reserve selected portions" }, { status: 500 });
   }
 }

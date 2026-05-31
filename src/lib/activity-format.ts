@@ -13,8 +13,8 @@ interface UnitForms {
 const UNITS: Record<string, Record<string, UnitForms>> = {
   he: {
     mishnayos: { one: () => "משנה אחת", many: (n) => `${n} משניות` },
-    tehillim: { one: () => "פרק תהילים", many: (n) => `${n} פרקי תהילים` },
-    kabalos: { one: () => "קבלה", many: (n) => `${n} קבלות` },
+    tehillim: { one: () => "פרק תהלים", many: (n) => `${n} פרקי תהלים` },
+    kabalos: { one: () => "קבלה טובה", many: (n) => `${n} קבלות טובות` },
     shnayim_mikra: { one: () => "פרשה", many: (n) => `${n} פרשות` },
     daf_yomi: { one: () => "דף", many: (n) => `${n} דפים` },
   },
@@ -47,7 +47,7 @@ export function unitLabel(trackType: string, count: number, locale: Locale): str
   return count === 1 ? forms.one(count) : forms.many(count);
 }
 
-/** "שלמה לקח/ה 2 משניות עבור רפאל כהן ז״ל" and locale equivalents. */
+/** "שלמה בחר/ה 2 משניות עבור רפאל כהן ז״ל" and locale equivalents. */
 export function activitySentence(
   e: { name: string | null; count: number; trackType: string; honoreeHebrew: string; honoreeHonorific: string },
   locale: Locale
@@ -57,7 +57,7 @@ export function activitySentence(
   switch (locale) {
     case "he": {
       const who = e.name || "מישהו";
-      return `${who} לקח/ה ${unit} עבור ${honoree}`;
+      return `${who} בחר/ה ${unit} עבור ${honoree}`;
     }
     case "es": {
       const who = e.name || "Alguien";

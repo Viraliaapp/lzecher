@@ -132,7 +132,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
 
       if (res.status === 409 && data.hasClaims) {
         const yes = window.confirm(
-          `${t("editProject.destructiveWarning") || "DESTRUCTIVE: this removes a track with"} ${data.activeCount} active + ${data.completedCount} completed claims.\n\n` +
+          `${t("editProject.destructiveWarning") || "DESTRUCTIVE: this removes a track with"} ${data.activeCount} active participant entries + ${data.completedCount} learned portions.\n\n` +
             `${t("editProject.typeProjectIdToConfirm") || "Type the project ID to confirm"}: ${id}`
         );
         if (!yes) {
@@ -272,7 +272,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
               ))}
             </div>
             <p className="text-xs text-muted mt-2">
-              {t("editProject.tracksHint") || "Removing a track with active claims requires destructive confirmation."}
+              {t("editProject.tracksHint") || "Removing a track with active participant records requires destructive confirmation."}
             </p>
           </div>
 
@@ -281,7 +281,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
             <Switch checked={isPublic} onCheckedChange={setIsPublic} />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-navy">{t("editProject.allowAnonymous") || "Allow anonymous claims"}</span>
+            <span className="text-sm font-medium text-navy">{t("editProject.allowAnonymous") || "Allow anonymous participation"}</span>
             <Switch checked={allowAnonymous} onCheckedChange={setAllowAnonymous} />
           </div>
 

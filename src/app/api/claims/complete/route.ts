@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     // ── Check-in path (inclusive daily/weekly commitment) ── REQUIRES AUTH
     if (checkIn === true && claimId) {
       if (!uid) {
-        return NextResponse.json({ error: "Sign-in required for streak check-ins" }, { status: 401 });
+        return NextResponse.json({ error: "Sign-in required to mark daily learning" }, { status: 401 });
       }
       const claimRef = db.collection("lzecher_claims").doc(claimId);
       const claimSnap = await claimRef.get();
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       }
       const claimData = claimSnap.data()!;
       if (claimData.userId !== uid) {
-        return NextResponse.json({ error: "Not your claim" }, { status: 403 });
+        return NextResponse.json({ error: "This learning entry belongs to another participant" }, { status: 403 });
       }
       if (claimData.status !== "active") {
         return NextResponse.json({ error: "Claim is not active" }, { status: 400 });
@@ -136,14 +136,14 @@ export async function POST(request: NextRequest) {
 
     if (claimMode === "exclusive") {
       if (portionData.status !== "claimed") {
-        return NextResponse.json({ error: "Portion not claimed" }, { status: 400 });
+        return NextResponse.json({ error: "This portion is not currently taken" }, { status: 400 });
       }
       // For exclusive: the original claimer's authenticated session can mark complete
       // OR anyone with name (anonymous completion is allowed by design — Solomon's request)
       // Admins can override regardless.
       const isOwner = uid !== null && portionData.claimedBy === uid;
       if (!isOwner && !isAdmin && !completerName) {
-        return NextResponse.json({ error: "Name required to mark complete on someone else's claim" }, { status: 400 });
+        return NextResponse.json({ error: "Name required to mark someone else's learning as complete" }, { status: 400 });
       }
 
       await portionRef.update({
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Inclusive one-time completion — must reference a specific claim
       if (!claimId) {
-        return NextResponse.json({ error: "claimId required for inclusive completion" }, { status: 400 });
+        return NextResponse.json({ error: "Learning entry required for this completion" }, { status: 400 });
       }
       const claimRef = db.collection("lzecher_claims").doc(claimId);
       const claimSnap = await claimRef.get();
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
       const claimData = claimSnap.data()!;
       const isOwner = uid !== null && claimData.userId === uid;
       if (!isOwner && !isAdmin && !completerName) {
-        return NextResponse.json({ error: "Name required to mark complete on someone else's claim" }, { status: 400 });
+        return NextResponse.json({ error: "Name required to mark someone else's learning as complete" }, { status: 400 });
       }
       await claimRef.update({
         status: "completed",

@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 const ALL_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
 const TRACK_LABELS: Record<TrackType, string> = {
   mishnayos: "משניות",
-  tehillim: "תהילים",
+  tehillim: "תהלים",
   shnayim_mikra: "שניים מקרא",
   kabalos: "קבלות",
   daf_yomi: "דף יומי",
@@ -74,7 +74,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
     (async () => {
       try {
         const idToken = await auth.currentUser?.getIdToken(true);
-        if (!idToken) { toast.error("Session expired"); setLoading(false); return; }
+        if (!idToken) { toast.error(locale === "he" ? "פג תוקף ההתחברות" : "Sign-in expired"); setLoading(false); return; }
         const res = await fetch(`/api/projects/${id}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -131,7 +131,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
     setSaving(true);
     try {
       const idToken = await auth.currentUser?.getIdToken(true);
-      if (!idToken) { toast.error("Session expired"); return; }
+      if (!idToken) { toast.error(locale === "he" ? "פג תוקף ההתחברות" : "Sign-in expired"); return; }
 
       const updates: Record<string, unknown> = {
         nameHebrew, familyNameHebrew,
@@ -170,8 +170,8 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
 
       if (res.status === 409 && data.hasClaims) {
         const confirmText = locale === "he"
-          ? `טראק זה כולל ${data.activeCount} קבלות פעילות ו-${data.completedCount} הושלמו. הסרה תמחק אותם.\n\nהזן את מזהה הפרויקט לאישור: ${id}`
-          : `This track has ${data.activeCount} active + ${data.completedCount} completed claims. Removing will delete them.\n\nType the project ID to confirm: ${id}`;
+          ? `מסלול לימוד זה כולל ${data.activeCount} חלקים בלימוד ו-${data.completedCount} חלקים שנלמדו. הסרה תמחק אותם.\n\nהזן את מזהה הפרויקט לאישור: ${id}`
+          : `This learning track has ${data.activeCount} active participant entries + ${data.completedCount} learned portions. Removing it will delete them.\n\nType the project ID to confirm: ${id}`;
         const typed = window.prompt(confirmText);
         if (typed !== id) { toast.error("Confirmation mismatch"); setSaving(false); return; }
         trackChanges.confirmDestructive = id;
@@ -214,7 +214,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { toast.error(data.error || "Reset failed"); return; }
-      toast.success(locale === "he" ? "כל החלוקה אופסה" : "All claims reset");
+      toast.success(locale === "he" ? "כל חלוקת הלימוד אופסה" : "All learning assignments reset");
       setResetConfirm("");
       setShowResetSection(false);
     } catch (err) {
@@ -300,7 +300,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
           </div>
           <div className="flex gap-3 items-end">
             <div>
-              <label className="text-sm font-medium text-navy mb-1 block">הספד / כינוי</label>
+              <label className="text-sm font-medium text-navy mb-1 block">תואר לאחר השם</label>
               <Input dir="rtl" value={honorific} onChange={e => setHonorific(e.target.value)} className="max-w-[120px]" placeholder="ז״ל" />
             </div>
             <div className="flex gap-2">
@@ -314,7 +314,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-navy mb-1 block">הספד / תיאור</label>
+            <label className="text-sm font-medium text-navy mb-1 block">דברי זיכרון / תיאור</label>
             <Textarea value={biography} onChange={e => setBiography(e.target.value.slice(0, 2000))} rows={4} dir={locale === "he" ? "rtl" : "ltr"} />
             <p className="text-xs text-muted mt-1">{biography.length}/2000</p>
           </div>
@@ -325,7 +325,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
 
           {/* Tracks */}
           <div>
-            <label className="text-sm font-medium text-navy mb-2 block">טראקים</label>
+            <label className="text-sm font-medium text-navy mb-2 block">מסלולי לימוד</label>
             <div className="flex flex-wrap gap-2">
               {ALL_TRACKS.map(track => (
                 <button key={track} onClick={() => toggleTrack(track)}
@@ -335,21 +335,21 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
                 </button>
               ))}
             </div>
-            <p className="text-xs text-muted mt-1">הסרת טראק עם קבלות תדרוש אישור</p>
+            <p className="text-xs text-muted mt-1">הסרת מסלול עם חלקים שכבר נבחרו תדרוש אישור</p>
           </div>
 
           {/* Toggles */}
           <div className="space-y-3 border-t border-navy/5 pt-4">
             {[
               { label: "הנצחה ציבורית", value: isPublic, onChange: setIsPublic },
-              { label: "אפשר קבלות ללא חשבון", value: allowAnonymous, onChange: setAllowAnonymous },
-              { label: "אפשר סטים חוזרים (משניות / תהילים)", value: repeatingSetEnabled, onChange: setRepeatingSetEnabled },
+              { label: "אפשר השתתפות ללא חשבון", value: allowAnonymous, onChange: setAllowAnonymous },
+              { label: "אפשר מחזורים חוזרים (משניות / תהלים)", value: repeatingSetEnabled, onChange: setRepeatingSetEnabled },
             ].map(({ label, value, onChange }) => (
               <div key={label} className="flex items-center justify-between">
                 <div>
                   <span className="text-sm font-medium text-navy">{label}</span>
-                  {label.includes("סטים") && (
-                    <p className="text-xs text-muted">כשהסט מתמלא, ייפתח סט חדש אוטומטית</p>
+                  {label.includes("מחזורים") && (
+                    <p className="text-xs text-muted">כשהמחזור מתמלא, ייפתח מחזור חדש אוטומטית</p>
                   )}
                 </div>
                 <Switch checked={value} onCheckedChange={onChange} />
@@ -370,7 +370,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
       <Card>
         <CardHeader>
           <CardTitle dir="rtl" className="text-base">הגנה, ייחוס וכלי עמוד</CardTitle>
-          <CardDescription dir="rtl">סיסמה, &quot;הוקם על ידי&quot;, הודעה והקפאת קבלות</CardDescription>
+          <CardDescription dir="rtl">סיסמה, &quot;הוקם על ידי&quot;, הודעה והקפאת הצטרפות</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           {/* Password */}
@@ -420,8 +420,8 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
           {/* Lock */}
           <div className="flex items-center justify-between border-t border-navy/5 pt-4">
             <div>
-              <span className="text-sm font-medium text-navy" dir="rtl">נעל את הפרויקט (עצור קבלות חדשות)</span>
-              <p className="text-xs text-muted" dir="rtl">ההנצחה נשארת לצפייה; לא ניתן לקחת חלקים חדשים</p>
+              <span className="text-sm font-medium text-navy" dir="rtl">נעל את ההנצחה (עצור הצטרפות חדשה)</span>
+              <p className="text-xs text-muted" dir="rtl">ההנצחה נשארת לצפייה; לא ניתן לבחור חלקים חדשים</p>
             </div>
             <Switch checked={locked} onCheckedChange={setLocked} />
           </div>
@@ -439,8 +439,8 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base text-amber-700">אפס את כל החלוקה</CardTitle>
-              <CardDescription>מחק את כל הקבלות ואפס לנקודת ההתחלה</CardDescription>
+              <CardTitle className="text-base text-amber-700">אפס את כל חלוקת הלימוד</CardTitle>
+              <CardDescription>מחק את כל השיוכים ואפס לנקודת ההתחלה</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={() => setShowResetSection(!showResetSection)} className="border-amber-300 text-amber-700 hover:bg-amber-50">
               {showResetSection ? "הסתר" : "אפס"}
@@ -450,7 +450,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         {showResetSection && (
           <CardContent className="space-y-3">
             <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800 leading-relaxed" dir="rtl">
-              <strong>⚠️ אזהרה:</strong> פעולה זו תמחק את כל {claimedCount} החלקים שנלקחו ותתחיל מחדש. לא ניתן לבטל.
+              <strong>⚠️ אזהרה:</strong> פעולה זו תמחק את כל {claimedCount} החלקים שנבחרו ללימוד ותתחיל מחדש. לא ניתן לבטל.
             </div>
             <div>
               <label className="text-sm text-navy mb-1 block" dir="rtl">להמשיך, הזן <strong>"אפס"</strong> (או "reset")</label>
@@ -462,7 +462,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
               onClick={handleResetClaims}
               disabled={resetting || (resetConfirm !== "אפס" && resetConfirm !== "reset")}
             >
-              {resetting ? <Spinner className="h-4 w-4" /> : "אפס את כל החלוקה"}
+              {resetting ? <Spinner className="h-4 w-4" /> : "אפס את כל חלוקת הלימוד"}
             </Button>
           </CardContent>
         )}
@@ -484,7 +484,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         {showDeleteSection && (
           <CardContent className="space-y-3">
             <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800 leading-relaxed" dir="rtl">
-              <strong>⛔ פעולה בלתי הפיכה:</strong> פעולה זו תמחק לצמיתות את ההנצחה של <strong>{honoree}</strong> ואת כל {claimedCount} הקבלות. לא ניתן לשחזר.
+              <strong>⛔ פעולה בלתי הפיכה:</strong> פעולה זו תמחק לצמיתות את ההנצחה של <strong>{honoree}</strong> ואת כל {claimedCount} רשומות ההשתתפות. לא ניתן לשחזר.
             </div>
             <div>
               <label className="text-sm text-navy mb-1 block" dir="rtl">להמשיך, הזן את שם הנפטר: <strong dir="rtl">{project.nameHebrew as string}</strong></label>

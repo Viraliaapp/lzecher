@@ -58,7 +58,7 @@ export async function seedSetForTrack(
           claimMode: "exclusive",
           reference: `Tehillim ${mz.number}`,
           displayName: `Psalm ${mz.number}`,
-          displayNameHebrew: `תהילים ${mz.number}`,
+          displayNameHebrew: `תהלים ${mz.number}`,
           order,
           status: "available",
           mizmor: mz.number,

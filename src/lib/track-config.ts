@@ -23,7 +23,7 @@ export const TRACK_CONFIGS: Record<TrackType, TrackConfiguration> = {
   tehillim: {
     trackType: "tehillim",
     claimMode: "exclusive",
-    label: { en: "Tehillim", he: "תהילים" },
+    label: { en: "Tehillim", he: "תהלים" },
     supportsDaily: false,
     defaultDuration: "oneTime",
     claimVerbForm: "both",
@@ -65,18 +65,18 @@ export function getClaimVerbForm(trackType: TrackType): ClaimVerbForm {
 /** Derive Hebrew claim button text from verb form */
 export function heClaimButton(verbForm: ClaimVerbForm, isPerek = false): string {
   if (isPerek) {
-    if (verbForm === "masculine") return "אני לוקח את הפרק";
-    if (verbForm === "feminine") return "אני לוקחת את הפרק";
-    return "אני לוקח/ת את הפרק";
+    if (verbForm === "masculine") return "אני מקבל על עצמי את הפרק";
+    if (verbForm === "feminine") return "אני מקבלת על עצמי את הפרק";
+    return "אני מקבל/ת על עצמי את הפרק";
   }
-  if (verbForm === "masculine") return "אני לוקח";
-  if (verbForm === "feminine") return "אני לוקחת";
-  return "אני לוקח/ת";
+  if (verbForm === "masculine") return "אני מקבל על עצמי";
+  if (verbForm === "feminine") return "אני מקבלת על עצמי";
+  return "אני מקבל/ת על עצמי";
 }
 
 /** Hebrew claim modal confirm text */
 export function heClaimConfirm(verbForm: ClaimVerbForm): string {
-  if (verbForm === "masculine") return "לוקח על עצמי";
-  if (verbForm === "feminine") return "לוקחת על עצמי";
-  return "לוקח/ת על עצמי";
+  if (verbForm === "masculine") return "מקבל על עצמי";
+  if (verbForm === "feminine") return "מקבלת על עצמי";
+  return "מקבל/ת על עצמי";
 }

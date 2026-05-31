@@ -404,7 +404,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           ? { ...p, status: "completed" as const, completedAt: now, completedByName: completerName.trim() || p.claimedByName }
           : p
       ));
-      toast.success(locale === "he" ? `${data.count || ids.length} פרקים הושלמו` : `${data.count || ids.length} portions completed`);
+      toast.success(locale === "he" ? `${data.count || ids.length} פרקים סומנו כנלמדו` : `${data.count || ids.length} portions marked learned`);
       setCompleteDialogOpen(false);
     } catch(err) {
       console.error("[complete] error:", err);
@@ -485,8 +485,8 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       const count = data.claimedCount ?? multiClaimPortionIds.length;
       toast.success(
         locale === "he"
-          ? `${count} פרקים נלקחו`
-          : `${count} portions claimed`
+          ? `${count} פרקים נבחרו ללימוד`
+          : `${count} portions reserved for learning`
       );
       setMultiClaimDialogOpen(false);
     } catch (err) {
@@ -667,7 +667,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
               {completedPct > 0 && (
                 <div className="mt-2">
                   <p className="text-xs mb-1" style={{ color: "rgba(250,246,236,0.45)" }}>
-                    {locale === "he" ? `${completedPct}% הושלמו` : locale === "es" ? `${completedPct}% completados` : locale === "fr" ? `${completedPct}% complétés` : `${completedPct}% completed`}
+                    {locale === "he" ? `${completedPct}% נלמדו` : locale === "es" ? `${completedPct}% completados` : locale === "fr" ? `${completedPct}% complétés` : `${completedPct}% learned`}
                   </p>
                   <Progress value={completedPct} className="h-1.5 mb-1" style={{ background: "rgba(250,246,236,0.10)" }} indicatorClassName="bg-[#5B7A52]" />
                 </div>
@@ -678,10 +678,10 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 const tClaimed = portions.filter(p => p.trackType === "tehillim" && p.status !== "available").length;
                 const kTotal = portions.filter(p => p.trackType === "kabalos").reduce((s, p) => s + (p.currentClaimerCount || 0), 0);
                 if (mClaimed > 0) parts.push(`${mClaimed} ${locale === "he" ? "משניות" : "Mishnayos"}`);
-                if (tClaimed > 0) parts.push(`${tClaimed} ${locale === "he" ? "פרקי תהילים" : "Tehillim"}`);
+                if (tClaimed > 0) parts.push(`${tClaimed} ${locale === "he" ? "פרקי תהלים" : "Tehillim"}`);
                 if (kTotal > 0) parts.push(`${kTotal} ${locale === "he" ? "קבלות" : "Kabalos"}`);
                 if ((project.participantCount || 0) > 0) parts.push(`${project.participantCount} ${locale === "he" ? "משתתפים" : "participants"}`);
-                if (parts.length === 0 && claimed > 0) parts.push(`${claimed} ${locale === "he" ? "חלקים נלקחו" : "portions taken"}`);
+                if (parts.length === 0 && claimed > 0) parts.push(`${claimed} ${locale === "he" ? "חלקים בלימוד" : "portions taken"}`);
                 return parts.length > 0 ? (
                   <p className="text-xs" style={{ color: "rgba(250,246,236,0.35)" }}>{parts.join(" · ")}</p>
                 ) : null;
@@ -932,7 +932,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                       marginBottom: "10px",
                     }}
                   >
-                    {taken} / {total} {locale === "he" ? "נלקחו" : t("taken").split(" ")[0]}
+                    {taken} / {total} {locale === "he" ? "בלימוד" : t("taken").split(" ")[0]}
                   </p>
                   {/* Mini progress bar */}
                   <div
@@ -1050,13 +1050,13 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           <DialogHeader>
             <DialogTitle>
               {locale === "he"
-                ? `קח ${multiClaimPortionIds.length} פרקים`
-                : `Claim ${multiClaimPortionIds.length} portions`}
+                ? `קבלו על עצמכם ${multiClaimPortionIds.length} פרקים`
+                : `Take ${multiClaimPortionIds.length} portions`}
             </DialogTitle>
             <DialogDescription>
               {locale === "he"
-                ? "הכנס שמך פעם אחת — כל הפרקים שנבחרו ייקלטו תחת שמך"
-                : "Enter your name once — all selected portions will be claimed under your name"}
+                ? "הכנס שמך פעם אחת — כל הפרקים שנבחרו יירשמו תחת שמך"
+                : "Enter your name once — all selected portions will be saved under your name"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -1074,7 +1074,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           <DialogFooter>
             <Button variant="ghost" onClick={() => setMultiClaimDialogOpen(false)} disabled={submitting}>{t("cancel")}</Button>
             <Button onClick={confirmMultiClaim} disabled={!claimerName.trim() || submitting}>
-              {submitting ? <Spinner className="h-4 w-4" /> : (locale === "he" ? "קח הכל" : t("confirm"))}
+              {submitting ? <Spinner className="h-4 w-4" /> : (locale === "he" ? "קבל/י על עצמך" : t("confirm"))}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1209,8 +1209,8 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           <DialogHeader>
             <DialogTitle dir="rtl">
               {completingPortionIds.length > 0
-                ? (locale === "he" ? `סמן ${completingPortionIds.length} פרקים כהושלמו` : `Mark ${completingPortionIds.length} portions complete`)
-                : (locale === "he" ? "סמן פרק כהושלם" : "Mark portion complete")}
+                ? (locale === "he" ? `סמן ${completingPortionIds.length} פרקים כנלמדו` : `Mark ${completingPortionIds.length} portions as learned`)
+                : (locale === "he" ? "סמן פרק כנלמד" : "Mark portion as learned")}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">

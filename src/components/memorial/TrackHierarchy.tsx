@@ -130,7 +130,7 @@ function MultiSelectBar({
           className="bg-gold text-navy hover:bg-gold/90 font-bold shrink-0"
           onClick={onClaim}
         >
-          {locale === "he" ? `קח ${count} פרקים` : `Claim ${count}`}
+          {locale === "he" ? `בחרו ${count} פרקים` : `Take ${count}`}
         </Button>
       </div>
     </div>
@@ -304,7 +304,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onB
                         className="w-full mb-2 py-2 px-3 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-all text-center"
                       >
                         <p className="text-xs font-medium text-emerald-700">
-                          {locale === "he" ? `✓ סמן מסכת ${hebrewMasechtaNames[expandedMasechta] || expandedMasechta} כהושלמה` : `✓ Mark entire ${expandedMasechta} complete`}
+                          {locale === "he" ? `✓ סמן מסכת ${hebrewMasechtaNames[expandedMasechta] || expandedMasechta} כנלמדת` : `✓ Mark entire ${expandedMasechta} as learned`}
                         </p>
                       </button>
                     )}
@@ -456,7 +456,7 @@ function TehillimHierarchy({ portions, onClaim, onComplete, onBulkComplete, onMu
                           onClick={() => setCompleteSelectMode(true)}
                           className="text-xs text-emerald-700 hover:text-emerald-900 underline underline-offset-2 transition-colors mb-2 block"
                         >
-                          {locale === "he" ? "סמן פרקים כהושלמו" : "Select to complete"}
+                          {locale === "he" ? "סמן פרקים כנלמדו" : "Select learned chapters"}
                         </button>
                       )}
                       {multiSelectMode && (
@@ -466,7 +466,7 @@ function TehillimHierarchy({ portions, onClaim, onComplete, onBulkComplete, onMu
                       )}
                       {completeSelectMode && (
                         <p className="text-xs text-emerald-700 font-medium mb-2">
-                          {locale === "he" ? "לחץ על פרקים שהושלמו" : "Tap completed chapters"}
+                          {locale === "he" ? "לחץ על פרקים שנלמדו" : "Tap learned chapters"}
                         </p>
                       )}
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }}>
@@ -722,7 +722,7 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
   let displayName: string = p.displayNameHebrew || p.displayName;
   if (locale === "he") {
     if (compact && p.trackType === "tehillim" && p.displayNameHebrew) {
-      const m = p.displayNameHebrew.match(/^תהילים\s+(\d+)/);
+      const m = p.displayNameHebrew.match(/^תהי(?:לי|ל)ם\s+(\d+)/);
       if (m) displayName = "פרק " + toHebrewNumeral(parseInt(m[1], 10));
       else displayName = localizedDisplay(p.displayNameHebrew, "he");
     } else {
@@ -822,7 +822,7 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
                   onClick={() => onComplete(p)}
                   className="w-full text-[10px] text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded px-2 py-1 font-medium transition-colors"
                 >
-                  {locale === "he" ? "✓ סמן כהושלם" : locale === "es" ? "✓ Marcar completo" : locale === "fr" ? "✓ Marquer terminé" : "✓ Mark complete"}
+                  {locale === "he" ? "✓ סמן כנלמד" : locale === "es" ? "✓ Marcar completo" : locale === "fr" ? "✓ Marquer terminé" : "✓ Mark as learned"}
                 </button>
               )
             )}
@@ -834,7 +834,7 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
             <div className="flex items-center gap-1.5">
               <VictorySeal size={18} />
               <p className="text-[10px] text-emerald-700 font-medium">
-                {locale === "he" ? "הושלם" : locale === "es" ? "Completado" : locale === "fr" ? "Terminé" : "Completed"}
+                {locale === "he" ? "נלמד" : locale === "es" ? "Completado" : locale === "fr" ? "Terminé" : "Learned"}
               </p>
             </div>
             {(p as Portion & { completedAt?: number }).completedAt && (
@@ -859,7 +859,7 @@ const SET_HEBREW_LETTERS: Record<number, string> = {
   6: "ו׳", 7: "ז׳", 8: "ח׳", 9: "ט׳", 10: "י׳",
 };
 function setLabel(setNumber: number, locale: string): string {
-  if (locale === "he") return `סט ${SET_HEBREW_LETTERS[setNumber] || setNumber}`;
+  if (locale === "he") return `מחזור ${SET_HEBREW_LETTERS[setNumber] || setNumber}`;
   return `Set ${setNumber}`;
 }
 
@@ -913,8 +913,8 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium text-navy" dir="rtl">
             {locale === "he"
-              ? `${completedSets} סטים הושלמו — סה״כ ${overallPct}%`
-              : `${completedSets} sets completed — total ${overallPct}%`}
+              ? `${completedSets} מחזורים נלמדו — סה״כ ${overallPct}%`
+              : `${completedSets} sets learned — total ${overallPct}%`}
           </span>
           <span className="text-navy font-heading font-bold text-lg">{overallPct}%</span>
         </div>
@@ -930,7 +930,7 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
             );
           })}
         </div>
-        <p className="text-xs text-muted">{totalTaken}/{totalAll} {locale === "he" ? "פרקים נלקחו" : "portions taken"}</p>
+        <p className="text-xs text-muted">{totalTaken}/{totalAll} {locale === "he" ? "פרקים בלימוד" : "portions taken"}</p>
       </div>
 
       {/* Stacked sets (newest on top) */}
@@ -962,7 +962,7 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
                 )}
                 {isComplete && (
                   <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
-                    {locale === "he" ? "✓ הושלם" : "✓ Completed"}
+                    {locale === "he" ? "✓ נלמד" : "✓ Learned"}
                   </span>
                 )}
               </div>
