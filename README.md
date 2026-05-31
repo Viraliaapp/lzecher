@@ -2,7 +2,7 @@
 
 **A free, multilingual memorial learning platform for Klal Yisrael.**
 
-Honor the memory of departed loved ones through communal Torah learning. Families create memorial pages and people from around the world claim portions of Mishnayos, Tehillim, Shnayim Mikra, and Mitzvot to learn l'iluy nishmas.
+Honor the memory of departed loved ones through communal Torah learning. Families create memorial pages and people from around the world claim Mishnayos, Tehillim, Shnayim Mikra, Kabalos, and Daf Yomi commitments l'iluy nishmas.
 
 **Live at [lzecher.com](https://lzecher.com)** | Hebrew, English, Spanish, French
 
@@ -60,7 +60,7 @@ src/
   lib/
     firebase/              # Client config, admin SDK, auth helpers
     types.ts               # TypeScript interfaces
-    seed-data.ts           # Mishnayos, Tehillim, Parshiyot, Mitzvot data
+    seed-data.ts           # Mishnayos, Tehillim, Parshiyot, Kabalos, Daf Yomi data
     utils.ts               # cn() utility
 messages/                  # Translation JSON files (en, he, es, fr)
 scripts/                   # Admin CLI scripts
@@ -137,7 +137,8 @@ When a memorial project is created, portions are auto-generated instantly:
 | Tehillim | 150 mizmorim |
 | Shnayim Mikra | 54 parshiyot |
 | Mussar | 130 units across 8 seforim |
-| Mitzvot | 11 templates |
+| Kabalos | 6 templates |
+| Daf Yomi | 1 commitment |
 
 ## Firestore Collections
 

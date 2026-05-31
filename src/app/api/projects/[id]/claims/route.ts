@@ -25,7 +25,7 @@ export async function POST(
     const claimsSnap = await db.collection("lzecher_claims")
       .where("projectId", "==", projectId)
       .orderBy("claimedAt", "desc")
-      .limit(200)
+      .limit(1000)
       .get();
 
     const claims = claimsSnap.docs.map(d => ({ id: d.id, ...d.data() }));

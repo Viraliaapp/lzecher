@@ -1,0 +1,87 @@
+import fs from "node:fs";
+import path from "node:path";
+
+const root = process.cwd();
+const locales = ["en", "he", "es", "fr"];
+const requiredMessagePaths = [
+  ["dashboard", "communityTitle"],
+  ["dashboard", "communityDesc"],
+  ["dashboard", "browseMemorials"],
+  ["dashboard", "signIn"],
+  ["contact", "error"],
+];
+
+function read(rel) {
+  return fs.readFileSync(path.join(root, rel), "utf8");
+}
+
+function assert(condition, message) {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+function getPath(obj, keys) {
+  return keys.reduce((value, key) => value?.[key], obj);
+}
+
+for (const locale of locales) {
+  const messages = JSON.parse(read(`messages/${locale}.json`));
+  for (const keys of requiredMessagePaths) {
+    assert(
+      typeof getPath(messages, keys) === "string",
+      `Missing messages/${locale}.json key: ${keys.join(".")}`
+    );
+  }
+}
+
+for (const icon of [
+  "public/icons/icon-192.png",
+  "public/icons/icon-512.png",
+  "public/icons/apple-touch-icon.png",
+]) {
+  const file = path.join(root, icon);
+  assert(fs.existsSync(file), `Missing icon: ${icon}`);
+  assert(fs.statSync(file).size > 1000, `Icon looks too small: ${icon}`);
+}
+
+const sourceFiles = [
+  ...fs.readdirSync(path.join(root, "src"), { recursive: true }),
+  ...fs.readdirSync(path.join(root, "scripts"), { recursive: true }),
+]
+  .filter((file) => /\.(ts|tsx|js|mjs)$/.test(file))
+  .map((file) => {
+    const base = fs.existsSync(path.join(root, "src", file)) ? "src" : "scripts";
+    return path.join(base, file);
+  });
+
+const collectionPattern = /\.collection\(\s*["']([^"']+)["']\s*\)/g;
+for (const rel of sourceFiles) {
+  const text = read(rel);
+  for (const match of text.matchAll(collectionPattern)) {
+    assert(
+      match[1].startsWith("lzecher_"),
+      `Unsafe Firestore collection in ${rel}: ${match[1]}`
+    );
+  }
+}
+
+const createRoute = read("src/app/api/projects/create/route.ts");
+assert(
+  createRoute.includes("FIRESTORE_WRITE_CHUNK") && createRoute.includes("flushBatch"),
+  "Project create route is missing chunked Firestore writes"
+);
+
+const bulkRoute = read("src/app/api/claims/bulk/route.ts");
+assert(
+  bulkRoute.includes("const BATCH_SIZE = 200"),
+  "Bulk claims route should stay under the Firestore batch limit"
+);
+
+const completeBulkRoute = read("src/app/api/claims/complete-bulk/route.ts");
+assert(
+  completeBulkRoute.includes("const WRITE_CHUNK = 225"),
+  "Bulk completion route should stay under the Firestore batch limit"
+);
+
+console.log("Codex static smoke checks passed.");

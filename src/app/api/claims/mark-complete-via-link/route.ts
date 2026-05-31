@@ -3,14 +3,20 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import * as crypto from "crypto";
 
-const SECRET = process.env.REMINDER_ACTION_SECRET || "default-dev-secret";
+function actionSecret(): string {
+  const secret = process.env.REMINDER_ACTION_SECRET || process.env.CRON_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("Missing REMINDER_ACTION_SECRET or CRON_SECRET");
+  }
+  return secret || "default-dev-secret";
+}
 
 function verifyToken(token: string): { claimId: string; action: string } | null {
   try {
     const [payloadB64, sigHex] = token.split(".");
     if (!payloadB64 || !sigHex) return null;
     const expectedSig = crypto
-      .createHmac("sha256", SECRET)
+      .createHmac("sha256", actionSecret())
       .update(payloadB64)
       .digest("hex");
     if (sigHex !== expectedSig) return null;
@@ -30,7 +36,7 @@ export function generateActionToken(claimId: string, action: string = "mark_comp
     exp: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
   };
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const sig = crypto.createHmac("sha256", SECRET).update(payloadB64).digest("hex");
+  const sig = crypto.createHmac("sha256", actionSecret()).update(payloadB64).digest("hex");
   return `${payloadB64}.${sig}`;
 }
 

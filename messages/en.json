@@ -139,6 +139,7 @@
     "taken": "Taken",
     "share": "Share",
     "sessionExpired": "Your session has expired.",
+    "signIn": "Sign in",
     "greeting": "Hello, {name}",
     "greetingNoName": "Welcome back",
     "greetingSub": "An overview of your memorials and recent activity",
@@ -160,7 +161,10 @@
     "actionEdit": "Edit",
     "takenLabel": "taken",
     "portionsLabel": "portions",
-    "participantsLabel": "participants"
+    "participantsLabel": "participants",
+    "communityTitle": "Join the wider learning",
+    "communityDesc": "Active memorials across the community are waiting for participants.",
+    "browseMemorials": "Browse memorials"
   },
   "create": {
     "stepOf": "Step {current} of {total}",
@@ -451,7 +455,7 @@
     "visionTitle": "Our Vision",
     "mission": "Lzecher was created as a free initiative, inspired by the timeless Jewish tradition of learning Torah for the elevation of departed souls. It is a gift to Klal Yisrael — never charging fees, never showing ads. We believe that when a community comes together to learn Torah l'iluy nishmas a loved one, the collective merit is immeasurable.",
     "vision": "We believe that technology can serve the highest purposes. By providing a modern, intuitive platform, we remove the logistical barriers that often make it difficult to coordinate communal learning. No more spreadsheets, no more phone calls — just a clean, simple experience that lets people focus on what matters most: the learning itself.",
-    "howItHelps": "Lzecher supports four learning tracks — Mishnayos, Tehillim, Shnayim Mikra, and Mitzvot — in four languages: Hebrew, English, Spanish, and French. A family member can set up a memorial page in minutes, choose their tracks, and share a link with family, friends, and community members around the world. Participants claim their portions and mark them complete, with everyone able to see the collective progress in real time.",
+    "howItHelps": "Lzecher supports Mishnayos, Tehillim, Shnayim Mikra, personal Kabalos, and Daf Yomi commitments in four languages: Hebrew, English, Spanish, and French. A family member can set up a memorial page in minutes, choose their tracks, and share a link with family, friends, and community members around the world. Participants claim their portions and mark them complete, with everyone able to see the collective progress in real time.",
     "community": "Lzecher is built for Klal Yisrael. It is completely free to use and open to all who wish to participate in this beautiful mitzvah. We are committed to maintaining the highest standards of respect, accuracy, and halachic integrity in everything we do. No fees, no ads, no compromises — just Torah learning as a zechus for the neshamot of our loved ones.",
     "dedication": "The Torah learned through this platform is dedicated l'iluy nishmas our beloved ones. Their families find comfort in the unity and devotion of those who learn on their behalf."
   },
@@ -583,7 +587,8 @@
     "emailLabel": "Your Email",
     "messageLabel": "Message",
     "send": "Send Message",
-    "sent": "Your message has been sent successfully!"
+    "sent": "Your message has been sent successfully!",
+    "error": "We could not send your message. Please try again."
   },
   "passwordGate": {
     "title": "This memorial is password protected",

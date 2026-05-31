@@ -10,6 +10,7 @@
 - Resend for transactional email
 
 ## Key Conventions
+- **Critical Firestore safety:** Firebase project `sifttube-416a0` is shared with other live apps. Always scope reads/writes/scripts to `lzecher_*` collections and `lzecher/` Storage prefixes only.
 - All Firestore collections prefixed with `lzecher_`: lzecher_users, lzecher_projects, lzecher_portions, lzecher_claims, lzecher_moderation
 - Documents MUST include `id` field in data, not just as document ID
 - Brand colors: navy (#0F1B2D), gold (#C9A961), cream (#FAF6EC)
@@ -25,5 +26,5 @@
 - `src/app/[locale]/admin/` - Admin moderation (requires isAdmin claim)
 - `src/components/ui/` - Radix-based UI primitives
 - `src/lib/firebase/` - Firebase client + admin SDK
-- `src/lib/seed-data.ts` - Mishnayos, Tehillim, Parshiyot, Mitzvot data
+- `src/lib/seed-data.ts` - Mishnayos, Tehillim, Parshiyot, Kabalos, Daf Yomi data
 - `messages/` - Translation JSON files (en, he, es, fr)

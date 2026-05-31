@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { usePathname } from "@/i18n/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,8 @@ import { toast } from "sonner";
 
 export default function ContactPage() {
   const t = useTranslations("contact");
+  const locale = useLocale();
+  const pathname = usePathname();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -21,13 +24,32 @@ export default function ContactPage() {
     e.preventDefault();
     if (!email.trim() || !message.trim()) return;
     setSending(true);
-    // In production, this would send via Resend API
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "question",
+          message: message.trim(),
+          email: email.trim(),
+          allowAsTestimonial: false,
+          locale,
+          currentPath: pathname,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("contact submission failed");
+      }
+
       toast.success(t("sent"));
       setEmail("");
       setMessage("");
+    } catch {
+      toast.error(t("error"));
+    } finally {
       setSending(false);
-    }, 1000);
+    }
   }
 
   return (

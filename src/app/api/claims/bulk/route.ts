@@ -123,9 +123,10 @@ export async function POST(request: NextRequest) {
       reminderPreferences: reminderPreferences || [],
     });
 
-    // Batch update portions and create child claims
-    // Firestore batch limit is 500 — split into chunks
-    const BATCH_SIZE = 400;
+    // Batch update portions and create child claims.
+    // Each portion uses up to two writes (portion update + child claim), so 200 keeps
+    // each Firestore batch safely under the 500-write limit.
+    const BATCH_SIZE = 200;
     for (let i = 0; i < availablePortions.length; i += BATCH_SIZE) {
       const chunk = availablePortions.slice(i, i + BATCH_SIZE);
       const batch = db.batch();

@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     template: "%s | Lzecher",
   },
   description:
-    "Honor departed loved ones through communal Torah learning. Organize Mishnayos, Tehillim, Shnayim Mikra, and Mitzvot l'iluy nishmas.",
+    "Honor departed loved ones through communal Torah learning. Organize Mishnayos, Tehillim, Shnayim Mikra, Kabalos, and Daf Yomi commitments l'iluy nishmas.",
   manifest: "/manifest.json",
   icons: {
     icon: "/icons/favicon.svg",

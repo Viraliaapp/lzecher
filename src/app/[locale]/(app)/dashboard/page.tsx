@@ -8,11 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 import { Spinner } from "@/components/ui/spinner";
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Download, Mail, Plus, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Claim } from "@/lib/types";
 import { toHebrewNumeral } from "@/lib/hebrew-numerals";
+import { cyclesLabel, progressFromProject } from "@/lib/progress";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,15 @@ function relativeTime(ts: number, locale: string): string {
   if (mins < 60) return isHe ? `לפני ${mins} דק׳` : `${mins}m ago`;
   if (hours < 24) return isHe ? `לפני ${hours} שעות` : `${hours}h ago`;
   return isHe ? `לפני ${days} ימים` : `${days}d ago`;
+}
+
+function formatDate(ts: unknown, locale: string): string {
+  if (!ts) return "";
+  try {
+    return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(new Date(Number(ts)));
+  } catch {
+    return "";
+  }
 }
 
 // ─── Stat cards ───────────────────────────────────────────────────────────────
@@ -109,15 +119,24 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
   const t = useTranslations("dashboard");
   const locale = useLocale();
   const [manageOpen, setManageOpen] = useState(false);
-  const [claims, setClaims] = useState<Record<string, unknown>[]>([]);
+  const [claims, setClaims] = useState<Claim[]>([]);
   const [loadingClaims, setLoadingClaims] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const pct = project.totalPortions > 0
-    ? Math.round((project.claimedPortions / project.totalPortions) * 100)
+  const progress = progressFromProject(project);
+  const fallbackPct = project.totalPortions > 0
+    ? Math.round(((project.claimedPortions || 0) / project.totalPortions) * 100)
     : 0;
+  const fallbackCompletedPct = project.totalPortions > 0
+    ? Math.round(((project.completedPortions || 0) / project.totalPortions) * 100)
+    : 0;
+  const pct = progress.hasTM ? progress.pct : fallbackPct;
+  const completedPct = progress.hasTM ? progress.completedPct : fallbackCompletedPct;
+  const cycleText = progress.hasTM ? cyclesLabel(progress.cycles, locale) : null;
+  const remainingPortions = Math.max(0, (project.totalPortions || 0) - (project.claimedPortions || 0));
+  const completedPortions = project.completedPortions || 0;
   const honorific = (project as MemorialProject & { honorific?: string }).honorific ||
     (project.gender === "female" ? "ע״ה" : "ז״ל");
   const hebrewName = `${project.nameHebrew} ${project.familyNameHebrew || ""}`.trim();
@@ -153,7 +172,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
         body: JSON.stringify({ idToken }),
       });
       if (res.ok) {
-        setClaims(prev => prev.filter(c => (c as Record<string, unknown>).id !== claimId));
+        setClaims(prev => prev.filter(c => c.id !== claimId));
       }
     } catch { /* ignore */ }
     setSaving(false);
@@ -171,7 +190,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
       });
       if (res.ok) {
         setClaims(prev => prev.map(c =>
-          (c as Record<string, unknown>).id === claimId
+          c.id === claimId
             ? { ...c, userName: editName.trim() }
             : c
         ));
@@ -179,6 +198,40 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
       }
     } catch { /* ignore */ }
     setSaving(false);
+  }
+
+  function exportClaimsCsv() {
+    const rows = [
+      ["name", "email", "track", "reference", "status", "claimed_at"],
+      ...claims.map((c) => {
+        return [
+          c.userName || "",
+          c.userEmail || "",
+          c.trackType || "",
+          c.reference || "",
+          c.status || "",
+          c.claimedAt ? new Date(Number(c.claimedAt)).toISOString() : "",
+        ];
+      }),
+    ];
+    const csv = rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${project.slug || project.id}-participants.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function emailParticipants() {
+    const emails = Array.from(new Set(
+      claims
+        .map((c) => String(c.userEmail || "").trim())
+        .filter((email) => email.includes("@"))
+    ));
+    if (emails.length === 0) return;
+    window.location.href = `mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(hebrewName)}`;
   }
 
   return (
@@ -213,6 +266,9 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
         <div style={{ height: "4px", borderRadius: "2px", background: "rgba(15,27,45,0.07)", overflow: "hidden", marginBottom: "10px" }}>
           <div style={{ height: "100%", width: `${pct}%`, background: "#C9A961", borderRadius: "2px", transition: "width 0.4s ease" }} />
         </div>
+        <div style={{ height: "3px", borderRadius: "2px", background: "rgba(91,122,82,0.10)", overflow: "hidden", marginBottom: "10px" }}>
+          <div style={{ height: "100%", width: `${completedPct}%`, background: "#5B7A52", borderRadius: "2px", transition: "width 0.4s ease" }} />
+        </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
           <span style={{ color: "#8B7355" }}>
             <strong style={{ color: "#0F1B2D" }}>{project.claimedPortions}</strong>/{project.totalPortions} {t("portionsLabel")}
@@ -221,6 +277,25 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
             <strong style={{ color: "#0F1B2D" }}>{project.participantCount || 0}</strong> {t("participantsLabel")}
           </span>
         </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "10px" }}>
+          <div style={{ borderRadius: "10px", background: "rgba(201,169,97,0.08)", padding: "8px 10px" }}>
+            <p style={{ fontSize: "10px", color: "#8B7355", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              {locale === "he" ? "נותר" : "Still needed"}
+            </p>
+            <p className="font-heading font-bold" style={{ color: "#0F1B2D", fontSize: "18px", lineHeight: 1.1 }}>{remainingPortions}</p>
+          </div>
+          <div style={{ borderRadius: "10px", background: "rgba(91,122,82,0.08)", padding: "8px 10px" }}>
+            <p style={{ fontSize: "10px", color: "#5B7A52", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              {locale === "he" ? "הושלם" : "Completed"}
+            </p>
+            <p className="font-heading font-bold" style={{ color: "#0F1B2D", fontSize: "18px", lineHeight: 1.1 }}>{completedPortions}</p>
+          </div>
+        </div>
+        {cycleText && (
+          <div style={{ marginTop: "10px", textAlign: "center", fontSize: "11px", color: "#5B7A52", fontWeight: 700 }}>
+            {cycleText}
+          </div>
+        )}
       </div>
 
       {/* Action row — 3 equal buttons */}
@@ -248,41 +323,88 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
         {manageOpen && (
           <div style={{ padding: "0 12px 12px", maxHeight: "300px", overflowY: "auto" }}>
             {loadingClaims && <p style={{ fontSize: "12px", color: "#8B7355", textAlign: "center", padding: "8px" }}>Loading...</p>}
+            {!loadingClaims && claims.length > 0 && (
+              <div style={{ margin: "4px 0 10px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px", marginBottom: "8px" }}>
+                  <div className="dashboard-mini-stat">
+                    <strong>{claims.length}</strong>
+                    <span>{locale === "he" ? "תביעות" : "claims"}</span>
+                  </div>
+                  <div className="dashboard-mini-stat">
+                    <strong>{claims.filter((c) => c.status === "active").length}</strong>
+                    <span>{locale === "he" ? "פעיל" : "active"}</span>
+                  </div>
+                  <div className="dashboard-mini-stat">
+                    <strong>{claims.filter((c) => c.status === "completed").length}</strong>
+                    <span>{locale === "he" ? "למדו" : "learned"}</span>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  <button
+                    onClick={exportClaimsCsv}
+                    className="dashboard-tool-btn"
+                    type="button"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {locale === "he" ? "CSV" : "CSV"}
+                  </button>
+                  <button
+                    onClick={emailParticipants}
+                    className="dashboard-tool-btn"
+                    type="button"
+                    disabled={!claims.some((c) => String(c.userEmail || "").includes("@"))}
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    {locale === "he" ? "אימייל" : "Email"}
+                  </button>
+                </div>
+              </div>
+            )}
             {!loadingClaims && claims.length === 0 && (
               <p style={{ fontSize: "12px", color: "#8B7355", textAlign: "center", padding: "8px" }}>
                 {locale === "he" ? "אין תביעות עדיין" : "No claims yet"}
               </p>
             )}
             {claims.map((c) => {
-              const cl = c as Record<string, unknown>;
+              const cl = c as Claim;
               const isEditing = editingId === cl.id;
+              const statusColor = cl.status === "completed" ? "#5B7A52" : "#C9A961";
               return (
-                <div key={cl.id as string} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 0", borderBottom: "1px solid rgba(232,223,200,0.4)", fontSize: "12px" }}>
+                <div key={cl.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 0", borderBottom: "1px solid rgba(232,223,200,0.4)", fontSize: "12px" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {isEditing ? (
                       <input
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
                         style={{ width: "100%", padding: "2px 6px", border: "1px solid #C9A961", borderRadius: "4px", fontSize: "12px" }}
-                        onKeyDown={(e) => e.key === "Enter" && saveName(cl.id as string)}
+                        onKeyDown={(e) => e.key === "Enter" && saveName(cl.id)}
                         autoFocus
                       />
                     ) : (
                       <>
-                        <span style={{ fontWeight: 600, color: "#0F1B2D" }} dir="rtl">{cl.userName as string}</span>
-                        <span style={{ color: "#8B7355", marginLeft: "4px" }}>{cl.reference as string}</span>
+                        <span style={{ fontWeight: 600, color: "#0F1B2D" }} dir="rtl">{cl.userName}</span>
+                        <span style={{ color: "#8B7355", marginLeft: "4px" }}>{cl.reference}</span>
+                        <span style={{ color: statusColor, marginLeft: "4px", fontSize: "10px", fontWeight: 700 }}>
+                          {cl.status === "completed" ? (locale === "he" ? "הושלם" : "done") : (locale === "he" ? "פעיל" : "active")}
+                        </span>
+                        {cl.userEmail && (
+                          <span style={{ color: "#8B7355", marginLeft: "4px", fontSize: "11px" }}>{cl.userEmail}</span>
+                        )}
+                        {cl.claimedAt && (
+                          <span style={{ color: "#8B7355", marginLeft: "4px", fontSize: "11px" }}>{formatDate(cl.claimedAt, locale)}</span>
+                        )}
                       </>
                     )}
                   </div>
                   {isEditing ? (
                     <>
-                      <button onClick={() => saveName(cl.id as string)} disabled={saving} style={{ fontSize: "11px", color: "#5B7A52", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>✓</button>
+                      <button onClick={() => saveName(cl.id)} disabled={saving} style={{ fontSize: "11px", color: "#5B7A52", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>✓</button>
                       <button onClick={() => setEditingId(null)} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer" }}>✕</button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => { setEditingId(cl.id as string); setEditName(cl.userName as string); }} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer" }}>✎</button>
-                      <button onClick={() => removeClaim(cl.id as string)} disabled={saving} style={{ fontSize: "11px", color: "#cc4444", background: "none", border: "none", cursor: "pointer" }}>✕</button>
+                      <button onClick={() => { setEditingId(cl.id); setEditName(cl.userName); }} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer" }}>✎</button>
+                      <button onClick={() => removeClaim(cl.id)} disabled={saving} style={{ fontSize: "11px", color: "#cc4444", background: "none", border: "none", cursor: "pointer" }}>✕</button>
                     </>
                   )}
                 </div>
@@ -363,6 +485,26 @@ function EmptyProjectsState() {
   );
 }
 
+function CommunityCTA() {
+  const t = useTranslations("dashboard");
+  return (
+    <div style={{ marginTop: "32px", background: "linear-gradient(165deg, #1B2138 0%, #252C48 100%)", borderRadius: "16px", padding: "24px", color: "#FAF6EC", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "18px", flexWrap: "wrap" }}>
+      <div className="flex items-center gap-4">
+        <div style={{ width: "46px", height: "46px", borderRadius: "12px", background: "rgba(201,169,97,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Users className="h-5 w-5 text-gold" />
+        </div>
+        <div>
+          <h3 className="font-heading font-bold" style={{ fontSize: "20px" }}>{t("communityTitle")}</h3>
+          <p style={{ color: "rgba(250,246,236,0.65)", fontSize: "13px", marginTop: "2px" }}>{t("communityDesc")}</p>
+        </div>
+      </div>
+      <Link href="/">
+        <Button variant="secondary">{t("browseMemorials")}</Button>
+      </Link>
+    </div>
+  );
+}
+
 // ─── Main dashboard page ──────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -402,12 +544,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { setLoading(false); return; }
-    loadData();
+    if (!user) return;
+    const timer = window.setTimeout(() => {
+      void loadData();
+    }, 0);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]);
 
-  if (authLoading || loading) {
+  if (authLoading || (user && loading)) {
     return (
       <div className="flex items-center justify-center py-20">
         <Spinner className="h-8 w-8" />
@@ -430,7 +575,7 @@ export default function DashboardPage() {
   return (
     <>
       {/* Inline styles for action buttons */}
-      <style>{`.dashboard-action-btn { width: 100%; padding: 11px 4px; font-size: 12px; font-weight: 700; color: #0F1B2D; background: transparent; border: none; cursor: pointer; display: block; text-align: center; transition: background 0.15s; } .dashboard-action-btn:hover { background: rgba(201,169,97,0.08); }`}</style>
+      <style>{`.dashboard-action-btn { width: 100%; padding: 11px 4px; font-size: 12px; font-weight: 700; color: #0F1B2D; background: transparent; border: none; cursor: pointer; display: block; text-align: center; transition: background 0.15s; } .dashboard-action-btn:hover { background: rgba(201,169,97,0.08); } .dashboard-tool-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; border-radius: 8px; border: 1px solid rgba(201,169,97,0.25); background: #FFFDF8; color: #0F1B2D; font-size: 12px; font-weight: 700; } .dashboard-tool-btn:disabled { opacity: 0.45; cursor: not-allowed; } .dashboard-mini-stat { border-radius: 8px; background: rgba(255,253,248,0.85); border: 1px solid rgba(232,223,200,0.6); padding: 6px 8px; text-align: center; } .dashboard-mini-stat strong { display: block; color: #0F1B2D; font-size: 15px; line-height: 1; } .dashboard-mini-stat span { display: block; color: #8B7355; font-size: 10px; margin-top: 2px; }`}</style>
 
       <div className="bg-cream min-h-screen">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -522,6 +667,8 @@ export default function DashboardPage() {
               <ClaimsAccordion claims={claims} />
             </section>
           )}
+
+          <CommunityCTA />
         </div>
       </div>
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdmin, requireSuperAdmin } from "@/lib/auth-roles";
 
+const BATCH_CHUNK = 400;
+
 // POST /api/admin/projects/[id] — hide, unhide, or delete a project
 export async function POST(
   request: NextRequest,
@@ -61,24 +63,28 @@ export async function POST(
         .collection("lzecher_portions")
         .where("projectId", "==", id)
         .get();
-      const batch = db.batch();
-      for (const doc of portionsSnap.docs) batch.delete(doc.ref);
 
       // Delete all claims
       const claimsSnap = await db
         .collection("lzecher_claims")
         .where("projectId", "==", id)
         .get();
-      for (const doc of claimsSnap.docs) batch.delete(doc.ref);
 
       // Delete all reports for this project
       const reportsSnap = await db
         .collection("lzecher_reports")
         .where("projectId", "==", id)
         .get();
-      for (const doc of reportsSnap.docs) batch.delete(doc.ref);
-
-      await batch.commit();
+      const emailsSnap = await db
+        .collection("lzecher_scheduled_emails")
+        .where("projectId", "==", id)
+        .get();
+      await deleteDocsInChunks(db, [
+        ...portionsSnap.docs,
+        ...claimsSnap.docs,
+        ...reportsSnap.docs,
+        ...emailsSnap.docs,
+      ]);
 
       // Delete the project itself
       await projectRef.delete();
@@ -103,5 +109,18 @@ export async function POST(
     }
     console.error("Admin action error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+async function deleteDocsInChunks(
+  db: FirebaseFirestore.Firestore,
+  docs: FirebaseFirestore.QueryDocumentSnapshot[]
+) {
+  for (let i = 0; i < docs.length; i += BATCH_CHUNK) {
+    const batch = db.batch();
+    for (const doc of docs.slice(i, i + BATCH_CHUNK)) {
+      batch.delete(doc.ref);
+    }
+    await batch.commit();
   }
 }

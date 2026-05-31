@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 2. Claims on user's projects (stats 2+3, activity feed) ────────────
-    let allProjectClaims: Record<string, unknown>[] = [];
+    const allProjectClaims: Record<string, unknown>[] = [];
     if (projectIds.length > 0) {
       for (let i = 0; i < projectIds.length; i += 30) {
         const chunk = projectIds.slice(i, i + 30);
@@ -55,8 +55,10 @@ export async function POST(request: NextRequest) {
     // Stat 2: unique participants across all projects
     const participantKeys = new Set<string>();
     for (const c of allProjectClaims) {
-      const key = (c.claimerUid as string) ||
-        `${c.claimerName as string}__${c.claimerEmail as string}`;
+      const uidKey = c.userId as string | undefined;
+      const key = uidKey && uidKey !== "anonymous"
+        ? uidKey
+        : (c.userEmail as string) || (c.userName as string);
       if (key && key !== "__") participantKeys.add(key);
     }
 
@@ -72,7 +74,7 @@ export async function POST(request: NextRequest) {
       .slice(0, 10)
       .map((c) => ({
         id: c.id as string,
-        claimerName: (c.claimerName as string) || "אנונימי",
+        claimerName: (c.userName as string) || "אנונימי",
         reference: c.reference as string | undefined,
         trackType: c.trackType as string | undefined,
         projectId: c.projectId as string,

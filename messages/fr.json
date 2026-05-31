@@ -139,6 +139,7 @@
     "taken": "Pris",
     "share": "Partager",
     "sessionExpired": "Votre session a expiré.",
+    "signIn": "Se connecter",
     "greeting": "Bonjour, {name}",
     "greetingNoName": "Bienvenue",
     "greetingSub": "Un aperçu de vos mémoriaux et de l'activité récente",
@@ -160,7 +161,10 @@
     "actionEdit": "Modifier",
     "takenLabel": "pris",
     "portionsLabel": "portions",
-    "participantsLabel": "participants"
+    "participantsLabel": "participants",
+    "communityTitle": "Rejoindre l'etude communautaire",
+    "communityDesc": "Des memorials actifs attendent des participants.",
+    "browseMemorials": "Voir les memorials"
   },
   "create": {
     "stepOf": "Etape {current} sur {total}",
@@ -451,7 +455,7 @@
     "visionTitle": "Notre Vision",
     "mission": "Lzecher a ete cree comme une initiative gratuite, inspiree par la tradition juive intemporelle d'etudier la Torah pour l'elevation des ames des defunts. C'est un cadeau pour Klal Israel — sans frais, sans publicite, jamais. Nous croyons que lorsqu'une communaute s'unit pour etudier la Torah l'iluy nishmas d'un etre cher, le merite collectif est incommensurable.",
     "vision": "Nous croyons que la technologie peut servir les plus nobles desseins. En proposant une plateforme moderne et intuitive, nous eliminons les obstacles logistiques qui rendent souvent difficile la coordination de l'etude communautaire. Plus de tableurs, plus d'appels telephoniques — juste une experience simple et epuree qui permet aux gens de se concentrer sur l'essentiel : l'etude elle-meme.",
-    "howItHelps": "Lzecher prend en charge quatre parcours d'etude — Mishnayot, Tehilim, Chnayim Mikra et Mitsvot — en quatre langues : hebreu, anglais, espagnol et francais. Un membre de la famille peut creer une page memoriale en quelques minutes, choisir ses parcours et partager un lien avec la famille, les amis et les membres de la communaute a travers le monde. Les participants reservent leurs portions et les marquent comme terminees, chacun pouvant suivre la progression collective en temps reel.",
+    "howItHelps": "Lzecher prend en charge Mishnayot, Tehilim, Chnayim Mikra, des kabalot personnelles et des engagements de Daf Yomi en quatre langues : hebreu, anglais, espagnol et francais. Un membre de la famille peut creer une page memoriale en quelques minutes, choisir ses parcours et partager un lien avec la famille, les amis et les membres de la communaute a travers le monde. Les participants reservent leurs portions et les marquent comme terminees, chacun pouvant suivre la progression collective en temps reel.",
     "community": "Lzecher est concu pour Klal Israel. Son utilisation est entierement gratuite et ouverte a tous ceux qui souhaitent participer a cette belle mitsva. Nous nous engageons a maintenir les plus hauts standards de respect, de precision et d'integrite halakhique. Pas de frais, pas de publicite, pas de compromis — seulement l'etude de la Torah comme zekhout pour les neshamot de nos proches.",
     "dedication": "La Torah etudiee a travers cette plateforme est dediee l'iluy nishmas de nos proches. Leurs familles trouvent du reconfort dans l'unite et la devotion de ceux qui etudient en leur nom."
   },
@@ -570,7 +574,8 @@
     "emailLabel": "Adresse e-mail",
     "messageLabel": "Message",
     "send": "Envoyer",
-    "sent": "Votre message a ete envoye avec succes !"
+    "sent": "Votre message a ete envoye avec succes !",
+    "error": "Nous n'avons pas pu envoyer votre message. Veuillez reessayer."
   },
   "softLogin": {
     "title": "Une etape rapide avant de vous engager",

@@ -43,37 +43,19 @@ export async function POST(
 
     // Delete all portions
     const portionsSnap = await db.collection("lzecher_portions").where("projectId", "==", id).get();
-    for (let i = 0; i < portionsSnap.docs.length; i += BATCH_CHUNK) {
-      const batch = db.batch();
-      for (const d of portionsSnap.docs.slice(i, i + BATCH_CHUNK)) batch.delete(d.ref);
-      await batch.commit();
-    }
+    await deleteDocsInChunks(db, portionsSnap.docs);
 
     // Delete all claims
     const claimsSnap = await db.collection("lzecher_claims").where("projectId", "==", id).get();
-    for (let i = 0; i < claimsSnap.docs.length; i += BATCH_CHUNK) {
-      const batch = db.batch();
-      for (const d of claimsSnap.docs.slice(i, i + BATCH_CHUNK)) batch.delete(d.ref);
-      await batch.commit();
-    }
+    await deleteDocsInChunks(db, claimsSnap.docs);
 
     // Delete all reports
     const reportsSnap = await db.collection("lzecher_reports").where("projectId", "==", id).get();
-    if (reportsSnap.size > 0) {
-      const batch = db.batch();
-      for (const d of reportsSnap.docs) batch.delete(d.ref);
-      await batch.commit();
-    }
+    await deleteDocsInChunks(db, reportsSnap.docs);
 
     // Cancel and delete all scheduled emails
     const emailsSnap = await db.collection("lzecher_scheduled_emails").where("projectId", "==", id).get();
-    if (emailsSnap.size > 0) {
-      for (let i = 0; i < emailsSnap.docs.length; i += BATCH_CHUNK) {
-        const batch = db.batch();
-        for (const d of emailsSnap.docs.slice(i, i + BATCH_CHUNK)) batch.delete(d.ref);
-        await batch.commit();
-      }
-    }
+    await deleteDocsInChunks(db, emailsSnap.docs);
 
     // Audit log BEFORE deleting the project (we need the data)
     await db.collection("lzecher_admin_audit").add({
@@ -91,5 +73,18 @@ export async function POST(
   } catch (err) {
     console.error("[projects/delete]", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+async function deleteDocsInChunks(
+  db: FirebaseFirestore.Firestore,
+  docs: FirebaseFirestore.QueryDocumentSnapshot[]
+) {
+  for (let i = 0; i < docs.length; i += BATCH_CHUNK) {
+    const batch = db.batch();
+    for (const d of docs.slice(i, i + BATCH_CHUNK)) {
+      batch.delete(d.ref);
+    }
+    await batch.commit();
   }
 }

@@ -3,6 +3,8 @@ import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { hashPassword } from "@/lib/password";
 
+const FIRESTORE_WRITE_CHUNK = 450;
+
 function slugify(text: string): string {
   const base = text
     .toLowerCase()
@@ -129,19 +131,39 @@ export async function POST(request: NextRequest) {
 
     await projectRef.set(projectData);
 
-    // Auto-generate portions for the project
+    // Auto-generate portions for the project.
+    // Firestore batches max at 500 writes; Mishnayos alone is 525 portions.
     try {
       const { MASECHTOS, TEHILLIM, PARSHIYOT, MITZVAH_TEMPLATES } = await import("@/lib/seed-data");
       let order = 0;
       let totalPortions = 0;
-      const batch = db.batch();
+      let batch = db.batch();
+      let batchCount = 0;
+
+      const flushBatch = async () => {
+        if (batchCount === 0) return;
+        await batch.commit();
+        batch = db.batch();
+        batchCount = 0;
+      };
+
+      const setPortion = async (
+        ref: FirebaseFirestore.DocumentReference,
+        data: FirebaseFirestore.DocumentData
+      ) => {
+        if (batchCount >= FIRESTORE_WRITE_CHUNK) {
+          await flushBatch();
+        }
+        batch.set(ref, data);
+        batchCount++;
+      };
 
       if (tracks.includes("mishnayos")) {
         for (const m of MASECHTOS) {
           for (let p = 1; p <= m.perakim; p++) {
             order++;
             const ref = db.collection("lzecher_portions").doc();
-            batch.set(ref, {
+            await setPortion(ref, {
               id: ref.id, projectId: projectRef.id, trackType: "mishnayos",
               claimMode: "exclusive",
               reference: `${m.name} ${p}`, displayName: `${m.name} Chapter ${p}`,
@@ -157,7 +179,7 @@ export async function POST(request: NextRequest) {
         for (const mz of TEHILLIM) {
           order++;
           const ref = db.collection("lzecher_portions").doc();
-          batch.set(ref, {
+          await setPortion(ref, {
             id: ref.id, projectId: projectRef.id, trackType: "tehillim",
             claimMode: "exclusive",
             reference: `Tehillim ${mz.number}`, displayName: `Psalm ${mz.number}`,
@@ -172,7 +194,7 @@ export async function POST(request: NextRequest) {
         for (const p of PARSHIYOT) {
           order++;
           const ref = db.collection("lzecher_portions").doc();
-          batch.set(ref, {
+          await setPortion(ref, {
             id: ref.id, projectId: projectRef.id, trackType: "shnayim_mikra",
             claimMode: "inclusive",
             reference: `Parshas ${p.name}`, displayName: `Parshas ${p.name}`,
@@ -188,7 +210,7 @@ export async function POST(request: NextRequest) {
         for (const mt of MITZVAH_TEMPLATES) {
           order++;
           const ref = db.collection("lzecher_portions").doc();
-          batch.set(ref, {
+          await setPortion(ref, {
             id: ref.id, projectId: projectRef.id, trackType: "kabalos",
             claimMode: "inclusive",
             reference: mt.titleHebrew, displayName: mt.title,
@@ -205,7 +227,7 @@ export async function POST(request: NextRequest) {
       if (tracks.includes("daf_yomi")) {
         order++;
         const ref = db.collection("lzecher_portions").doc();
-        batch.set(ref, {
+        await setPortion(ref, {
           id: ref.id, projectId: projectRef.id, trackType: "daf_yomi",
           claimMode: "inclusive",
           reference: "Daf Yomi commitment",
@@ -217,11 +239,29 @@ export async function POST(request: NextRequest) {
         totalPortions++;
       }
 
-      await batch.commit();
+      await flushBatch();
       await projectRef.update({ totalPortions });
     } catch (seedErr) {
       console.error("Auto-seed portions error:", seedErr);
-      // Project still created even if seeding fails
+      const orphanedPortions = await db
+        .collection("lzecher_portions")
+        .where("projectId", "==", projectRef.id)
+        .get()
+        .catch(() => null);
+      if (orphanedPortions) {
+        for (let i = 0; i < orphanedPortions.docs.length; i += FIRESTORE_WRITE_CHUNK) {
+          const cleanupBatch = db.batch();
+          for (const doc of orphanedPortions.docs.slice(i, i + FIRESTORE_WRITE_CHUNK)) {
+            cleanupBatch.delete(doc.ref);
+          }
+          await cleanupBatch.commit().catch(() => {});
+        }
+      }
+      await projectRef.delete().catch(() => {});
+      return NextResponse.json(
+        { error: "Failed to generate learning portions. Please try again." },
+        { status: 500 }
+      );
     }
 
     // Create user doc if it doesn't exist

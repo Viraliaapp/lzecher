@@ -16,6 +16,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 
 type Scope = "masechta" | "seder" | "shas" | "tehillim_book" | "whole_tehillim" | "all_my_claims_in_project" | "all_my_claims";
+const WRITE_CHUNK = 225; // claim update + portion update can be two writes per claim
 
 export async function POST(request: NextRequest) {
   try {
@@ -107,26 +108,30 @@ export async function POST(request: NextRequest) {
     }
 
     const now = Date.now();
-    const batch = db.batch();
-    const portionUpdates = new Map<string, FirebaseFirestore.DocumentReference>();
     const projectIncrements = new Map<string, number>();
 
-    for (const d of matching) {
-      batch.update(d.ref, {
-        status: "completed",
-        completedAt: now,
-        completedByName: completerName || null,
-        completedByUid: uid,
-      });
-      const data = d.data();
-      if (data.portionId) portionUpdates.set(data.portionId, db.collection("lzecher_portions").doc(data.portionId));
-      const pid = data.projectId as string;
-      projectIncrements.set(pid, (projectIncrements.get(pid) || 0) + 1);
+    for (let i = 0; i < matching.length; i += WRITE_CHUNK) {
+      const chunk = matching.slice(i, i + WRITE_CHUNK);
+      const batch = db.batch();
+      const portionUpdates = new Map<string, FirebaseFirestore.DocumentReference>();
+
+      for (const d of chunk) {
+        batch.update(d.ref, {
+          status: "completed",
+          completedAt: now,
+          completedByName: completerName || null,
+          completedByUid: uid,
+        });
+        const data = d.data();
+        if (data.portionId) portionUpdates.set(data.portionId, db.collection("lzecher_portions").doc(data.portionId));
+        const pid = data.projectId as string;
+        projectIncrements.set(pid, (projectIncrements.get(pid) || 0) + 1);
+      }
+      for (const ref of portionUpdates.values()) {
+        batch.update(ref, { status: "completed", completedAt: now });
+      }
+      await batch.commit();
     }
-    for (const ref of portionUpdates.values()) {
-      batch.update(ref, { status: "completed", completedAt: now });
-    }
-    await batch.commit();
 
     // Increment project completedPortions counters (one update per project)
     for (const [pid, count] of projectIncrements.entries()) {

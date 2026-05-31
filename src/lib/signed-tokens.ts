@@ -6,10 +6,13 @@
  */
 import * as crypto from "crypto";
 
-const SECRET =
-  process.env.REMINDER_ACTION_SECRET ||
-  process.env.CRON_SECRET ||
-  "default-dev-secret-not-for-prod";
+function tokenSecret(): string {
+  const secret = process.env.REMINDER_ACTION_SECRET || process.env.CRON_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("Missing REMINDER_ACTION_SECRET or CRON_SECRET");
+  }
+  return secret || "default-dev-secret-not-for-prod";
+}
 
 export type TokenPurpose = "email_signin" | "auto_signin" | "mark_complete" | "unsubscribe" | "project_access";
 
@@ -32,7 +35,7 @@ export function signToken(payload: Omit<TokenPayload, "iat" | "exp">, ttlMs: num
     exp: Date.now() + ttlMs,
   };
   const payloadB64 = Buffer.from(JSON.stringify(full)).toString("base64url");
-  const sig = crypto.createHmac("sha256", SECRET).update(payloadB64).digest("hex");
+  const sig = crypto.createHmac("sha256", tokenSecret()).update(payloadB64).digest("hex");
   return `${payloadB64}.${sig}`;
 }
 
@@ -41,7 +44,7 @@ export function verifyToken(token: string): TokenPayload | null {
     const [payloadB64, sigHex] = token.split(".");
     if (!payloadB64 || !sigHex) return null;
     const expectedSig = crypto
-      .createHmac("sha256", SECRET)
+      .createHmac("sha256", tokenSecret())
       .update(payloadB64)
       .digest("hex");
     // Constant-time compare

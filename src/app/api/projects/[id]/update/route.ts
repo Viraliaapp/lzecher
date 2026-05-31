@@ -24,6 +24,7 @@ const EDITABLE_FIELDS = new Set([
 ]);
 
 const VALID_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
+const BATCH_CHUNK = 400;
 
 export async function POST(
   request: NextRequest,
@@ -130,22 +131,19 @@ export async function POST(
               completedCount: claimsSnap.docs.filter(d => d.data().status === "completed").length,
             }, { status: 409 });
           }
-          const batch = db.batch();
-          for (const d of [...claimsSnap.docs, ...portionsSnap.docs]) batch.delete(d.ref);
-          await batch.commit();
+          await deleteDocsInChunks(db, [...claimsSnap.docs, ...portionsSnap.docs]);
           const claimIds = claimsSnap.docs.map(d => d.id);
           const pendingEmails = await db.collection("lzecher_scheduled_emails").where("projectId", "==", id).where("status", "==", "pending").get();
-          const emailBatch = db.batch();
-          for (const e of pendingEmails.docs) {
-            if (claimIds.includes(e.data().claimId)) emailBatch.update(e.ref, { status: "cancelled", cancelledAt: Date.now(), cancelledReason: "track_removed" });
-          }
-          await emailBatch.commit().catch(() => {});
+          const claimIdSet = new Set(claimIds);
+          await updateDocsInChunks(
+            db,
+            pendingEmails.docs.filter((e) => claimIdSet.has(e.data().claimId)),
+            { status: "cancelled", cancelledAt: Date.now(), cancelledReason: "track_removed" }
+          ).catch(() => {});
           totalPortionsDelta -= portionsSnap.size;
           trackOps.push(`destructive_remove_track:${track}(-${portionsSnap.size}portions,-${claimsSnap.size}claims)`);
         } else {
-          const batch = db.batch();
-          for (const d of portionsSnap.docs) batch.delete(d.ref);
-          await batch.commit();
+          await deleteDocsInChunks(db, portionsSnap.docs);
           totalPortionsDelta -= portionsSnap.size;
           trackOps.push(`remove_track:${track}(-${portionsSnap.size}portions)`);
         }
@@ -187,6 +185,29 @@ export async function POST(
     if (message.startsWith("FORBIDDEN:")) return NextResponse.json({ error: message.replace("FORBIDDEN:", "") }, { status: 403 });
     console.error("[projects/update]", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+async function deleteDocsInChunks(
+  db: FirebaseFirestore.Firestore,
+  docs: FirebaseFirestore.QueryDocumentSnapshot[]
+) {
+  for (let i = 0; i < docs.length; i += BATCH_CHUNK) {
+    const batch = db.batch();
+    for (const d of docs.slice(i, i + BATCH_CHUNK)) batch.delete(d.ref);
+    await batch.commit();
+  }
+}
+
+async function updateDocsInChunks(
+  db: FirebaseFirestore.Firestore,
+  docs: FirebaseFirestore.QueryDocumentSnapshot[],
+  updates: FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData>
+) {
+  for (let i = 0; i < docs.length; i += BATCH_CHUNK) {
+    const batch = db.batch();
+    for (const d of docs.slice(i, i + BATCH_CHUNK)) batch.update(d.ref, updates);
+    await batch.commit();
   }
 }
 
