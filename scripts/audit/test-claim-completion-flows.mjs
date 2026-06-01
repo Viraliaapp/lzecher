@@ -92,7 +92,11 @@ async function requestJson(method, pathname, body) {
 }
 
 function signMarkCompleteToken(claimId) {
-  const secret = process.env.REMINDER_ACTION_SECRET || process.env.CRON_SECRET || "default-dev-secret-not-for-prod";
+  const secret =
+    process.env.REMINDER_ACTION_SECRET ||
+    process.env.CRON_SECRET ||
+    process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n").trim() ||
+    "default-dev-secret-not-for-prod";
   const payload = {
     purpose: "mark_complete",
     claimId,

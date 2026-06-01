@@ -6,12 +6,34 @@
  */
 import * as crypto from "crypto";
 
+function normalizeSecret(secret?: string): string | null {
+  const normalized = secret?.replace(/\\n/g, "\n").trim();
+  return normalized || null;
+}
+
+function configuredTokenSecret(): string | null {
+  return normalizeSecret(process.env.REMINDER_ACTION_SECRET) || normalizeSecret(process.env.CRON_SECRET);
+}
+
+function firebaseAdminSecret(): string | null {
+  return normalizeSecret(process.env.FIREBASE_ADMIN_PRIVATE_KEY);
+}
+
 function tokenSecret(): string {
-  const secret = process.env.REMINDER_ACTION_SECRET || process.env.CRON_SECRET;
+  const secret = configuredTokenSecret() || firebaseAdminSecret();
   if (!secret && process.env.NODE_ENV === "production") {
-    throw new Error("Missing REMINDER_ACTION_SECRET or CRON_SECRET");
+    throw new Error("Missing REMINDER_ACTION_SECRET, CRON_SECRET, or FIREBASE_ADMIN_PRIVATE_KEY");
   }
   return secret || "default-dev-secret-not-for-prod";
+}
+
+function verificationSecrets(): string[] {
+  const candidates = [
+    configuredTokenSecret(),
+    firebaseAdminSecret(),
+    process.env.NODE_ENV === "production" ? null : "default-dev-secret-not-for-prod",
+  ];
+  return [...new Set(candidates.filter((secret): secret is string => Boolean(secret)))];
 }
 
 export type TokenPurpose = "email_signin" | "auto_signin" | "mark_complete" | "unsubscribe" | "project_access";
@@ -43,15 +65,24 @@ export function verifyToken(token: string): TokenPayload | null {
   try {
     const [payloadB64, sigHex] = token.split(".");
     if (!payloadB64 || !sigHex) return null;
-    const expectedSig = crypto
-      .createHmac("sha256", tokenSecret())
-      .update(payloadB64)
-      .digest("hex");
-    // Constant-time compare
-    if (sigHex.length !== expectedSig.length) return null;
-    let diff = 0;
-    for (let i = 0; i < sigHex.length; i++) diff |= sigHex.charCodeAt(i) ^ expectedSig.charCodeAt(i);
-    if (diff !== 0) return null;
+    const secrets = verificationSecrets();
+    if (secrets.length === 0) return null;
+    let valid = false;
+    for (const secret of secrets) {
+      const expectedSig = crypto
+        .createHmac("sha256", secret)
+        .update(payloadB64)
+        .digest("hex");
+      // Constant-time compare
+      if (sigHex.length !== expectedSig.length) continue;
+      let diff = 0;
+      for (let i = 0; i < sigHex.length; i++) diff |= sigHex.charCodeAt(i) ^ expectedSig.charCodeAt(i);
+      if (diff === 0) {
+        valid = true;
+        break;
+      }
+    }
+    if (!valid) return null;
     const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString()) as TokenPayload;
     if (typeof payload.exp !== "number" || Date.now() > payload.exp) return null;
     return payload;

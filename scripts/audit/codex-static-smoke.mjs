@@ -154,6 +154,14 @@ assert(
   "Reminder emails must include a signed one-click mark-learned link"
 );
 
+const signedTokens = read("src/lib/signed-tokens.ts");
+assert(
+  signedTokens.includes("FIREBASE_ADMIN_PRIVATE_KEY") &&
+    signedTokens.includes("verificationSecrets") &&
+    signedTokens.includes("configuredTokenSecret()"),
+  "Signed tokens should keep primary secrets valid and allow the Firebase Admin key as a server-side verification fallback"
+);
+
 const projectClaimRoute = read("src/app/api/projects/[id]/claims/[claimId]/route.ts");
 assert(
   projectClaimRoute.includes("portData.projectId !== projectId") &&
