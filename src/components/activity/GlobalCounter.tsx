@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { fmtNum } from "@/lib/activity-format";
+import { useSiteSettings } from "@/lib/use-site-settings";
 
 interface GlobalStats {
   mishnayos: number;
@@ -20,6 +21,7 @@ const POLL_MS = 20000;
 export function GlobalCounter() {
   const t = useTranslations("globalCounter");
   const locale = useLocale();
+  const { settings, loaded } = useSiteSettings();
   const [stats, setStats] = useState<GlobalStats | null>(null);
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export function GlobalCounter() {
   }, []);
 
   // Nothing learned yet, or not loaded — render nothing rather than zeros.
-  if (!stats || (stats.mishnayos + stats.tehillim + stats.kabalos === 0)) return null;
+  if (!loaded || !settings.featureFlags.globalCounter || !stats || (stats.mishnayos + stats.tehillim + stats.kabalos === 0)) return null;
 
   const items = [
     { n: stats.mishnayos, label: t("mishnayos") },

@@ -17,6 +17,7 @@ import {
 import { MessageCircle, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useSiteSettings } from "@/lib/use-site-settings";
 
 const TYPES = ["suggestion", "bug", "question", "other"] as const;
 
@@ -24,6 +25,7 @@ export function FeedbackWidget() {
   const t = useTranslations("feedback");
   const locale = useLocale();
   const pathname = usePathname();
+  const { settings, loaded } = useSiteSettings();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<string>("");
   const [message, setMessage] = useState("");
@@ -33,7 +35,7 @@ export function FeedbackWidget() {
   const [sent, setSent] = useState(false);
 
   // Hide on create wizard and admin pages
-  if (pathname.includes("/create") || pathname.includes("/admin")) {
+  if (!loaded || !settings.featureFlags.feedbackWidget || pathname.includes("/create") || pathname.includes("/admin")) {
     return null;
   }
 

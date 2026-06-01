@@ -180,14 +180,15 @@ assert(
   "Admin page should use the server-verified admin role to show the super-admin portal"
 );
 assert(
-  ["stats", "projects", "support", "health", "audit", "admins"].every((tab) =>
+  ["stats", "projects", "support", "health", "audit", "control", "admins"].every((tab) =>
     adminPage.includes(`TabsTrigger value="${tab}"`)
   ) &&
     adminPage.includes("loadProjectDetail") &&
     adminPage.includes("recomputeSelectedProject") &&
     adminPage.includes("updateReportStatus") &&
+    adminPage.includes("saveSiteSettings") &&
     adminPage.includes("targetIsAdmin"),
-  "Super-admin portal should expose stats, projects, support, health, audit, admins, report review, and project repair flows"
+  "Super-admin portal should expose stats, projects, support, health, audit, control, admins, report review, project repair, and settings flows"
 );
 
 const adminProjectsRoute = read("src/app/api/admin/projects/route.ts");
@@ -246,6 +247,47 @@ assert(
     superReportRoute.includes('collection("lzecher_admin_audit")') &&
     superReportRoute.includes('action: "super_admin_update_report"'),
   "Super-admin report updates must require super admin, touch one Lzecher report, and write an audit entry"
+);
+
+const superSettingsRoute = read("src/app/api/admin/super/settings/route.ts");
+assert(
+  superSettingsRoute.includes("requireSuperAdmin(idToken)") &&
+    superSettingsRoute.includes('collection("lzecher_settings").doc("site")') &&
+    superSettingsRoute.includes('collection("lzecher_admin_audit")') &&
+    superSettingsRoute.includes('action: "super_admin_update_site_settings"'),
+  "Super-admin site settings must require super admin, write only lzecher_settings/site, and audit changes"
+);
+
+const publicSettingsRoute = read("src/app/api/settings/route.ts");
+assert(
+  publicSettingsRoute.includes('collection("lzecher_settings").doc("site")') &&
+    publicSettingsRoute.includes("publicSiteSettings"),
+  "Public settings API must expose only sanitized Lzecher site settings"
+);
+
+const feedbackWidgetSettings = read("src/components/FeedbackWidget.tsx");
+assert(
+  feedbackWidgetSettings.includes("settings.featureFlags.feedbackWidget"),
+  "Feedback widget should be controlled by the Lzecher site settings feature flag"
+);
+
+const siteNotice = read("src/components/SiteNotice.tsx");
+assert(
+  siteNotice.includes("settings.featureFlags.siteNotice") &&
+    siteNotice.includes("settings.announcement"),
+  "Site notice should render from the Lzecher site settings document"
+);
+
+const activityBubblesSettings = read("src/components/activity/ActivityBubbles.tsx");
+assert(
+  activityBubblesSettings.includes("settings.featureFlags.activityBubbles"),
+  "Activity bubbles should be controlled by the Lzecher site settings feature flag"
+);
+
+const globalCounterSettings = read("src/components/activity/GlobalCounter.tsx");
+assert(
+  globalCounterSettings.includes("settings.featureFlags.globalCounter"),
+  "Global counter should be controlled by the Lzecher site settings feature flag"
 );
 
 const authContext = read("src/context/AuthContext.tsx");

@@ -12,6 +12,7 @@ import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { SiteNotice } from "@/components/SiteNotice";
 import type { Metadata, Viewport } from "next";
 import "../globals.css";
 
@@ -101,6 +102,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       <body className="min-h-full flex flex-col bg-cream text-navy font-sans">
         <NextIntlClientProvider messages={messages}>
           <AuthProvider>
+            <SiteNotice />
             {children}
             <Toaster
               position="bottom-center"

@@ -10,6 +10,7 @@ import { useLocale } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen } from "lucide-react";
 import { activitySentence } from "@/lib/activity-format";
+import { useSiteSettings } from "@/lib/use-site-settings";
 
 interface RawEvent {
   id: string;
@@ -27,6 +28,7 @@ const MAX_VISIBLE = 3;
 
 export function ActivityBubbles() {
   const locale = useLocale();
+  const { settings, loaded } = useSiteSettings();
   const [visible, setVisible] = useState<RawEvent[]>([]);
   const seen = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
@@ -88,6 +90,7 @@ export function ActivityBubbles() {
   }, [poll]);
 
   const isRtl = locale === "he";
+  if (!loaded || !settings.featureFlags.activityBubbles) return null;
 
   return (
     <div

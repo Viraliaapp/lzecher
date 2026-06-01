@@ -20,11 +20,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil, Share2, Inbox, UserPlus, BarChart3, RotateCw, Wrench, History, CheckCircle2, Lock, Unlock, ClipboardList, Mail } from "lucide-react";
+import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil, Share2, Inbox, UserPlus, BarChart3, RotateCw, Wrench, History, CheckCircle2, Lock, Unlock, ClipboardList, Mail, Settings, Megaphone, ShieldCheck } from "lucide-react";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
 import type { MemorialProject } from "@/lib/types";
+import type { SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { MASECHTOS } from "@/lib/seed-data";
 import { TRACK_CONFIGS } from "@/lib/track-config";
@@ -174,6 +175,61 @@ const PERMISSIONS = [
   { key: "users", he: "מנהלים", en: "Admins" },
   { key: "settings", he: "הגדרות", en: "Settings" },
 ] as const;
+
+const SITE_FEATURES: {
+  key: keyof SiteSettings["featureFlags"];
+  he: string;
+  en: string;
+  heDesc: string;
+  enDesc: string;
+}[] = [
+  {
+    key: "feedbackWidget",
+    he: "בועת משוב",
+    en: "Feedback bubble",
+    heDesc: "כפתור המשוב הצף בעמודי האתר.",
+    enDesc: "The floating feedback button across the site.",
+  },
+  {
+    key: "activityBubbles",
+    he: "בועות פעילות",
+    en: "Activity bubbles",
+    heDesc: "הודעות עדינות כשמשתתפים בוחרים לימוד.",
+    enDesc: "Gentle live notices when participants take learning.",
+  },
+  {
+    key: "globalCounter",
+    he: "מונה כלל ישראל",
+    en: "Global counter",
+    heDesc: "פס הפעילות בדף הבית עם סיכומי לימוד.",
+    enDesc: "The homepage learning totals band.",
+  },
+  {
+    key: "siteNotice",
+    he: "הודעת אתר",
+    en: "Site notice",
+    heDesc: "פס הודעה בראש האתר לכל המבקרים.",
+    enDesc: "A sitewide notice banner for visitors.",
+  },
+];
+
+const EMPTY_SITE_SETTINGS: SiteSettings = {
+  featureFlags: {
+    feedbackWidget: true,
+    activityBubbles: true,
+    globalCounter: true,
+    siteNotice: false,
+  },
+  announcement: {
+    tone: "info",
+    he: "",
+    en: "",
+    es: "",
+    fr: "",
+  },
+  updatedAt: null,
+  updatedBy: null,
+};
 
 const MASECHTA_HE_BY_NAME = new Map(MASECHTOS.map((masechta) => [masechta.name, masechta.nameHebrew]));
 
@@ -563,6 +619,13 @@ function healthCheckCopy(locale: string, check: SuperHealthCheck, stats: Record<
       detail: `${feedbackText}, ${reportsText}, ${contactsText}.`,
     };
   }
+  if (check.key === "site_controls") {
+    const count = Number(check.count || stats.enabledFeatureFlags || 0);
+    return {
+      title: "בקרת האתר הציבורי",
+      detail: `${count} מתגי אתר פעילים מתוך מסמך lzecher_settings/site.`,
+    };
+  }
   return { title: check.label, detail: check.detail };
 }
 
@@ -580,6 +643,8 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [targetIsSuper, setTargetIsSuper] = useState(false);
   const [targetPermissions, setTargetPermissions] = useState<string[]>(["projects", "feedback", "reports", "stats"]);
   const [savingUser, setSavingUser] = useState(false);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(EMPTY_SITE_SETTINGS);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   async function loadOverview() {
     setRefreshing(true);
@@ -607,9 +672,29 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     }
   }
 
+  async function loadSiteSettings() {
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch("/api/admin/super/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || label(locale, "לא ניתן לטעון הגדרות", "Could not load settings"));
+        return;
+      }
+      setSiteSettings({ ...EMPTY_SITE_SETTINGS, ...(data.settings || {}) });
+    } catch {
+      toast.error(label(locale, "לא ניתן לטעון הגדרות", "Could not load settings"));
+    }
+  }
+
   useEffect(() => {
     const kickoff = setTimeout(() => {
       void loadOverview();
+      void loadSiteSettings();
     }, 0);
     return () => clearTimeout(kickoff);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -777,6 +862,44 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     }
   }
 
+  function updateFeatureFlag(key: keyof SiteSettings["featureFlags"], value: boolean) {
+    setSiteSettings((prev) => ({
+      ...prev,
+      featureFlags: { ...prev.featureFlags, [key]: value },
+    }));
+  }
+
+  function updateAnnouncement<K extends keyof SiteSettings["announcement"]>(key: K, value: SiteSettings["announcement"][K]) {
+    setSiteSettings((prev) => ({
+      ...prev,
+      announcement: { ...prev.announcement, [key]: value },
+    }));
+  }
+
+  async function saveSiteSettings() {
+    setSavingSettings(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch("/api/admin/super/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, settings: siteSettings }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || label(locale, "לא ניתן לשמור הגדרות", "Could not save settings"));
+        return;
+      }
+      setSiteSettings({ ...EMPTY_SITE_SETTINGS, ...(data.settings || {}) });
+      toast.success(label(locale, "הגדרות האתר נשמרו", "Site settings saved"));
+      await loadOverview();
+    } catch {
+      toast.error(label(locale, "לא ניתן לשמור הגדרות", "Could not save settings"));
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
   const stats = overview?.stats || {};
   const projectSummaries = overview?.projectSummaries || [];
   const filteredProjects = projectSummaries.filter((project) => {
@@ -795,26 +918,35 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const selectedProject = projectSummaries.find((project) => project.id === selectedProjectId) || filteredProjects[0] || null;
 
   return (
-    <Card className="mb-8 border-gold/20">
-      <CardContent className="p-4 sm:p-5">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-gold" />
-            <div>
-              <h2 className="font-heading text-lg font-bold text-navy">
-                {label(locale, "פורטל מנהל ראשי", "Super Admin Portal")}
-              </h2>
-              <p className="text-xs text-muted">
-                {label(locale, "סטטיסטיקות, משוב, דיווחים והרשאות מנהלים של לזכר בלבד.", "Lzecher-only stats, feedback, reports, and admin permissions.")}
-              </p>
+    <Card className="mb-8 overflow-hidden border-gold/30 shadow-md">
+      <CardContent className="p-0">
+        <div className="bg-navy px-4 py-4 text-cream sm:px-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold/15">
+                <ShieldCheck className="h-5 w-5 text-gold" />
+              </span>
+              <div>
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <Badge variant="default">{label(locale, "מנהל ראשי פעיל", "Super admin active")}</Badge>
+                  <Badge variant="secondary">lzecher_ only</Badge>
+                </div>
+                <h2 className="font-heading text-xl font-bold">
+                  {label(locale, "חדר בקרה של לזכר", "Lzecher Command Center")}
+                </h2>
+                <p className="text-xs text-cream/70">
+                  {label(locale, "כל פעולה רגישה מוגבלת לאוספי לזכר ונרשמת ביומן ביקורת.", "Sensitive actions are limited to Lzecher collections and written to the audit log.")}
+                </p>
+              </div>
             </div>
+            <Button variant="outline" size="sm" onClick={() => { void loadOverview(); void loadSiteSettings(); }} disabled={refreshing} className="border-cream/25 bg-transparent text-cream hover:bg-cream/10">
+              {refreshing ? <Spinner className="h-4 w-4" /> : <RotateCw className="h-4 w-4" />}
+              {label(locale, "רענן", "Refresh")}
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={loadOverview} disabled={refreshing}>
-            {refreshing ? <Spinner className="h-4 w-4" /> : <RotateCw className="h-4 w-4" />}
-            {label(locale, "רענן", "Refresh")}
-          </Button>
         </div>
 
+        <div className="p-4 sm:p-5">
         {loading && !overview ? (
           <div className="flex justify-center py-8">
             <Spinner className="h-6 w-6" />
@@ -827,6 +959,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
               <TabsTrigger value="support"><Inbox className="h-4 w-4" /> {label(locale, "תמיכה", "Support")}</TabsTrigger>
               <TabsTrigger value="health"><Wrench className="h-4 w-4" /> {label(locale, "בדיקות", "Health")}</TabsTrigger>
               <TabsTrigger value="audit"><History className="h-4 w-4" /> {label(locale, "יומן", "Audit")}</TabsTrigger>
+              <TabsTrigger value="control"><Settings className="h-4 w-4" /> {label(locale, "בקרה", "Control")}</TabsTrigger>
               <TabsTrigger value="admins"><UserPlus className="h-4 w-4" /> {label(locale, "מנהלים", "Admins")}</TabsTrigger>
             </TabsList>
 
@@ -1127,6 +1260,100 @@ function SuperAdminPortal({ locale }: { locale: string }) {
               </div>
             </TabsContent>
 
+            <TabsContent value="control">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]">
+                <div className="rounded-lg border border-navy/10 bg-white p-4">
+                  <div className="mb-4 flex items-start gap-2">
+                    <Settings className="mt-0.5 h-5 w-5 text-gold" />
+                    <div>
+                      <h3 className="font-heading font-bold text-navy">{label(locale, "מתגי אתר חיים", "Live site controls")}</h3>
+                      <p className="text-xs text-muted">
+                        {label(locale, "המתגים האלה משפיעים על האתר הציבורי ונשמרים רק במסמך lzecher_settings/site.", "These controls affect the public site and are stored only in lzecher_settings/site.")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {SITE_FEATURES.map((feature) => (
+                      <label key={feature.key} className="flex items-start justify-between gap-3 rounded-lg border border-navy/10 bg-cream/30 p-3">
+                        <span>
+                          <span className="block text-sm font-medium text-navy">{locale === "he" ? feature.he : feature.en}</span>
+                          <span className="mt-1 block text-xs text-muted">{locale === "he" ? feature.heDesc : feature.enDesc}</span>
+                        </span>
+                        <Switch
+                          checked={siteSettings.featureFlags[feature.key]}
+                          onCheckedChange={(checked) => updateFeatureFlag(feature.key, checked)}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gold/20 bg-cream/40 p-4">
+                  <div className="mb-3 flex items-start gap-2">
+                    <Megaphone className="mt-0.5 h-5 w-5 text-gold" />
+                    <div>
+                      <h3 className="font-heading font-bold text-navy">{label(locale, "הודעת אתר", "Site notice")}</h3>
+                      <p className="text-xs text-muted">
+                        {label(locale, "מופיעה בראש האתר רק כשהמתג פעיל ויש טקסט.", "Shown at the top of the site only when enabled and text is present.")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mb-3 grid grid-cols-2 gap-2">
+                    {(["info", "warning"] as const).map((tone) => (
+                      <button
+                        key={tone}
+                        type="button"
+                        onClick={() => updateAnnouncement("tone", tone)}
+                        className={cn(
+                          "rounded-lg border px-3 py-2 text-xs font-medium",
+                          siteSettings.announcement.tone === tone
+                            ? "border-gold bg-gold/10 text-navy"
+                            : "border-navy/10 bg-white text-muted"
+                        )}
+                      >
+                        {tone === "warning" ? label(locale, "אזהרה", "Warning") : label(locale, "מידע", "Info")}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    <Textarea
+                      value={siteSettings.announcement.he}
+                      onChange={(e) => updateAnnouncement("he", e.target.value)}
+                      placeholder="הודעה בעברית"
+                      rows={2}
+                      dir="rtl"
+                    />
+                    <Textarea
+                      value={siteSettings.announcement.en}
+                      onChange={(e) => updateAnnouncement("en", e.target.value)}
+                      placeholder="English notice"
+                      rows={2}
+                    />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Input
+                        value={siteSettings.announcement.es}
+                        onChange={(e) => updateAnnouncement("es", e.target.value)}
+                        placeholder="Aviso en español"
+                      />
+                      <Input
+                        value={siteSettings.announcement.fr}
+                        onChange={(e) => updateAnnouncement("fr", e.target.value)}
+                        placeholder="Avis en français"
+                      />
+                    </div>
+                  </div>
+                  <Button className="mt-4 w-full" onClick={saveSiteSettings} disabled={savingSettings}>
+                    {savingSettings ? <Spinner className="h-4 w-4" /> : label(locale, "שמור הגדרות אתר", "Save Site Settings")}
+                  </Button>
+                  {siteSettings.updatedAt && (
+                    <p className="mt-2 text-center text-xs text-muted">
+                      {label(locale, "עודכן לאחרונה", "Last updated")}: {formatTimestamp(siteSettings.updatedAt)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
             <TabsContent value="admins">
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
                 <div className="space-y-2">
@@ -1206,6 +1433,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
             </TabsContent>
           </Tabs>
         )}
+        </div>
       </CardContent>
     </Card>
   );

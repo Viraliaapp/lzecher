@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireSuperAdmin } from "@/lib/auth-roles";
+import { DEFAULT_SITE_SETTINGS, sanitizeSiteSettings } from "@/lib/site-settings";
 
 const RECENT_LIMIT = 50;
 
@@ -137,6 +138,7 @@ export async function POST(request: NextRequest) {
     const usersRef = db.collection("lzecher_users");
     const contactsRef = db.collection("lzecher_contact_messages");
     const auditRef = db.collection("lzecher_admin_audit");
+    const settingsRef = db.collection("lzecher_settings").doc("site");
     const now = Date.now();
     const dayAgo = now - 24 * 60 * 60 * 1000;
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
@@ -168,6 +170,7 @@ export async function POST(request: NextRequest) {
       superSnap,
       reportsSnap,
       contactsSnap,
+      settingsSnap,
       auditAtSnap,
       auditTimestampSnap,
       auditUpdatedAtSnap,
@@ -198,6 +201,7 @@ export async function POST(request: NextRequest) {
       usersRef.where("isSuperAdmin", "==", true).get(),
       reportsRef.orderBy("reportedAt", "desc").limit(RECENT_LIMIT).get().catch(() => null),
       contactsRef.orderBy("sentAt", "desc").limit(RECENT_LIMIT).get().catch(() => null),
+      settingsRef.get().catch(() => null),
       auditRef.orderBy("at", "desc").limit(RECENT_LIMIT).get().catch(() => null),
       auditRef.orderBy("timestamp", "desc").limit(RECENT_LIMIT).get().catch(() => null),
       auditRef.orderBy("updatedAt", "desc").limit(RECENT_LIMIT).get().catch(() => null),
@@ -209,6 +213,10 @@ export async function POST(request: NextRequest) {
     for (const doc of superSnap.docs) adminUsers.set(doc.id, publicAdminUser(doc.data(), doc.id));
 
     const projectSummaries = projectsSnap.docs.map((doc) => publicProjectSummary(doc.data(), doc.id));
+    const siteSettings = settingsSnap?.exists
+      ? sanitizeSiteSettings({ ...DEFAULT_SITE_SETTINGS, ...settingsSnap.data() })
+      : DEFAULT_SITE_SETTINGS;
+    const enabledFeatureFlags = Object.values(siteSettings.featureFlags).filter(Boolean).length;
     const protectedProjects = projectSummaries.filter((project) => project.isPasswordProtected).length;
     const issueProjects = projectSummaries.filter((project) => project.issues.length > 0);
     const undeliveredContacts = contactsSnap ? contactsSnap.docs.filter((doc) => doc.data().delivered !== true) : [];
@@ -257,6 +265,7 @@ export async function POST(request: NextRequest) {
         openReports,
         totalUsers,
         adminUsers: adminUsers.size,
+        enabledFeatureFlags,
         projectsWithIssues: issueProjects.length,
         undeliveredContacts: undeliveredContacts.length,
       },
@@ -273,6 +282,13 @@ export async function POST(request: NextRequest) {
           label: "Project data integrity",
           detail: issueProjects.length ? `${issueProjects.length} project(s) have diagnostics to review.` : "No project summary issues found.",
           count: issueProjects.length,
+        },
+        {
+          key: "site_controls",
+          status: "pass",
+          label: "Public site controls",
+          detail: `${enabledFeatureFlags} public feature flag(s) enabled from lzecher_settings/site.`,
+          count: enabledFeatureFlags,
         },
         {
           key: "support_queue",
