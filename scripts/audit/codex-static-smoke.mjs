@@ -187,6 +187,8 @@ assert(
     adminPage.includes("recomputeSelectedProject") &&
     adminPage.includes("analyticsRates") &&
     adminPage.includes("trackAnalytics") &&
+    adminPage.includes("supportSearch") &&
+    adminPage.includes("filteredFeedbackItems") &&
     adminPage.includes("Data Integrity Center") &&
     adminPage.includes("projectIssueSeverity") &&
     adminPage.includes("loadTranslationAudit") &&

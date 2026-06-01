@@ -724,6 +724,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [auditSearch, setAuditSearch] = useState("");
   const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
   const [translationAudit, setTranslationAudit] = useState<TranslationAudit | null>(null);
+  const [supportSearch, setSupportSearch] = useState("");
 
   async function loadOverview() {
     setRefreshing(true);
@@ -1094,6 +1095,22 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     .slice(0, 8);
   const trackAnalytics = Object.entries(analyticsTotals.tracks)
     .sort((a, b) => b[1] - a[1]);
+  const supportQuery = supportSearch.trim().toLowerCase();
+  const filteredFeedbackItems = (overview?.recentFeedback || []).filter((item) => {
+    if (!supportQuery) return true;
+    return [item.type, item.message, item.email || "", item.currentPath || "", item.status]
+      .some((value) => value.toLowerCase().includes(supportQuery));
+  });
+  const filteredReportItems = (overview?.recentReports || []).filter((item) => {
+    if (!supportQuery) return true;
+    return [item.reason, item.details || "", item.reporterEmail || "", item.projectSlug || "", item.projectId || "", item.status]
+      .some((value) => value.toLowerCase().includes(supportQuery));
+  });
+  const filteredContactItems = (overview?.recentContacts || []).filter((item) => {
+    if (!supportQuery) return true;
+    return [item.message, item.senderEmail || "", item.slug || "", item.projectId || "", item.reason || "", item.delivered ? "delivered" : "undelivered"]
+      .some((value) => value.toLowerCase().includes(supportQuery));
+  });
   const filteredAuditEntries = auditEntries.filter((entry) => {
     const query = auditSearch.trim().toLowerCase();
     if (!query) return true;
@@ -1555,10 +1572,40 @@ function SuperAdminPortal({ locale }: { locale: string }) {
             </TabsContent>
 
             <TabsContent value="support">
+              <div className="mb-4 space-y-3">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                    <Input
+                      value={supportSearch}
+                      onChange={(event) => setSupportSearch(event.target.value)}
+                      placeholder={label(locale, "חיפוש במשוב, דיווחים והודעות", "Search feedback, reports, and messages")}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Button variant="ghost" onClick={() => setSupportSearch("")} disabled={!supportSearch.trim()}>
+                    {label(locale, "נקה", "Clear")}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <p className="text-xs text-muted">{label(locale, "משוב חדש", "New feedback")}</p>
+                    <p className="font-heading text-2xl font-bold text-navy">{stats.newFeedback || 0}</p>
+                  </div>
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <p className="text-xs text-muted">{label(locale, "דיווחים פתוחים", "Open reports")}</p>
+                    <p className="font-heading text-2xl font-bold text-navy">{stats.openReports || 0}</p>
+                  </div>
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <p className="text-xs text-muted">{label(locale, "הודעות שלא נשלחו", "Undelivered")}</p>
+                    <p className="font-heading text-2xl font-bold text-navy">{stats.undeliveredContacts || 0}</p>
+                  </div>
+                </div>
+              </div>
               <div className="grid gap-4 lg:grid-cols-3">
                 <div className="space-y-2">
                   <h3 className="font-heading font-bold text-navy"><Inbox className="mr-1 inline h-4 w-4" /> {label(locale, "משוב", "Feedback")}</h3>
-                  {overview?.recentFeedback.length ? overview.recentFeedback.map((item) => (
+                  {filteredFeedbackItems.length ? filteredFeedbackItems.map((item) => (
                     <div key={item.id} className="rounded-lg border border-navy/10 bg-white p-3">
                       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
@@ -1583,7 +1630,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                 </div>
                 <div className="space-y-2">
                   <h3 className="font-heading font-bold text-navy"><AlertTriangle className="mr-1 inline h-4 w-4" /> {label(locale, "דיווחים", "Reports")}</h3>
-                  {(overview?.recentReports || []).length ? overview?.recentReports.map((report) => (
+                  {filteredReportItems.length ? filteredReportItems.map((report) => (
                     <div key={report.id} className="rounded-lg border border-navy/10 bg-white p-3 text-sm">
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <Badge variant={report.status === "open" ? "destructive" : "secondary"}>{reportStatusLabel(locale, report.status)}</Badge>
@@ -1602,7 +1649,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                 </div>
                 <div className="space-y-2">
                   <h3 className="font-heading font-bold text-navy"><Mail className="mr-1 inline h-4 w-4" /> {label(locale, "הודעות למשפחות", "Family messages")}</h3>
-                  {(overview?.recentContacts || []).length ? overview?.recentContacts.map((message) => (
+                  {filteredContactItems.length ? filteredContactItems.map((message) => (
                     <div key={message.id} className="rounded-lg border border-navy/10 bg-white p-3 text-sm">
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <Badge variant={message.delivered ? "secondary" : "destructive"}>{message.delivered ? label(locale, "נשלח", "Sent") : label(locale, "לא נשלח", "Not sent")}</Badge>
