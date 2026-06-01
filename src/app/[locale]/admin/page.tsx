@@ -921,6 +921,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [supportSearch, setSupportSearch] = useState("");
   const [communicationsSearch, setCommunicationsSearch] = useState("");
+  const [accessSearch, setAccessSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [supportDrafts, setSupportDrafts] = useState<Record<string, SupportDraft>>({});
   const [savingSupportItem, setSavingSupportItem] = useState<string | null>(null);
@@ -1588,6 +1589,57 @@ function SuperAdminPortal({ locale }: { locale: string }) {
       project.id,
     ].some((value) => String(value || "").toLowerCase().includes(query));
   });
+  const accessRows = projectSummaries.map((project) => {
+    const notes: { severity: "warn" | "info"; text: string }[] = [];
+    const publicProject = project.isPublic !== false;
+    if (!project.slug || project.issues.includes("missing_slug")) {
+      notes.push({ severity: "warn", text: label(locale, "חסר קישור ציבורי", "Missing public slug") });
+    }
+    if (project.status === "active" && !publicProject) {
+      notes.push({ severity: "warn", text: label(locale, "פעיל אבל לא מופיע בספרייה", "Active but hidden from directory") });
+    }
+    if (!project.isPasswordProtected && project.allowAnonymous !== false) {
+      notes.push({ severity: "info", text: label(locale, "פתוח להצטרפות ללא סיסמה", "Open without password") });
+    }
+    if (project.isPasswordProtected) {
+      notes.push({ severity: "info", text: label(locale, "דורש סיסמה לפני כניסה", "Requires password before entry") });
+    }
+    if (project.locked) {
+      notes.push({ severity: "info", text: label(locale, "נעול לבחירות חדשות", "Locked for new claims") });
+    }
+    if (project.showLeaderboard === false) {
+      notes.push({ severity: "info", text: label(locale, "יישר כח מוסתר", "Yasher Koach hidden") });
+    }
+    if (project.allowAnonymous === false) {
+      notes.push({ severity: "info", text: label(locale, "דורש התחברות לבחירה", "Requires sign-in to claim") });
+    }
+    return { project, notes };
+  });
+  const accessQuery = accessSearch.trim().toLowerCase();
+  const filteredAccessRows = accessRows.filter(({ project, notes }) => {
+    if (!accessQuery) return true;
+    return [
+      project.nameHebrew,
+      project.familyNameHebrew,
+      project.nameEnglish,
+      project.familyNameEnglish,
+      project.slug || "",
+      project.createdByEmail || "",
+      project.status,
+      project.id,
+      project.isPasswordProtected ? "password protected" : "open link",
+      project.isPublic === false ? "private hidden" : "public",
+      ...notes.map((note) => note.text),
+    ].some((value) => String(value || "").toLowerCase().includes(accessQuery));
+  });
+  const accessStats = {
+    protected: projectSummaries.filter((project) => project.isPasswordProtected).length,
+    open: projectSummaries.filter((project) => !project.isPasswordProtected).length,
+    directoryHidden: projectSummaries.filter((project) => project.isPublic === false).length,
+    locked: projectSummaries.filter((project) => project.locked).length,
+    anonymousOpen: projectSummaries.filter((project) => !project.isPasswordProtected && project.allowAnonymous !== false).length,
+    review: accessRows.filter((row) => row.notes.some((note) => note.severity === "warn")).length,
+  };
   const filteredUserSummaries = userSummaries.filter((user) => {
     const query = userSearch.trim().toLowerCase();
     if (!query) return true;
@@ -1622,6 +1674,29 @@ function SuperAdminPortal({ locale }: { locale: string }) {
       remindersQueued: day.remindersQueued,
       remindersSent: day.remindersSent,
       remindersFailed: day.remindersFailed,
+    }))));
+  }
+
+  function exportAccessCsv() {
+    finishExport(downloadCsv(`lzecher-access-audit-${exportStamp}.csv`, filteredAccessRows.map(({ project, notes }) => ({
+      id: project.id,
+      slug: project.slug,
+      status: project.status,
+      nameHebrew: project.nameHebrew,
+      familyNameHebrew: project.familyNameHebrew,
+      createdByEmail: project.createdByEmail,
+      public: project.isPublic !== false,
+      passwordProtected: project.isPasswordProtected,
+      allowAnonymous: project.allowAnonymous,
+      locked: project.locked,
+      leaderboardVisible: project.showLeaderboard,
+      repeatingSetEnabled: project.repeatingSetEnabled,
+      startedByVisible: project.startedByVisible,
+      totalPortions: project.totalPortions,
+      claimedPortions: project.claimedPortions,
+      completedPortions: project.completedPortions,
+      notes: notes.map((note) => note.text).join("|"),
+      issues: project.issues.join("|"),
     }))));
   }
 
@@ -1794,6 +1869,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
               <TabsTrigger value="stats"><BarChart3 className="h-4 w-4" /> {label(locale, "נתונים", "Stats")}</TabsTrigger>
               <TabsTrigger value="analytics"><TrendingUp className="h-4 w-4" /> {label(locale, "מגמות", "Analytics")}</TabsTrigger>
               <TabsTrigger value="exports"><Download className="h-4 w-4" /> {label(locale, "ייצוא", "Exports")}</TabsTrigger>
+              <TabsTrigger value="access"><Lock className="h-4 w-4" /> {label(locale, "גישה", "Access")}</TabsTrigger>
               <TabsTrigger value="projects"><ClipboardList className="h-4 w-4" /> {label(locale, "פרויקטים", "Projects")}</TabsTrigger>
               <TabsTrigger value="users"><Users className="h-4 w-4" /> {label(locale, "משתמשים", "Users")}</TabsTrigger>
               <TabsTrigger value="support"><Inbox className="h-4 w-4" /> {label(locale, "תמיכה", "Support")}</TabsTrigger>
@@ -2123,6 +2199,12 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                       action: exportAnalyticsCsv,
                     },
                     {
+                      key: "access",
+                      title: label(locale, "גישת פרויקטים", "Project access"),
+                      detail: label(locale, `${filteredAccessRows.length} פרויקטים מהחיפוש הנוכחי עם מצב קישור, סיסמה, אנונימיות ונעילה.`, `${filteredAccessRows.length} projects from the current search with link, password, anonymous, and lock state.`),
+                      action: exportAccessCsv,
+                    },
+                    {
                       key: "projects",
                       title: label(locale, "פרויקטים", "Projects"),
                       detail: label(locale, `${projectSummaries.length} פרויקטים עם סטטוס, סיסמה, מסלולים, התקדמות ובעיות תקינות.`, `${projectSummaries.length} projects with status, password state, tracks, progress, and diagnostics.`),
@@ -2166,6 +2248,151 @@ function SuperAdminPortal({ locale }: { locale: string }) {
 
                 <div className="rounded-lg border border-navy/10 bg-cream/40 p-3 text-xs text-muted">
                   {label(locale, "לייצוא מלא יותר בעתיד אפשר להוסיף דוחות לפי טווח תאריכים, אך בכוונה אין כאן מחיקה, שינוי הרשאות או תיקון גורף.", "For deeper exports later we can add date-range reports, but this intentionally does not delete, change permissions, or bulk-repair anything.")}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="access">
+              <div className="space-y-4">
+                <div className="rounded-lg border border-navy/10 bg-white p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex items-start gap-2">
+                      <Lock className="mt-0.5 h-5 w-5 text-gold" />
+                      <div>
+                        <h3 className="font-heading font-bold text-navy">{label(locale, "בדיקת גישה ושיתוף", "Access and Sharing Audit")}</h3>
+                        <p className="text-xs text-muted">
+                          {label(locale, "תצוגה לקריאה בלבד: האם פרויקט פתוח, דורש סיסמה, מוסתר מהספרייה, נעול לבחירות חדשות או דורש התחברות.", "Read-only view: whether each project is open, password-protected, hidden from the directory, locked for new claims, or requires sign-in.")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" onClick={exportAccessCsv} disabled={!filteredAccessRows.length}>
+                        <Download className="h-4 w-4" />
+                        CSV
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setAccessSearch("")} disabled={!accessSearch.trim()}>
+                        {label(locale, "נקה חיפוש", "Clear search")}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="relative mt-4">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                    <Input
+                      value={accessSearch}
+                      onChange={(event) => setAccessSearch(event.target.value)}
+                      placeholder={label(locale, "חיפוש לפי שם, קישור, יוצר או מצב גישה", "Search by name, slug, creator, or access state")}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+                  {[
+                    [label(locale, "פרויקטים", "Projects"), projectSummaries.length],
+                    [label(locale, "עם סיסמה", "Protected"), accessStats.protected],
+                    [label(locale, "פתוחים", "Open"), accessStats.open],
+                    [label(locale, "מוסתרים מהספרייה", "Directory hidden"), accessStats.directoryHidden],
+                    [label(locale, "נעולים", "Locked"), accessStats.locked],
+                    [label(locale, "לבדיקה", "Review"), accessStats.review],
+                  ].map(([name, value]) => (
+                    <div key={String(name)} className="rounded-lg border border-navy/10 bg-white p-3">
+                      <p className="text-xs text-muted">{name}</p>
+                      <p className="font-heading text-2xl font-bold text-navy">{Number(value || 0).toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <h4 className="font-heading font-bold text-navy">{label(locale, "מצב פרויקטים", "Project access states")}</h4>
+                      <Badge variant="secondary">{filteredAccessRows.length} {label(locale, "בתצוגה", "shown")}</Badge>
+                    </div>
+                    <div className="max-h-[620px] space-y-2 overflow-y-auto pr-1">
+                      {filteredAccessRows.map(({ project, notes }) => (
+                        <div key={project.id} className="rounded-lg border border-navy/10 bg-cream/30 p-3">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-navy" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</p>
+                              <p className="text-xs text-muted">{project.slug || project.id}</p>
+                            </div>
+                            <div className="flex shrink-0 flex-wrap gap-1">
+                              {project.slug && (
+                                <a href={`/${locale}/memorial/${project.slug}`} target="_blank" rel="noopener">
+                                  <Button size="sm" variant="ghost"><Eye className="h-4 w-4" />{label(locale, "פתח", "Open")}</Button>
+                                </a>
+                              )}
+                              <Button size="sm" variant="ghost" onClick={() => inspectProject(project.id)}>
+                                <Shield className="h-4 w-4" />
+                                {label(locale, "בדוק", "Inspect")}
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            <Badge variant="secondary">{projectStatusLabel(locale, project.status)}</Badge>
+                            <Badge variant={project.isPublic === false ? "outline" : "secondary"}>
+                              {project.isPublic === false ? label(locale, "לא בספרייה", "Directory hidden") : label(locale, "בספרייה", "Directory visible")}
+                            </Badge>
+                            <Badge variant={project.isPasswordProtected ? "default" : "outline"}>
+                              {project.isPasswordProtected ? label(locale, "סיסמה", "Password") : label(locale, "ללא סיסמה", "No password")}
+                            </Badge>
+                            <Badge variant={project.allowAnonymous === false ? "outline" : "secondary"}>
+                              {project.allowAnonymous === false ? label(locale, "דורש התחברות", "Sign-in required") : label(locale, "אפשר אנונימי", "Anonymous allowed")}
+                            </Badge>
+                            {project.locked && <Badge variant="destructive">{label(locale, "נעול", "Locked")}</Badge>}
+                            {project.showLeaderboard === false && <Badge variant="outline">{label(locale, "יישר כח מוסתר", "Yasher Koach hidden")}</Badge>}
+                          </div>
+                          {notes.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {notes.map((note) => (
+                                <Badge key={`${project.id}-${note.text}`} variant={note.severity === "warn" ? "destructive" : "secondary"}>
+                                  {note.text}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {!filteredAccessRows.length && (
+                        <p className="py-8 text-center text-sm text-muted">{label(locale, "אין פרויקטים שמתאימים לחיפוש", "No projects match this search")}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="rounded-lg border border-navy/10 bg-white p-3">
+                      <h4 className="font-heading font-bold text-navy">{label(locale, "סיכום פתיחות", "Openness summary")}</h4>
+                      <div className="mt-3 space-y-2 text-sm">
+                        <div className="flex items-center justify-between rounded-md bg-cream/40 px-2 py-2">
+                          <span className="text-navy">{label(locale, "פתוח וגם מאפשר אנונימי", "Open and anonymous")}</span>
+                          <Badge variant="secondary">{accessStats.anonymousOpen}</Badge>
+                        </div>
+                        <div className="flex items-center justify-between rounded-md bg-cream/40 px-2 py-2">
+                          <span className="text-navy">{label(locale, "דורש סיסמה", "Password protected")}</span>
+                          <Badge variant="secondary">{accessStats.protected}</Badge>
+                        </div>
+                        <div className="flex items-center justify-between rounded-md bg-cream/40 px-2 py-2">
+                          <span className="text-navy">{label(locale, "מוסתר מהספרייה", "Hidden from directory")}</span>
+                          <Badge variant="secondary">{accessStats.directoryHidden}</Badge>
+                        </div>
+                        <div className="flex items-center justify-between rounded-md bg-cream/40 px-2 py-2">
+                          <span className="text-navy">{label(locale, "דורש בדיקה", "Needs review")}</span>
+                          <Badge variant={accessStats.review ? "destructive" : "secondary"}>{accessStats.review}</Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-gold/20 bg-gold/5 p-4 text-sm text-navy">
+                      <p className="font-medium">{label(locale, "מה נחשב לבדיקה", "What gets flagged")}</p>
+                      <p className="mt-1 text-xs text-muted">
+                        {label(locale, "המערכת מסמנת בעיקר פרויקט פעיל שלא מופיע בספרייה או פרויקט שחסר לו קישור. מצבים כמו סיסמה, נעילה או הסתרת יישר כח מוצגים כמידע ולא כשגיאה.", "The audit mainly flags active projects hidden from the directory or projects missing a public slug. Passwords, locks, and hidden Yasher Koach sections are shown as information, not errors.")}
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-navy/10 bg-cream/40 p-3 text-xs text-muted">
+                      {label(locale, "כדי לשנות גישה של פרויקט, פתחו אותו בלשונית פרויקטים. שינוי כזה נשמר לפרויקט אחד בלבד ונרשם ביומן ביקורת.", "To change a project's access, inspect it from the Projects tab. Changes are saved to one project only and written to the audit log.")}
+                    </div>
+                  </div>
                 </div>
               </div>
             </TabsContent>
