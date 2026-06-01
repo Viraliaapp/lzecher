@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil, Share2, Inbox, UserPlus, BarChart3, RotateCw, Wrench, History, CheckCircle2, Lock, Unlock, ClipboardList, Mail, Settings, Megaphone, ShieldCheck, Languages } from "lucide-react";
+import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil, Share2, Inbox, UserPlus, BarChart3, RotateCw, Wrench, History, CheckCircle2, Lock, Unlock, ClipboardList, Mail, Settings, Megaphone, ShieldCheck, Languages, TrendingUp } from "lucide-react";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
@@ -1066,6 +1066,34 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const translationMissingTotal = translationAudit?.locales.reduce((sum, item) => sum + item.missingKeys.length, 0) || 0;
   const translationEmptyTotal = translationAudit?.locales.reduce((sum, item) => sum + item.emptyKeys.length, 0) || 0;
   const translationForbiddenTotal = translationAudit?.locales.reduce((sum, item) => sum + item.forbiddenHits.length, 0) || 0;
+  const analyticsTotals = projectSummaries.reduce(
+    (acc, project) => {
+      acc.totalPortions += project.totalPortions;
+      acc.claimedPortions += project.claimedPortions;
+      acc.completedPortions += project.completedPortions;
+      acc.participants += project.participantCount;
+      if (project.isPasswordProtected) acc.passwordProtected += 1;
+      if (project.completedCycles > 0) acc.bonusProjects += 1;
+      for (const track of project.tracks) acc.tracks[track] = (acc.tracks[track] || 0) + 1;
+      return acc;
+    },
+    { totalPortions: 0, claimedPortions: 0, completedPortions: 0, participants: 0, passwordProtected: 0, bonusProjects: 0, tracks: {} as Record<string, number> }
+  );
+  const analyticsRates = {
+    taken: analyticsTotals.totalPortions ? Math.round((analyticsTotals.claimedPortions / analyticsTotals.totalPortions) * 100) : 0,
+    learned: analyticsTotals.totalPortions ? Math.round((analyticsTotals.completedPortions / analyticsTotals.totalPortions) * 100) : 0,
+    protected: projectSummaries.length ? Math.round((analyticsTotals.passwordProtected / projectSummaries.length) * 100) : 0,
+    averageParticipants: projectSummaries.length ? Math.round(analyticsTotals.participants / projectSummaries.length) : 0,
+  };
+  const topProgressProjects = [...projectSummaries]
+    .filter((project) => project.totalPortions > 0)
+    .sort((a, b) => b.completedProgressPct - a.completedProgressPct || b.progressPct - a.progressPct)
+    .slice(0, 8);
+  const topParticipantProjects = [...projectSummaries]
+    .sort((a, b) => b.participantCount - a.participantCount)
+    .slice(0, 8);
+  const trackAnalytics = Object.entries(analyticsTotals.tracks)
+    .sort((a, b) => b[1] - a[1]);
   const filteredAuditEntries = auditEntries.filter((entry) => {
     const query = auditSearch.trim().toLowerCase();
     if (!query) return true;
@@ -1131,6 +1159,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
           <Tabs value={superTab} onValueChange={setSuperTab} dir={locale === "he" ? "rtl" : "ltr"}>
             <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
               <TabsTrigger value="stats"><BarChart3 className="h-4 w-4" /> {label(locale, "נתונים", "Stats")}</TabsTrigger>
+              <TabsTrigger value="analytics"><TrendingUp className="h-4 w-4" /> {label(locale, "מגמות", "Analytics")}</TabsTrigger>
               <TabsTrigger value="projects"><ClipboardList className="h-4 w-4" /> {label(locale, "פרויקטים", "Projects")}</TabsTrigger>
               <TabsTrigger value="support"><Inbox className="h-4 w-4" /> {label(locale, "תמיכה", "Support")}</TabsTrigger>
               <TabsTrigger value="integrity"><ShieldCheck className="h-4 w-4" /> {label(locale, "תקינות", "Integrity")}</TabsTrigger>
@@ -1194,6 +1223,84 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                       );
                     })}
                   </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="analytics">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {[
+                    [label(locale, "אחוז שנלקח", "Taken rate"), `${analyticsRates.taken}%`, `${analyticsTotals.claimedPortions.toLocaleString()}/${analyticsTotals.totalPortions.toLocaleString()}`],
+                    [label(locale, "אחוז שנלמד", "Learned rate"), `${analyticsRates.learned}%`, analyticsTotals.completedPortions.toLocaleString()],
+                    [label(locale, "משתתפים ממוצע", "Avg participants"), analyticsRates.averageParticipants.toLocaleString(), analyticsTotals.participants.toLocaleString()],
+                    [label(locale, "עם סיסמה", "Protected"), `${analyticsRates.protected}%`, analyticsTotals.passwordProtected.toLocaleString()],
+                  ].map(([name, value, detail]) => (
+                    <div key={String(name)} className="rounded-lg border border-navy/10 bg-white p-3">
+                      <p className="text-xs text-muted">{name}</p>
+                      <p className="font-heading text-2xl font-bold text-navy">{value}</p>
+                      <p className="mt-1 text-xs text-muted">{detail}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <h3 className="mb-2 font-heading font-bold text-navy">{label(locale, "מסלולים בפרויקטים", "Track coverage")}</h3>
+                    <div className="space-y-2">
+                      {trackAnalytics.map(([track, count]) => {
+                        const trackConfig = TRACK_CONFIGS[track as keyof typeof TRACK_CONFIGS];
+                        const pct = projectSummaries.length ? Math.round((count / projectSummaries.length) * 100) : 0;
+                        return (
+                          <div key={track} className="rounded-md bg-cream/40 px-2 py-2">
+                            <div className="flex items-center justify-between gap-3 text-sm">
+                              <span className="font-medium text-navy">{trackConfig ? (locale === "he" ? trackConfig.label.he : trackConfig.label.en) : track}</span>
+                              <span className="text-muted">{count} · {pct}%</span>
+                            </div>
+                            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-navy/10">
+                              <div className="h-full rounded-full bg-gold" style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <h3 className="mb-2 font-heading font-bold text-navy">{label(locale, "התקדמות מובילה", "Top progress")}</h3>
+                    <div className="space-y-2">
+                      {topProgressProjects.map((project) => (
+                        <button key={project.id} type="button" onClick={() => inspectProject(project.id)} className="block w-full rounded-md bg-cream/40 px-2 py-2 text-start transition hover:bg-gold/10">
+                          <div className="flex items-center justify-between gap-3 text-sm">
+                            <span className="min-w-0 truncate font-medium text-navy" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</span>
+                            <span className="shrink-0 text-muted">{Math.round(project.completedProgressPct || 0)}%</span>
+                          </div>
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-navy/10">
+                            <div className="h-full rounded-full bg-green-600" style={{ width: `${Math.min(100, Math.round(project.completedProgressPct || 0))}%` }} />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <h3 className="mb-2 font-heading font-bold text-navy">{label(locale, "השתתפות מובילה", "Top participation")}</h3>
+                    <div className="space-y-2">
+                      {topParticipantProjects.map((project) => (
+                        <button key={project.id} type="button" onClick={() => inspectProject(project.id)} className="flex w-full items-center justify-between gap-3 rounded-md bg-cream/40 px-2 py-2 text-start transition hover:bg-gold/10">
+                          <span className="min-w-0 truncate text-sm font-medium text-navy" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</span>
+                          <span className="shrink-0 text-xs text-muted">{project.participantCount} {label(locale, "משתתפים", "participants")}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gold/20 bg-gold/5 p-4 text-sm text-navy">
+                  <p className="font-medium">{label(locale, "תובנות תפעול", "Operational insight")}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {label(locale, `${analyticsTotals.bonusProjects} פרויקטים כבר הגיעו למחזור נוסף. זה עוזר לזהות אילו דפי הנצחה מצליחים להמשיך לעורר לימוד אחרי הסיום הראשון.`, `${analyticsTotals.bonusProjects} projects have reached an additional cycle. This helps identify memorial pages that keep inspiring learning after the first completion.`)}
+                  </p>
                 </div>
               </div>
             </TabsContent>
