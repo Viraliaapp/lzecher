@@ -28,8 +28,9 @@ import { auth } from "@/lib/firebase/config";
 import type { MemorialProject } from "@/lib/types";
 import type { SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
-import { MASECHTOS } from "@/lib/seed-data";
 import { TRACK_CONFIGS } from "@/lib/track-config";
+import { toHebrewCalendarDate } from "@/lib/hebrew-date";
+import { learningLabel } from "@/lib/learning-label";
 
 type Filter = "all" | "active" | "hidden" | "reported";
 
@@ -343,8 +344,6 @@ const EMPTY_SITE_SETTINGS: SiteSettings = {
 
 const PROJECT_STATUS_OPTIONS = ["active", "completed", "hidden", "archived", "pending_moderation"] as const;
 
-const MASECHTA_HE_BY_NAME = new Map(MASECHTOS.map((masechta) => [masechta.name, masechta.nameHebrew]));
-
 function label(locale: string, he: string, en: string) {
   return locale === "he" ? he : en;
 }
@@ -507,7 +506,7 @@ export default function AdminPage() {
                       <p className="text-sm text-muted truncate">{project.nameEnglish}</p>
                     )}
                     <p className="text-xs text-muted mt-0.5">
-                      {new Date(project.createdAt).toLocaleDateString()}
+                      {formatTimestamp(project.createdAt, locale)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -630,9 +629,10 @@ export default function AdminPage() {
   );
 }
 
-function formatTimestamp(ts?: number | null) {
+function formatTimestamp(ts?: number | null, locale = "en") {
   if (!ts) return "";
   try {
+    if (locale === "he") return toHebrewCalendarDate(ts, locale);
     return new Date(ts).toLocaleString();
   } catch {
     return "";
@@ -687,6 +687,51 @@ function feedbackStatusLabel(locale: string, status: string) {
     resolved: "Resolved",
   };
   return locale === "he" ? he[status] || status : en[status] || status;
+}
+
+function feedbackTypeLabel(locale: string, type: string) {
+  const he: Record<string, string> = {
+    suggestion: "הצעה",
+    question: "שאלה",
+    bug: "תקלה",
+    other: "אחר",
+  };
+  const en: Record<string, string> = {
+    suggestion: "Suggestion",
+    question: "Question",
+    bug: "Bug",
+    other: "Other",
+  };
+  return locale === "he" ? he[type] || type : en[type] || type;
+}
+
+function reportReasonLabel(locale: string, reason: string) {
+  const he: Record<string, string> = {
+    bug: "תקלה",
+    issue: "תקלה",
+    content: "תוכן",
+    inappropriate: "תוכן לא מתאים",
+    other: "אחר",
+  };
+  const en: Record<string, string> = {
+    bug: "Bug",
+    issue: "Issue",
+    content: "Content",
+    inappropriate: "Inappropriate content",
+    other: "Other",
+  };
+  return locale === "he" ? he[reason] || reason : en[reason] || reason;
+}
+
+function supportText(locale: string, text?: string | null) {
+  if (!text) return "";
+  if (locale !== "he") return text;
+  return text
+    .replaceAll("Authentication required for inclusive commitments", "נדרשה התחברות לבחירת קבלה או התחייבות")
+    .replaceAll("inclusive commitments", "קבלות והתחייבויות")
+    .replaceAll("No email", "ללא אימייל")
+    .replace(/\bbug\b/gi, "תקלה")
+    .replace(/\bnew\b/gi, "חדש");
 }
 
 function contactSupportStatusLabel(locale: string, status: string) {
@@ -783,23 +828,6 @@ function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
   link.remove();
   URL.revokeObjectURL(url);
   return true;
-}
-
-function learningLabel(locale: string, reference?: string | null, trackType?: string | null) {
-  const fallback = reference || trackType || "";
-  if (locale !== "he") return fallback;
-  if (reference) {
-    const match = reference.match(/^(.+?)\s+(\d+(?::\d+)?)$/);
-    if (match) {
-      const [, name, number] = match;
-      const hebrewName = MASECHTA_HE_BY_NAME.get(name);
-      if (hebrewName) return `${hebrewName} ${number}`;
-    }
-    if (reference.startsWith("Tehillim ")) return reference.replace("Tehillim", "תהלים");
-    if (reference.startsWith("Psalm ")) return reference.replace("Psalm", "תהלים");
-  }
-  const track = trackType ? TRACK_CONFIGS[trackType as keyof typeof TRACK_CONFIGS] : null;
-  return track?.label.he || fallback;
 }
 
 function healthCheckCopy(locale: string, check: SuperHealthCheck, stats: Record<string, number>) {
@@ -1366,7 +1394,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
           )}
           {item.supportUpdatedAt && (
             <span className="text-xs text-muted">
-              {label(locale, "עודכן", "Updated")}: {formatTimestamp(item.supportUpdatedAt)}
+              {label(locale, "עודכן", "Updated")}: {formatTimestamp(item.supportUpdatedAt, locale)}
             </span>
           )}
         </div>
@@ -1978,7 +2006,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     {(overview?.recentClaims || []).slice(0, 8).map((claim) => (
                       <div key={claim.id} className="flex items-center justify-between gap-3 rounded-md bg-cream/40 px-2 py-1.5 text-xs">
                         <span className="min-w-0 truncate text-navy">{claim.userName || label(locale, "אנונימי", "Anonymous")} · {learningLabel(locale, claim.reference, claim.trackType)}</span>
-                        <span className="shrink-0 text-muted">{formatTimestamp(claim.claimedAt)}</span>
+                        <span className="shrink-0 text-muted">{formatTimestamp(claim.claimedAt, locale)}</span>
                       </div>
                     ))}
                     {!overview?.recentClaims.length && <p className="py-4 text-center text-sm text-muted">{label(locale, "אין פעילות עדיין", "No activity yet")}</p>}
@@ -2676,7 +2704,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                           <div className="space-y-1.5">
                             {(projectDetail?.recentClaims || []).slice(0, 8).map((claim) => (
                               <div key={claim.id} className="rounded-md bg-cream/40 px-2 py-1.5 text-xs text-navy">
-                                <span className="font-medium">{claim.userName || label(locale, "אנונימי", "Anonymous")}</span> · {learningLabel(locale, claim.reference, claim.trackType)} · {formatTimestamp(claim.claimedAt)}
+                                <span className="font-medium">{claim.userName || label(locale, "אנונימי", "Anonymous")}</span> · {learningLabel(locale, claim.reference, claim.trackType)} · {formatTimestamp(claim.claimedAt, locale)}
                               </div>
                             ))}
                           </div>
@@ -2686,8 +2714,8 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                           <div className="space-y-2 text-xs">
                             {(projectDetail?.reports || []).slice(0, 4).map((report) => (
                               <div key={report.id} className="rounded-md bg-red-50 px-2 py-1.5 text-red-800">
-                                <p className="font-medium">{report.reason}</p>
-                                {report.details && <p className="mt-1">{report.details}</p>}
+                                <p className="font-medium">{reportReasonLabel(locale, report.reason)}</p>
+                                {report.details && <p className="mt-1" dir={locale === "he" ? "rtl" : "ltr"}>{supportText(locale, report.details)}</p>}
                                 {renderSupportMeta("report", report)}
                                 <div className="mt-1 flex flex-wrap gap-1">
                                   <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "reviewing")} disabled={savingSupportItem === supportKey("report", report.id)}>{label(locale, "בטיפול", "Review")}</Button>
@@ -2795,7 +2823,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
-                      <span>{label(locale, "פעילות אחרונה", "Last activity")}: {user.lastActivityAt ? formatTimestamp(user.lastActivityAt) : label(locale, "לא ידוע", "Unknown")}</span>
+                      <span>{label(locale, "פעילות אחרונה", "Last activity")}: {user.lastActivityAt ? formatTimestamp(user.lastActivityAt, locale) : label(locale, "לא ידוע", "Unknown")}</span>
                       <span>{label(locale, "פרויקטים פעילים", "Active projects")}: {user.activeProjectCount}</span>
                     </div>
 
@@ -2861,7 +2889,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <Badge variant={item.status === "new" ? "default" : "secondary"}>{feedbackStatusLabel(locale, item.status)}</Badge>
-                          <span className="text-xs text-muted">{item.type} · {formatTimestamp(item.submittedAt)}</span>
+                          <span className="text-xs text-muted">{feedbackTypeLabel(locale, item.type)} · {formatTimestamp(item.submittedAt, locale)}</span>
                         </div>
                         <div className="flex gap-1">
                           <Button size="sm" variant="ghost" onClick={() => updateFeedbackStatus(item.id, "read")} disabled={savingSupportItem === supportKey("feedback", item.id)}>{label(locale, "נקרא", "Read")}</Button>
@@ -2869,7 +2897,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                           <Button size="sm" variant="ghost" onClick={() => updateFeedbackStatus(item.id, "archived")} disabled={savingSupportItem === supportKey("feedback", item.id)}>{label(locale, "ארכיון", "Archive")}</Button>
                         </div>
                       </div>
-                      <p className="text-sm text-navy" dir={item.locale === "he" ? "rtl" : "ltr"}>{item.message}</p>
+                      <p className="text-sm text-navy" dir={item.locale === "he" || locale === "he" ? "rtl" : "ltr"}>{supportText(locale, item.message)}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
                         <span>{item.email || label(locale, "ללא אימייל", "No email")}</span>
                         {item.currentPath && (
@@ -2891,11 +2919,11 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     <div key={report.id} className="rounded-lg border border-navy/10 bg-white p-3 text-sm">
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <Badge variant={report.status === "open" ? "destructive" : "secondary"}>{reportStatusLabel(locale, report.status)}</Badge>
-                        <span className="text-xs text-muted">{formatTimestamp(report.reportedAt)}</span>
+                        <span className="text-xs text-muted">{formatTimestamp(report.reportedAt, locale)}</span>
                       </div>
-                      <p className="font-medium text-navy">{report.reason}</p>
+                      <p className="font-medium text-navy">{reportReasonLabel(locale, report.reason)}</p>
                       <p className="text-xs text-muted">{report.projectSlug || report.projectId}</p>
-                      {report.details && <p className="mt-2 text-navy">{report.details}</p>}
+                      {report.details && <p className="mt-2 text-navy" dir={locale === "he" ? "rtl" : "ltr"}>{supportText(locale, report.details)}</p>}
                       {renderSupportMeta("report", report)}
                       <div className="mt-2 flex flex-wrap gap-1">
                         <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "reviewing")} disabled={savingSupportItem === supportKey("report", report.id)}>{label(locale, "בטיפול", "Review")}</Button>
@@ -2912,7 +2940,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     <div key={message.id} className="rounded-lg border border-navy/10 bg-white p-3 text-sm">
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <Badge variant={message.delivered ? "secondary" : "destructive"}>{message.delivered ? label(locale, "נשלח", "Sent") : label(locale, "לא נשלח", "Not sent")}</Badge>
-                        <span className="text-xs text-muted">{formatTimestamp(message.sentAt)}</span>
+                        <span className="text-xs text-muted">{formatTimestamp(message.sentAt, locale)}</span>
                       </div>
                       <p className="text-xs text-muted">{message.senderEmail || label(locale, "ללא אימייל", "No email")} · {message.slug || message.projectId}</p>
                       <p className="mt-2 line-clamp-4 text-navy">{message.message}</p>
@@ -3012,7 +3040,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                               <p className="mt-1 truncate text-xs text-muted">{email.toEmail || label(locale, "ללא אימייל", "No email")}</p>
                             </div>
                             <div className="text-end text-xs text-muted">
-                              <p>{label(locale, "שליחה", "Send")}: {email.sendAt ? formatTimestamp(email.sendAt) : label(locale, "לא ידוע", "Unknown")}</p>
+                              <p>{label(locale, "שליחה", "Send")}: {email.sendAt ? formatTimestamp(email.sendAt, locale) : label(locale, "לא ידוע", "Unknown")}</p>
                               <p>{label(locale, "ניסיונות", "Attempts")}: {email.attempts}</p>
                             </div>
                           </div>
@@ -3320,7 +3348,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                           <button type="button" onClick={() => setExpandedAuditId(expanded ? null : entry.id)} className="text-start font-medium text-navy">
                             {entry.action}
                           </button>
-                          <span className="text-xs text-muted">{formatTimestamp(entry.at)}</span>
+                          <span className="text-xs text-muted">{formatTimestamp(entry.at, locale)}</span>
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
                           <span>{entry.adminUid || label(locale, "ללא מנהל", "No admin")}</span>
@@ -3433,7 +3461,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                   </Button>
                   {siteSettings.updatedAt && (
                     <p className="mt-2 text-center text-xs text-muted">
-                      {label(locale, "עודכן לאחרונה", "Last updated")}: {formatTimestamp(siteSettings.updatedAt)}
+                      {label(locale, "עודכן לאחרונה", "Last updated")}: {formatTimestamp(siteSettings.updatedAt, locale)}
                     </p>
                   )}
                 </div>

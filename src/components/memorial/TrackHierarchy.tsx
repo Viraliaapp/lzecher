@@ -203,6 +203,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onB
           const claimed = sp.filter((p) => p.status !== "available").length;
           const pct = sp.length > 0 ? Math.round((claimed / sp.length) * 100) : 0;
           const isExpanded = expandedSeder === seder;
+          const isFullyTaken = sp.length > 0 && claimed === sp.length;
 
           return (
             <button
@@ -210,7 +211,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onB
               onClick={() => { setExpandedSeder(isExpanded ? null : seder); setExpandedMasechta(null); }}
               className={cn(
                 "p-4 rounded-xl border-2 text-start transition-all",
-                isExpanded ? "border-gold bg-gold/5" : "border-navy/5 bg-white hover:border-navy/10 hover:shadow-sm"
+                isExpanded ? "border-gold bg-gold/5" : isFullyTaken ? "border-emerald-200 bg-emerald-50/80 shadow-sm" : "border-navy/5 bg-white hover:border-navy/10 hover:shadow-sm"
               )}
             >
               <div className="flex items-center justify-between mb-2">
@@ -251,6 +252,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onB
               {Object.entries(masechtotInSeder).map(([name, mp]) => {
                 const claimed = (mp as Portion[]).filter((p) => p.status !== "available").length;
                 const isExp = expandedMasechta === name;
+                const isFullyTaken = (mp as Portion[]).length > 0 && claimed === (mp as Portion[]).length;
                 const displayName = locale === "he" ? (hebrewMasechtaNames[name] || name) : name;
                 return (
                   <button
@@ -258,7 +260,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onB
                     onClick={() => setExpandedMasechta(isExp ? null : name)}
                     className={cn(
                       "p-3 rounded-lg border text-start transition-all text-sm",
-                      isExp ? "border-gold bg-white shadow-sm" : "border-navy/5 bg-white hover:border-navy/10"
+                      isExp ? "border-gold bg-white shadow-sm" : isFullyTaken ? "border-emerald-200 bg-emerald-50/80 shadow-sm" : "border-navy/5 bg-white hover:border-navy/10"
                     )}
                   >
                     <p className="font-medium text-navy truncate">{displayName}</p>
@@ -418,6 +420,7 @@ function TehillimHierarchy({ portions, onClaim, onComplete, onBulkComplete, onMu
           });
           const claimed = bp.filter((p: Portion) => p.status !== "available").length;
           const isExp = expandedBook === i;
+          const isFullyTaken = bp.length > 0 && claimed === bp.length;
 
           return (
             <div key={i}>
@@ -425,7 +428,7 @@ function TehillimHierarchy({ portions, onClaim, onComplete, onBulkComplete, onMu
                 onClick={() => setExpandedBook(isExp ? null : i)}
                 className={cn(
                   "w-full p-4 rounded-xl border-2 text-start transition-all",
-                  isExp ? "border-gold bg-gold/5" : "border-navy/5 bg-white hover:border-navy/10"
+                  isExp ? "border-gold bg-gold/5" : isFullyTaken ? "border-emerald-200 bg-emerald-50/80 shadow-sm" : "border-navy/5 bg-white hover:border-navy/10"
                 )}
               >
                 <div className="flex justify-between items-center">
@@ -571,13 +574,14 @@ function ShnayimMikraHierarchy({ portions, onClaim, onComplete, claimingId, comp
         if (bp.length === 0) return null;
         const claimed = bp.filter((p) => p.status !== "available").length;
         const isExp = expandedBook === eng;
+        const isFullyTaken = bp.length > 0 && claimed === bp.length;
         return (
           <div key={eng}>
             <button
               onClick={() => setExpandedBook(isExp ? null : eng)}
               className={cn(
                 "w-full p-4 rounded-xl border-2 text-start transition-all",
-                isExp ? "border-gold bg-gold/5" : "border-navy/5 bg-white hover:border-navy/10"
+                isExp ? "border-gold bg-gold/5" : isFullyTaken ? "border-emerald-200 bg-emerald-50/80 shadow-sm" : "border-navy/5 bg-white hover:border-navy/10"
               )}
             >
               <div className="flex justify-between items-center">
@@ -633,7 +637,13 @@ function InclusiveGrid({ portions, onClaim, claimingId, t, locale }: any) {
             ? (locale === "he" ? "אני מקבל/ת על עצמי בלי נדר" : "I accept upon myself (bli neder)")
             : (locale === "he" ? heClaimButton(getVerbForm(p), false).replace("אני ", "") : t("joinCommitment"));
           return (
-            <Card key={p.id} className="transition-all hover:shadow-sm hover:-translate-y-0.5">
+            <Card
+              key={p.id}
+              className={cn(
+                "transition-all hover:shadow-sm hover:-translate-y-0.5",
+                count > 0 && "border-gold/40 bg-gold/10 shadow-sm"
+              )}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex-1 min-w-0">
@@ -740,12 +750,22 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
 
   return (
     <Card className={cn(
-      "transition-all overflow-hidden",
-      isDone && "opacity-60",
+      "relative transition-all overflow-hidden border-2",
+      isDone && "border-emerald-300 bg-emerald-50/90 shadow-sm",
       isAvailable && !multiSelectMode && "hover:shadow-sm hover:-translate-y-0.5 cursor-pointer",
-      isTaken && "bg-[#E6EDE0] border-[#A3B99A]",
+      isTaken && "border-gold/50 bg-gold/10 shadow-sm",
+      isAvailable && "border-navy/5 bg-white",
       multiSelectMode && isSelected && "ring-2 ring-gold ring-offset-1",
     )}>
+      {(isTaken || isDone) && (
+        <div
+          className={cn(
+            "absolute inset-y-0 w-1.5",
+            locale === "he" ? "right-0" : "left-0",
+            isDone ? "bg-emerald-500" : "bg-gold"
+          )}
+        />
+      )}
       <CardContent className="min-h-[86px] p-3.5 flex flex-col justify-between" style={{ paddingLeft: 16, paddingRight: 16 }}>
         {/* Top: name + status icon / checkbox */}
         <div className="flex items-start gap-2 mb-2">
@@ -759,6 +779,16 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
           >
             {displayName}
           </p>
+          {isTaken && (
+            <span className="shrink-0 rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-bold text-gold-deep">
+              {locale === "he" ? "נלקח" : "Taken"}
+            </span>
+          )}
+          {isDone && (
+            <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+              {locale === "he" ? "נלמד" : "Learned"}
+            </span>
+          )}
           {multiSelectMode && isAvailable && (
             <input
               type="checkbox"
@@ -804,6 +834,11 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
             <p className="text-xs font-bold text-navy" dir="rtl" style={{ wordBreak: "break-word" as const }}>
               {t("claimedBy", { name: p.claimedByName || t("someone") })}
             </p>
+            {p.claimedAt && (
+              <p className="text-[10px] font-medium text-gold-deep" dir={locale === "he" ? "rtl" : "ltr"}>
+                {locale === "he" ? "נלקח: " : "Taken: "}{toHebrewCalendarDate(p.claimedAt, locale)}
+              </p>
+            )}
             {completeSelectMode ? (
               <div className="flex items-center gap-1.5">
                 <input

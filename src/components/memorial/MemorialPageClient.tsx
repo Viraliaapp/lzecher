@@ -421,6 +421,10 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   async function confirmComplete() {
     const ids = completingPortion ? [completingPortion.id] : completingPortionIds;
     if (ids.length === 0) return;
+    if (!completerName.trim()) {
+      toast.error(t("nameRequired") || (locale === "he" ? "אנא הזן את שמך" : "Please enter your name"));
+      return;
+    }
     setSubmittingComplete(true);
     try {
       const idToken = await auth.currentUser?.getIdToken().catch(() => null);
@@ -430,7 +434,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         body: JSON.stringify({
           portionIds: ids,
           projectId: project.id,
-          completedByName: completerName.trim() || undefined,
+          completedByName: completerName.trim(),
           idToken,
         }),
       });
@@ -1318,7 +1322,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             </p>
             <div>
               <label className="text-sm font-medium text-navy mb-1 block" dir="rtl">
-                {locale === "he" ? "שמך (אופציונלי)" : "Your name (optional)"}
+                {locale === "he" ? "שמך" : "Your name"}
               </label>
               <Input
                 value={completerName}
@@ -1331,7 +1335,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             <Button variant="ghost" onClick={() => setCompleteDialogOpen(false)} disabled={submittingComplete}>
               {locale === "he" ? "ביטול" : "Cancel"}
             </Button>
-            <Button onClick={confirmComplete} disabled={submittingComplete}>
+            <Button onClick={confirmComplete} disabled={submittingComplete || !completerName.trim()}>
               {submittingComplete ? <Spinner className="h-4 w-4" /> : (locale === "he" ? "אישור" : "Confirm")}
             </Button>
           </DialogFooter>

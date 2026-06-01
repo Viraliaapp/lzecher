@@ -99,8 +99,9 @@ assert(
   claimRoute.includes("runTransaction") &&
     claimRoute.includes("freshPortionData.projectId !== projectId") &&
     claimRoute.includes("Portion does not belong to this memorial") &&
-    claimRoute.includes("Project not found"),
-  "Single claims must atomically verify project/portion ownership before writing"
+    claimRoute.includes("Project not found") &&
+    !claimRoute.includes("Authentication required for inclusive commitments"),
+  "Single claims must atomically verify project/portion ownership before writing and allow named anonymous inclusive commitments"
 );
 
 const multiClaimRoute = read("src/app/api/claims/multi/route.ts");
@@ -542,6 +543,8 @@ const creatorDashboard = read("src/app/[locale]/(app)/dashboard/page.tsx");
 assert(
   creatorDashboard.includes("טוען משתתפים...") &&
     !creatorDashboard.includes(">Loading...</p>") &&
+    creatorDashboard.includes("toHebrewCalendarDate") &&
+    creatorDashboard.includes("learningLabel") &&
     creatorDashboard.includes("launchItems") &&
     creatorDashboard.includes("בדיקת שיתוף") &&
     creatorDashboard.includes("participantSearch") &&
@@ -556,13 +559,55 @@ assert(
   "Soft login modal errors must use localized copy"
 );
 
+const dialogComponent = read("src/components/ui/dialog.tsx");
+assert(
+  dialogComponent.includes('locale === "he" ? "סגור" : "Close"') &&
+    dialogComponent.includes("{closeLabel}") &&
+    !dialogComponent.includes('<span className="sr-only">Close</span>'),
+  "Dialog close button must expose a Hebrew close label on Hebrew pages"
+);
+
 const memorialPageClient = read("src/components/memorial/MemorialPageClient.tsx");
 assert(
   memorialPageClient.includes('placeholder={t("emailPlaceholder")}') &&
     memorialPageClient.includes("לא ניתן לסמן כנלמד") &&
+    !memorialPageClient.includes("שמך (אופציונלי)") &&
+    memorialPageClient.includes('disabled={submittingComplete || !completerName.trim()}') &&
     memorialPageClient.includes("firstRoundComplete") &&
     memorialPageClient.includes("שתפו את הסיום"),
-  "Memorial page should avoid English fallback copy and clearly show completion/bonus-round state"
+  "Memorial page should avoid English fallback copy, require a completion name, and clearly show completion/bonus-round state"
+);
+
+const hebrewDate = read("src/lib/hebrew-date.ts");
+assert(
+  hebrewDate.includes("formatToParts") &&
+    hebrewDate.includes("toHebrewYear") &&
+    hebrewDate.includes("toHebrewNumeral(day)"),
+  "Hebrew dates should render day and year as Hebrew numerals instead of Arabic numerals"
+);
+
+const learningLabel = read("src/lib/learning-label.ts");
+assert(
+  learningLabel.includes("Tehillim") &&
+    learningLabel.includes("תהלים") &&
+    learningLabel.includes("MASECHTOS") &&
+    learningLabel.includes("hebrewNumberSequence"),
+  "Hebrew learning labels should translate seeded references like Tehillim and Sotah"
+);
+
+const trackHierarchy = read("src/components/memorial/TrackHierarchy.tsx");
+assert(
+  trackHierarchy.includes("border-gold/50 bg-gold/10") &&
+    trackHierarchy.includes("נלקח: ") &&
+    trackHierarchy.includes("border-emerald-300 bg-emerald-50/90"),
+  "Taken and learned portion cards should have visibly distinct status styling and Hebrew date labels"
+);
+
+assert(
+  adminPage.includes("feedbackTypeLabel") &&
+    adminPage.includes("supportText") &&
+    adminPage.includes("formatTimestamp(ts?: number | null, locale = \"en\")"),
+  "Super-admin support UI should localize feedback/report labels, known error details, and Hebrew timestamps"
 );
 
 const shareTemplates = read("src/components/memorial/ShareTemplates.tsx");

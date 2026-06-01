@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    // Auth — required for inclusive claims, optional for exclusive
+    // Auth is optional. Anonymous participants may claim when they provide a name.
     let uid = "anonymous";
     let email: string | null = null;
     if (idToken) {
@@ -243,11 +243,6 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ success: true, claimId: claimRef.id, claimMode: "exclusive", newSetOpened, newSetNumber });
     } else {
-      // Inclusive — auth required
-      if (uid === "anonymous") {
-        return NextResponse.json({ error: "Authentication required for inclusive commitments" }, { status: 401 });
-      }
-
       // Determine progress total based on duration
       let progressTotal: number | null = null;
       if (resolvedDuration === "daily" && durationValue) {

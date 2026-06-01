@@ -14,6 +14,8 @@ import { useEffect, useMemo, useState } from "react";
 import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Claim } from "@/lib/types";
 import { toHebrewNumeral } from "@/lib/hebrew-numerals";
+import { toHebrewCalendarDate } from "@/lib/hebrew-date";
+import { learningLabel } from "@/lib/learning-label";
 import { cyclesLabel, progressFromProject } from "@/lib/progress";
 import { toast } from "sonner";
 
@@ -48,6 +50,7 @@ const TRACK_EMOJI: Record<string, string> = {
 
 function relativeTime(ts: number, locale: string): string {
   if (!ts) return "";
+  if (locale === "he") return toHebrewCalendarDate(ts, locale);
   const diff = Date.now() - ts;
   const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
@@ -62,6 +65,7 @@ function relativeTime(ts: number, locale: string): string {
 function formatDate(ts: unknown, locale: string): string {
   if (!ts) return "";
   try {
+    if (locale === "he") return toHebrewCalendarDate(Number(ts), locale);
     return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(new Date(Number(ts)));
   } catch {
     return "";
@@ -299,9 +303,10 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
 
   function emailParticipant(claim: Claim) {
     if (!claim.userEmail) return;
+    const reference = learningLabel(locale, claim.reference, claim.trackType) || (locale === "he" ? "חלק לימוד" : "a portion");
     const body = locale === "he"
-      ? `שלום ${claim.userName || ""},\n\nיישר כח שלקחת על עצמך ${claim.reference || "חלק לימוד"} לעילוי נשמת ${hebrewName}.\nאפשר לחזור לדף כאן:\n${memorialUrl}\n\nתזכו למצוות.`
-      : `Hello ${claim.userName || ""},\n\nYasher koach for taking ${claim.reference || "a portion"} in memory of ${hebrewName}.\nYou can return to the page here:\n${memorialUrl}\n\nTizku l'mitzvos.`;
+      ? `שלום ${claim.userName || ""},\n\nיישר כח שלקחת על עצמך ${reference} לעילוי נשמת ${hebrewName}.\nאפשר לחזור לדף כאן:\n${memorialUrl}\n\nתזכו למצוות.`
+      : `Hello ${claim.userName || ""},\n\nYasher koach for taking ${reference} in memory of ${hebrewName}.\nYou can return to the page here:\n${memorialUrl}\n\nTizku l'mitzvos.`;
     window.location.href = mailtoUrl(claim.userEmail, hebrewName, body);
   }
 
@@ -573,7 +578,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                     ) : (
                       <>
                         <span style={{ fontWeight: 600, color: "#0F1B2D" }} dir="rtl">{cl.userName}</span>
-                        <span style={{ color: "#8B7355", marginLeft: "4px" }}>{cl.reference}</span>
+                        <span style={{ color: "#8B7355", marginLeft: "4px" }}>{learningLabel(locale, cl.reference, cl.trackType)}</span>
                         <span style={{ color: statusColor, marginLeft: "4px", fontSize: "10px", fontWeight: 700 }}>
                           {claimStatusLabel(cl.status, locale)}
                         </span>
@@ -639,7 +644,7 @@ function ActivityFeed({ items, locale }: { items: ActivityItem[]; locale: string
                 {item.claimerName}
               </span>
               <span className="text-muted" style={{ fontSize: "12px" }}>
-                {" · "}{t("activityTook", { reference: item.reference || "" })}
+                {" · "}{t("activityTook", { reference: learningLabel(locale, item.reference, item.trackType) })}
                 {item.projectHonoree && (
                   <> {t("activityIn")} <em>{item.projectHonoree}</em></>
                 )}
