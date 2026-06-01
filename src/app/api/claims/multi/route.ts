@@ -5,6 +5,7 @@ import { queueRemindersForClaim } from "@/lib/queue-reminders";
 import { maybeOpenNextSet } from "@/lib/open-next-set";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import { recomputeGlobalStats } from "@/lib/recompute-global";
+import { getClaimMode } from "@/lib/track-config";
 import type { TrackType } from "@/lib/types";
 import type * as FirebaseFirestore from "@google-cloud/firestore";
 
@@ -25,10 +26,17 @@ export async function POST(request: NextRequest) {
 
     const locale = (typeof claimLocale === "string" && ["en", "he", "es", "fr"].includes(claimLocale)) ? claimLocale : "en";
 
-    if (!Array.isArray(portionIds) || portionIds.length === 0) {
+    const rawPortionIds = Array.isArray(portionIds)
+      ? portionIds
+        .map((id) => (typeof id === "string" ? id.trim() : ""))
+        .filter(Boolean)
+      : [];
+    const uniquePortionIds = [...new Set(rawPortionIds)];
+
+    if (uniquePortionIds.length === 0) {
       return NextResponse.json({ error: "portionIds must be a non-empty array" }, { status: 400 });
     }
-    if (portionIds.length > 150) {
+    if (uniquePortionIds.length > 150) {
       return NextResponse.json({ error: "Maximum 150 portions at a time" }, { status: 400 });
     }
     if (!projectId || !claimerName?.trim()) {
@@ -74,10 +82,10 @@ export async function POST(request: NextRequest) {
 
     // Fetch all portions in one query (Firestore supports up to 30 in-clause items,
     // so we fetch by projectId + status and filter in JS for larger sets)
-    const portionIdSet = new Set(portionIds as string[]);
+    const portionIdSet = new Set(uniquePortionIds);
 
     // Fetch each portion individually (batched reads via getAll)
-    const portionRefs = (portionIds as string[]).map((id: string) =>
+    const portionRefs = uniquePortionIds.map((id: string) =>
       db.collection("lzecher_portions").doc(id)
     );
     const portionSnaps = await db.getAll(...portionRefs);
@@ -89,12 +97,36 @@ export async function POST(request: NextRequest) {
       const data = snap.data()!;
       if (data.projectId !== projectId) continue;
       if (data.status !== "available") continue;
+      if ((data.claimMode ?? getClaimMode(data.trackType as TrackType)) !== "exclusive") continue;
       validPortions.push({ id: snap.id, ref: snap.ref, data });
     }
 
     if (validPortions.length === 0) {
       return NextResponse.json({ error: "No available portions found", claimedCount: 0 }, { status: 409 });
     }
+
+    const claimedPortionIds = validPortions.map((portion) => portion.id);
+    const claimedPortionIdSet = new Set(claimedPortionIds);
+
+    // Parent claim gives reminder emails and dashboard actions one real claim id
+    // that represents the whole multi-select reservation.
+    const parentClaimRef = db.collection("lzecher_claims").doc();
+    await parentClaimRef.set({
+      id: parentClaimRef.id,
+      projectId,
+      trackType: validPortions[0].data.trackType as TrackType,
+      scope: "multi",
+      isParent: true,
+      portionIds: claimedPortionIds,
+      userId: uid,
+      userName: claimerName.trim(),
+      userEmail: email,
+      locale,
+      claimedAt: now,
+      status: "active",
+      duration: "oneTime",
+      reminderPreferences: reminderPreferences ?? [],
+    });
 
     // Batch write — Firestore limit is 500 ops; each portion = 2 ops (update + claim doc)
     const BATCH_SIZE = 200;
@@ -110,6 +142,7 @@ export async function POST(request: NextRequest) {
           claimedBy: uid,
           claimedByName: claimerName.trim(),
           claimedAt: now,
+          claimedByParentClaimId: parentClaimRef.id,
         });
 
         const claimRef = db.collection("lzecher_claims").doc();
@@ -125,6 +158,9 @@ export async function POST(request: NextRequest) {
           locale,
           claimedAt: now,
           status: "active",
+          scope: "single",
+          isParent: false,
+          parentClaimId: parentClaimRef.id,
           duration: "oneTime",
           reminderPreferences: reminderPreferences ?? [],
         });
@@ -162,7 +198,7 @@ export async function POST(request: NextRequest) {
     if (email && reminderPreferences && reminderPreferences.length > 0) {
       try {
         await queueRemindersForClaim({
-          claimId: `multi-${now}`,
+          claimId: parentClaimRef.id,
           projectId,
           projectSlug,
           userId: uid,
@@ -196,7 +232,7 @@ export async function POST(request: NextRequest) {
             setsToCheck.set(`${tt}:${sn}`, { trackType: tt, setNumber: sn });
           }
           for (const { trackType: tt, setNumber: sn } of setsToCheck.values()) {
-            await maybeOpenNextSet(db, projectId, tt, sn, portionIdSet, projData2);
+            await maybeOpenNextSet(db, projectId, tt, sn, claimedPortionIdSet, projData2);
           }
         }
       }

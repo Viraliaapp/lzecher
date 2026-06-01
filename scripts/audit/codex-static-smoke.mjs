@@ -97,8 +97,11 @@ const multiClaimRoute = read("src/app/api/claims/multi/route.ts");
 assert(
   multiClaimRoute.includes("Project not found") &&
     multiClaimRoute.includes("data.projectId !== projectId") &&
+    multiClaimRoute.includes("getClaimMode") &&
+    multiClaimRoute.includes("isParent: true") &&
+    multiClaimRoute.includes("parentClaimRef.id") &&
     multiClaimRoute.includes("No available portions found"),
-  "Multi-claim must reject missing projects and skip portions outside the project"
+  "Multi-claim must reject missing projects, skip portions outside the project, and queue reminders against a real parent claim"
 );
 
 const completeBulkRoute = read("src/app/api/claims/complete-bulk/route.ts");
@@ -137,8 +140,18 @@ const markCompleteViaLinkRoute = read("src/app/api/claims/mark-complete-via-link
 assert(
   markCompleteViaLinkRoute.includes("!claimData.projectId") &&
     markCompleteViaLinkRoute.includes("portionData.projectId !== claimData.projectId") &&
-    markCompleteViaLinkRoute.includes("batch.commit()"),
-  "Reminder completion links must verify claim-to-project and portion-to-project ownership before writing"
+    markCompleteViaLinkRoute.includes("claimData.isParent === true") &&
+    markCompleteViaLinkRoute.includes('where("parentClaimId", "==", claimRef.id)') &&
+    markCompleteViaLinkRoute.includes("commitWritesInChunks"),
+  "Reminder completion links must verify claim-to-project and portion-to-project ownership and complete parent claim children"
+);
+
+const cronReminderRoute = read("src/app/api/cron/send-reminders/route.ts");
+assert(
+  cronReminderRoute.includes('purpose: "mark_complete"') &&
+    cronReminderRoute.includes("markCompleteLink") &&
+    cronReminderRoute.includes("/api/claims/mark-complete-via-link"),
+  "Reminder emails must include a signed one-click mark-learned link"
 );
 
 const projectClaimRoute = read("src/app/api/projects/[id]/claims/[claimId]/route.ts");
@@ -154,9 +167,17 @@ assert(
 const projectClaimsRoute = read("src/app/api/projects/[id]/claims/route.ts");
 assert(
   projectClaimsRoute.includes('where("projectId", "==", projectId)') &&
+    projectClaimsRoute.includes("c.isParent !== true") &&
     projectClaimsRoute.includes(".sort((a: Record<string, unknown>, b: Record<string, unknown>)") &&
     !projectClaimsRoute.includes(".orderBy(\"claimedAt\""),
-  "Creator claim list must stay project-scoped and sort in JS to avoid a required Firestore index"
+  "Creator claim list must stay project-scoped, hide parent summary rows, and sort in JS to avoid a required Firestore index"
+);
+
+const dashboardStatsRoute = read("src/app/api/dashboard/route.ts");
+assert(
+  dashboardStatsRoute.includes("c.isParent !== true") &&
+    dashboardStatsRoute.includes('collection("lzecher_claims")'),
+  "Dashboard stats and personal claim lists must hide parent summary rows"
 );
 
 const heMessages = JSON.parse(read("messages/he.json"));

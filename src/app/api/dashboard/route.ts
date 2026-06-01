@@ -53,7 +53,11 @@ export async function POST(request: NextRequest) {
           .collection("lzecher_claims")
           .where("projectId", "in", chunk)
           .get();
-        allProjectClaims.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        allProjectClaims.push(
+          ...snap.docs
+            .map((d) => ({ id: d.id, ...d.data() }) as Record<string, unknown>)
+            .filter((c) => c.isParent !== true)
+        );
       }
     }
 
@@ -96,6 +100,7 @@ export async function POST(request: NextRequest) {
 
     const rawClaims = claimSnap.docs
       .map((d) => ({ id: d.id, ...d.data() }) as Record<string, unknown>)
+      .filter((c) => c.isParent !== true)
       .sort((a, b) => ((b.claimedAt as number) || 0) - ((a.claimedAt as number) || 0));
 
     // Enrich with project info (may include projects the user didn't create)

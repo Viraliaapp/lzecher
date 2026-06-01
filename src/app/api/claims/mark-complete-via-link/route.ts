@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
+import { verifyToken as verifySignedToken } from "@/lib/signed-tokens";
 import * as crypto from "crypto";
+
+const WRITE_CHUNK = 450;
 
 function actionSecret(): string {
   const secret = process.env.REMINDER_ACTION_SECRET || process.env.CRON_SECRET;
@@ -11,7 +14,7 @@ function actionSecret(): string {
   return secret || "default-dev-secret";
 }
 
-function verifyToken(token: string): { claimId: string; action: string } | null {
+function verifyLegacyActionToken(token: string): { claimId: string; action: string } | null {
   try {
     const [payloadB64, sigHex] = token.split(".");
     if (!payloadB64 || !sigHex) return null;
@@ -29,6 +32,14 @@ function verifyToken(token: string): { claimId: string; action: string } | null 
   }
 }
 
+function verifyActionToken(token: string): { claimId: string; action: string } | null {
+  const signed = verifySignedToken(token);
+  if (signed?.purpose === "mark_complete" && signed.claimId) {
+    return { claimId: signed.claimId, action: "mark_complete" };
+  }
+  return verifyLegacyActionToken(token);
+}
+
 export function generateActionToken(claimId: string, action: string = "mark_complete"): string {
   const payload = {
     claimId,
@@ -40,6 +51,17 @@ export function generateActionToken(claimId: string, action: string = "mark_comp
   return `${payloadB64}.${sig}`;
 }
 
+async function commitWritesInChunks(
+  db: FirebaseFirestore.Firestore,
+  writes: Array<(batch: FirebaseFirestore.WriteBatch) => void>
+) {
+  for (let i = 0; i < writes.length; i += WRITE_CHUNK) {
+    const batch = db.batch();
+    for (const write of writes.slice(i, i + WRITE_CHUNK)) write(batch);
+    await batch.commit();
+  }
+}
+
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
   const locale = req.nextUrl.searchParams.get("locale") || "en";
@@ -48,7 +70,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL(`/${locale}/dashboard`, req.url));
   }
 
-  const verified = verifyToken(token);
+  const verified = verifyActionToken(token);
   if (!verified) {
     // Token expired or invalid — redirect to confirm-complete with error
     return NextResponse.redirect(
@@ -99,10 +121,67 @@ export async function GET(req: NextRequest) {
 
     if (action === "mark_complete") {
       const completedAt = Date.now();
-      let portionRefToComplete: FirebaseFirestore.DocumentReference | null = null;
+      const completionPatch = {
+        status: "completed",
+        completedAt,
+        completedByName: claimData.userName || null,
+        completedByUid: claimData.userId || null,
+      };
+      let completedPortionsIncrement = 0;
 
-      // Update portion status if exclusive
-      if (claimData.portionId) {
+      if (claimData.isParent === true) {
+        if (!Array.isArray(claimData.portionIds) || claimData.portionIds.length === 0) {
+          return NextResponse.redirect(
+            new URL(`/${locale}/confirm-complete?status=error`, req.url)
+          );
+        }
+
+        const portionIds = [...new Set(
+          claimData.portionIds
+            .map((id: unknown) => (typeof id === "string" ? id.trim() : ""))
+            .filter(Boolean)
+        )];
+        const portionSnaps: FirebaseFirestore.DocumentSnapshot[] = [];
+        for (let i = 0; i < portionIds.length; i += 300) {
+          const refs = portionIds
+            .slice(i, i + 300)
+            .map((id) => db.collection("lzecher_portions").doc(id));
+          const snaps = await db.getAll(...refs);
+          portionSnaps.push(...snaps);
+        }
+
+        const writes: Array<(batch: FirebaseFirestore.WriteBatch) => void> = [];
+        for (const portionSnap of portionSnaps) {
+          if (!portionSnap.exists) continue;
+          const portionData = portionSnap.data()!;
+          if (portionData.projectId !== claimData.projectId) {
+            return NextResponse.redirect(
+              new URL(`/${locale}/confirm-complete?status=error`, req.url)
+            );
+          }
+          if (portionData.status !== "completed") completedPortionsIncrement++;
+          writes.push((batch) => batch.update(portionSnap.ref, completionPatch));
+        }
+
+        const childClaimsSnap = await db
+          .collection("lzecher_claims")
+          .where("parentClaimId", "==", claimRef.id)
+          .get();
+        for (const child of childClaimsSnap.docs) {
+          const childData = child.data();
+          if (childData.projectId !== claimData.projectId) {
+            return NextResponse.redirect(
+              new URL(`/${locale}/confirm-complete?status=error`, req.url)
+            );
+          }
+          if (childData.status !== "completed") {
+            writes.push((batch) => batch.update(child.ref, completionPatch));
+          }
+        }
+
+        writes.push((batch) => batch.update(claimRef, completionPatch));
+        await commitWritesInChunks(db, writes);
+      } else if (claimData.portionId) {
         const portionRef = db.collection("lzecher_portions").doc(claimData.portionId);
         const portionSnap = await portionRef.get();
         if (portionSnap.exists) {
@@ -112,24 +191,25 @@ export async function GET(req: NextRequest) {
               new URL(`/${locale}/confirm-complete?status=error`, req.url)
             );
           }
-          portionRefToComplete = portionRef;
+          if (portionData.status !== "completed") completedPortionsIncrement = 1;
         }
-      }
 
-      const batch = db.batch();
-      if (portionRefToComplete) {
-        batch.update(portionRefToComplete, { status: "completed", completedAt });
+        const batch = db.batch();
+        if (portionSnap.exists) {
+          batch.update(portionRef, completionPatch);
+        }
+        batch.update(claimRef, completionPatch);
+        await batch.commit();
+      } else {
+        const batch = db.batch();
+        batch.update(claimRef, completionPatch);
+        await batch.commit();
       }
-      batch.update(claimRef, {
-        status: "completed",
-        completedAt,
-      });
-      await batch.commit();
 
       // Update project stats
       const projectData = projectSnap.data()!;
       await projectRef.update({
-        completedPortions: (projectData.completedPortions || 0) + 1,
+        completedPortions: (projectData.completedPortions || 0) + completedPortionsIncrement,
       });
       try {
         await recomputeProjectProgress(db, claimData.projectId);

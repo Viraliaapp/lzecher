@@ -29,6 +29,7 @@ export async function POST(
 
     const claims = claimsSnap.docs
       .map(d => ({ id: d.id, ...d.data() }))
+      .filter((c: Record<string, unknown>) => c.isParent !== true)
       .sort((a: Record<string, unknown>, b: Record<string, unknown>) =>
         ((b.claimedAt as number) || 0) - ((a.claimedAt as number) || 0)
       )

@@ -177,6 +177,15 @@ async function buildTemplateArgs(
     ? `${baseUrl}/${locale}/memorial/${data.projectSlug || ""}?claim=${data.claimId}`
     : `${baseUrl}/${locale}/memorial/${data.projectSlug || ""}`;
 
+  let markCompleteLink: string | undefined;
+  if (data.claimId) {
+    const markToken = signToken(
+      { purpose: "mark_complete", claimId: data.claimId, locale },
+      TTL.MARK_COMPLETE
+    );
+    markCompleteLink = `${baseUrl}/api/claims/mark-complete-via-link?token=${encodeURIComponent(markToken)}&locale=${encodeURIComponent(locale)}`;
+  }
+
   // Build unsubscribe link using HMAC token
   let unsubscribeLink: string | undefined;
   if (data.userId && data.claimId) {
@@ -195,7 +204,7 @@ async function buildTemplateArgs(
     dashboardLink = `${baseUrl}/${locale}/auto-signin?token=${dashToken}`;
   }
 
-  return { honoreeName, commitmentDesc, deadline, link, unsubscribeLink, dashboardLink };
+  return { honoreeName, commitmentDesc, deadline, link, unsubscribeLink, markCompleteLink, dashboardLink };
 }
 
 // ── HMAC helper (same as unsubscribe page) ────────────────────────────────────
