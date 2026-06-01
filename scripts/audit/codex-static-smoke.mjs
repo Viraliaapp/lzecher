@@ -168,6 +168,8 @@ assert(
   cronReminderRoute.includes("lzecherEmailFrom()") &&
     cronReminderRoute.includes("RESEND_CHUNK_SIZE") &&
     cronReminderRoute.includes("RESEND_CHUNK_PAUSE_MS") &&
+    cronReminderRoute.includes("isPermanentEmailError") &&
+    cronReminderRoute.includes("isValidRecipientEmail") &&
     !cronReminderRoute.includes("onboarding@resend.dev"),
   "Reminder emails must use the verified Lzecher sender and throttle Resend calls"
 );

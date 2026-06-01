@@ -86,6 +86,10 @@ async function processEmail(
     const reminderType = data.reminderType as ReminderType;
     const email = getReminderEmail(reminderType, locale, templateArgs);
 
+    if (!isValidRecipientEmail(data.toEmail)) {
+      throw new Error("Invalid `to` field. The email address needs to follow the `email@example.com` format.");
+    }
+
     const { error } = await resend.emails.send({
       from: lzecherEmailFrom(),
       to: data.toEmail,
@@ -107,7 +111,7 @@ async function processEmail(
   } catch (err) {
     const attempts = (data.attempts ?? 0) + 1;
 
-    if (attempts >= 3) {
+    if (attempts >= 3 || isPermanentEmailError(err)) {
       await docRef.update({
         status: "failed",
         attempts,
@@ -125,6 +129,15 @@ async function processEmail(
 
     throw err; // propagate so Promise.allSettled counts it as failed
   }
+}
+
+function isValidRecipientEmail(email?: string | null) {
+  return typeof email === "string" && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email.trim());
+}
+
+function isPermanentEmailError(err: unknown) {
+  const message = String(err);
+  return message.includes("Invalid `to` field") || message.includes("email@example.com");
 }
 
 // ── Template argument builder ─────────────────────────────────────────────────
