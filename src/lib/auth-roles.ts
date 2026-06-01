@@ -38,14 +38,19 @@ export async function requireAdmin(idToken: string, permission?: string) {
   if (!decoded.isAdmin && !decoded.isSuperAdmin) {
     throw new Error("FORBIDDEN:Admin access required");
   }
-  if (
-    permission &&
-    !decoded.isSuperAdmin &&
-    (!Array.isArray(decoded.lzecherPermissions) || !decoded.lzecherPermissions.includes(permission))
-  ) {
+  if (permission && !hasAdminPermission(decoded, permission)) {
     throw new Error("FORBIDDEN:Missing admin permission");
   }
   return decoded;
+}
+
+export function hasAdminPermission(decoded: LzecherDecodedToken, permission: string): boolean {
+  if (decoded.isSuperAdmin) return true;
+  return Boolean(
+    decoded.isAdmin &&
+    Array.isArray(decoded.lzecherPermissions) &&
+    decoded.lzecherPermissions.includes(permission)
+  );
 }
 
 export async function requireSuperAdmin(idToken: string) {

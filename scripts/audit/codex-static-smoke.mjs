@@ -391,9 +391,27 @@ assert(
 
 const authRoles = read("src/lib/auth-roles.ts");
 assert(
-  authRoles.includes("(!Array.isArray(decoded.lzecherPermissions) || !decoded.lzecherPermissions.includes(permission))"),
+  authRoles.includes("hasAdminPermission") &&
+    authRoles.includes("decoded.isSuperAdmin") &&
+    authRoles.includes("decoded.lzecherPermissions.includes(permission)"),
   "Admin permissions must deny scoped actions when a non-super admin has no explicit matching permission"
 );
+
+for (const rel of [
+  "src/app/api/projects/[id]/route.ts",
+  "src/app/api/projects/[id]/update/route.ts",
+  "src/app/api/projects/[id]/delete/route.ts",
+  "src/app/api/projects/[id]/reset-claims/route.ts",
+  "src/app/api/projects/[id]/claims/route.ts",
+  "src/app/api/projects/[id]/claims/[claimId]/route.ts",
+  "src/app/api/projects/photo/route.ts",
+]) {
+  const text = read(rel);
+  assert(
+    text.includes("hasAdminPermission") && text.includes('"projects"'),
+    `${rel} must require the projects permission when a non-owner admin manages another project`
+  );
+}
 
 const superOverviewRoute = read("src/app/api/admin/super/overview/route.ts");
 assert(

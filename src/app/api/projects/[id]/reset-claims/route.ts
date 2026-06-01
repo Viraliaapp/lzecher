@@ -4,12 +4,12 @@
  * Resets all claims for a project: deletes all claim docs, resets all
  * portions to "available", cancels pending reminder emails, resets project
  * stats to 0, and removes all sets beyond set 1 (keeps only the base set).
- * Requires the project creator or an admin.
+ * Requires the project creator or an admin with the "projects" permission.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { recomputeGlobalStats } from "@/lib/recompute-global";
-import { verifyToken } from "@/lib/auth-roles";
+import { hasAdminPermission, verifyToken } from "@/lib/auth-roles";
 
 const BATCH_CHUNK = 400;
 
@@ -31,8 +31,7 @@ export async function POST(
     if (!projectSnap.exists) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
     const projectData = projectSnap.data()!;
-    const isAdmin = decoded.isAdmin || decoded.isSuperAdmin;
-    if (decoded.uid !== projectData.createdBy && !isAdmin) {
+    if (decoded.uid !== projectData.createdBy && !hasAdminPermission(decoded, "projects")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

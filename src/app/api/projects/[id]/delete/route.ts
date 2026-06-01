@@ -1,14 +1,15 @@
 /**
  * POST /api/projects/[id]/delete
  *
- * Creator or super-admin can permanently delete a project.
+ * Creator can permanently delete their own project. A non-owner admin needs
+ * the Lzecher "projects" permission; super admins always pass.
  * Requires typed confirmation (the honoree's Hebrew name).
  * Deletes: project doc, all portions, all claims, all reports,
  * all contact messages, all scheduled emails, and Lzecher-scoped photos.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminStorageBucket } from "@/lib/firebase/admin";
-import { verifyToken } from "@/lib/auth-roles";
+import { hasAdminPermission, verifyToken } from "@/lib/auth-roles";
 
 const BATCH_CHUNK = 400;
 
@@ -48,8 +49,7 @@ export async function POST(
     if (!projectSnap.exists) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
     const projectData = projectSnap.data()!;
-    const isAdmin = decoded.isAdmin || decoded.isSuperAdmin;
-    if (decoded.uid !== projectData.createdBy && !isAdmin) {
+    if (decoded.uid !== projectData.createdBy && !hasAdminPermission(decoded, "projects")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

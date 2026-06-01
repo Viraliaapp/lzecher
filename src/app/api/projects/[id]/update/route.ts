@@ -1,12 +1,12 @@
 /**
  * POST /api/projects/[id]/update
  *
- * Creator (or admin) can update their own project.
- * Mirrors the admin update endpoint but gates on createdBy === uid or isAdmin.
+ * Creator can update their own project. A non-owner admin needs the
+ * Lzecher "projects" permission; super admins always pass.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { verifyToken } from "@/lib/auth-roles";
+import { hasAdminPermission, verifyToken } from "@/lib/auth-roles";
 import { MITZVAH_TEMPLATES, PARSHIYOT } from "@/lib/seed-data";
 import { hashPassword } from "@/lib/password";
 import { seedSetForTrack } from "@/lib/seed-set";
@@ -56,9 +56,8 @@ export async function POST(
 
     const currentData = projectSnap.data()!;
 
-    // Authorization: creator OR admin
-    const isAdmin = decoded.isAdmin || decoded.isSuperAdmin;
-    if (decoded.uid !== currentData.createdBy && !isAdmin) {
+    // Authorization: creator OR admin with project permission.
+    if (decoded.uid !== currentData.createdBy && !hasAdminPermission(decoded, "projects")) {
       return NextResponse.json({ error: "Forbidden: not the project creator" }, { status: 403 });
     }
 

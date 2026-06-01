@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { verifyToken } from "@/lib/auth-roles";
+import { hasAdminPermission, verifyToken } from "@/lib/auth-roles";
 
 export async function POST(
   request: NextRequest,
@@ -19,8 +19,7 @@ export async function POST(
     const projSnap = await db.collection("lzecher_projects").doc(projectId).get();
     if (!projSnap.exists) return NextResponse.json({ error: "Project not found" }, { status: 404 });
     const proj = projSnap.data()!;
-    const isAdmin = Boolean(decoded.isAdmin || decoded.isSuperAdmin);
-    if (proj.createdBy !== uid && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (proj.createdBy !== uid && !hasAdminPermission(decoded, "projects")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     // Avoid requiring a composite Firestore index; sort the project-scoped claims in JS.
     const claimsSnap = await db.collection("lzecher_claims")

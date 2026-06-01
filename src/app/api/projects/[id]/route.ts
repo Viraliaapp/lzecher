@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { verifyToken } from "@/lib/auth-roles";
+import { hasAdminPermission, verifyToken } from "@/lib/auth-roles";
 
 export async function POST(
   request: NextRequest,
@@ -19,7 +19,6 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
     const uid = decoded.uid;
-    const isAdmin = decoded.isAdmin || decoded.isSuperAdmin;
 
     const db = getAdminDb();
     const snap = await db.collection("lzecher_projects").doc(id).get();
@@ -27,7 +26,7 @@ export async function POST(
 
     const data = snap.data()!;
     const isOwner = data.createdBy === uid;
-    if (!isOwner && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!isOwner && !hasAdminPermission(decoded, "projects")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     // Never ship the password hash/salt to the client — only whether one is set.
     const { passwordHash, passwordSalt, ...safe } = data;

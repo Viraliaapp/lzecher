@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { verifyToken } from "@/lib/auth-roles";
+import { hasAdminPermission, verifyToken } from "@/lib/auth-roles";
 
 const MAX_PHOTO_BYTES = 750 * 1024;
 const VALID_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -29,10 +29,8 @@ export async function POST(request: NextRequest) {
 
     const projectData = projectSnap.data()!;
 
-    // Only allow creator or admin to upload photo
-    const isAdmin = Boolean(decoded.isAdmin || decoded.isSuperAdmin);
-
-    if (projectData.createdBy !== decoded.uid && !isAdmin) {
+    // Only allow creator or admin with project permission to upload photo.
+    if (projectData.createdBy !== decoded.uid && !hasAdminPermission(decoded, "projects")) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
