@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
+import { getAdminDb } from "@/lib/firebase/admin";
+import { verifyToken } from "@/lib/auth-roles";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,11 +10,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const adminAuth = getAdminAuth();
-    let uid: string;
+    let decoded: Awaited<ReturnType<typeof verifyToken>>;
     try {
-      const decoded = await adminAuth.verifyIdToken(idToken);
-      uid = decoded.uid;
+      decoded = await verifyToken(idToken);
     } catch {
       return NextResponse.json({ error: "Invalid auth token" }, { status: 401 });
     }
@@ -28,10 +27,9 @@ export async function POST(request: NextRequest) {
     const projectData = projectSnap.data()!;
 
     // Only allow creator or admin to upload photo
-    const userRecord = await adminAuth.getUser(uid);
-    const isAdmin = userRecord.customClaims?.isAdmin === true;
+    const isAdmin = Boolean(decoded.isAdmin || decoded.isSuperAdmin);
 
-    if (projectData.createdBy !== uid && !isAdmin) {
+    if (projectData.createdBy !== decoded.uid && !isAdmin) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 

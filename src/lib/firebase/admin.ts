@@ -6,9 +6,13 @@ import {
 } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { getAuth, type Auth } from "firebase-admin/auth";
+import { getStorage } from "firebase-admin/storage";
+
+type StorageBucket = ReturnType<ReturnType<typeof getStorage>["bucket"]>;
 
 let cachedDb: Firestore | null = null;
 let cachedAuth: Auth | null = null;
+let cachedBucket: StorageBucket | null = null;
 let cachedApp: App | undefined;
 
 function getApp(): App {
@@ -30,6 +34,9 @@ function getApp(): App {
     cachedApp = initializeApp({
       credential: cert({ projectId, clientEmail, privateKey }),
       projectId,
+      storageBucket:
+        process.env.FIREBASE_STORAGE_BUCKET ||
+        process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
     return cachedApp;
   }
@@ -39,11 +46,19 @@ function getApp(): App {
     cachedApp = initializeApp({
       credential: cert(JSON.parse(saRaw)),
       projectId,
+      storageBucket:
+        process.env.FIREBASE_STORAGE_BUCKET ||
+        process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
     return cachedApp;
   }
 
-  cachedApp = initializeApp({ projectId });
+  cachedApp = initializeApp({
+    projectId,
+    storageBucket:
+      process.env.FIREBASE_STORAGE_BUCKET ||
+      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  });
   return cachedApp;
 }
 
@@ -57,4 +72,15 @@ export function getAdminAuth(): Auth {
   if (cachedAuth) return cachedAuth;
   cachedAuth = getAuth(getApp());
   return cachedAuth;
+}
+
+export function getAdminStorageBucket(): StorageBucket {
+  if (cachedBucket) return cachedBucket;
+  const bucketName =
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  cachedBucket = bucketName
+    ? getStorage(getApp()).bucket(bucketName)
+    : getStorage(getApp()).bucket();
+  return cachedBucket;
 }

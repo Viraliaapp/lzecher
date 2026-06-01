@@ -4,13 +4,31 @@
  * Creator or super-admin can permanently delete a project.
  * Requires typed confirmation (the honoree's Hebrew name).
  * Deletes: project doc, all portions, all claims, all reports,
- * all scheduled emails, and photos under lzecher/photos/<id>/.
+ * all contact messages, all scheduled emails, and the Lzecher-scoped photo.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebase/admin";
+import { getAdminDb, getAdminStorageBucket } from "@/lib/firebase/admin";
 import { verifyToken } from "@/lib/auth-roles";
 
 const BATCH_CHUNK = 400;
+
+function deletedProjectSummary(projectData: FirebaseFirestore.DocumentData) {
+  return {
+    slug: projectData.slug || null,
+    nameHebrew: projectData.nameHebrew || null,
+    familyNameHebrew: projectData.familyNameHebrew || null,
+    nameEnglish: projectData.nameEnglish || null,
+    familyNameEnglish: projectData.familyNameEnglish || null,
+    createdBy: projectData.createdBy || null,
+    createdByEmail: projectData.createdByEmail || null,
+    status: projectData.status || null,
+    tracks: Array.isArray(projectData.tracks) ? projectData.tracks : [],
+    totalPortions: projectData.totalPortions || 0,
+    claimedPortions: projectData.claimedPortions || 0,
+    completedPortions: projectData.completedPortions || 0,
+    isPasswordProtected: Boolean(projectData.passwordHash),
+  };
+}
 
 export async function POST(
   request: NextRequest,
@@ -53,9 +71,28 @@ export async function POST(
     const reportsSnap = await db.collection("lzecher_reports").where("projectId", "==", id).get();
     await deleteDocsInChunks(db, reportsSnap.docs);
 
+    // Delete family contact messages for this project
+    const contactsSnap = await db.collection("lzecher_contact_messages").where("projectId", "==", id).get();
+    await deleteDocsInChunks(db, contactsSnap.docs);
+
     // Cancel and delete all scheduled emails
     const emailsSnap = await db.collection("lzecher_scheduled_emails").where("projectId", "==", id).get();
     await deleteDocsInChunks(db, emailsSnap.docs);
+
+    // Delete the project photo if it was uploaded through Lzecher's scoped storage path.
+    let photoDeleted = false;
+    try {
+      const creatorUid = projectData.createdBy;
+      if (typeof creatorUid === "string" && creatorUid) {
+        const [files] = await getAdminStorageBucket().getFiles({
+          prefix: `lzecher/photos/${creatorUid}/${id}`,
+        });
+        await Promise.all(files.map((file) => file.delete()));
+        photoDeleted = files.length > 0;
+      }
+    } catch (photoErr) {
+      console.error("[projects/delete] photo cleanup failed:", photoErr);
+    }
 
     // Audit log BEFORE deleting the project (we need the data)
     await db.collection("lzecher_admin_audit").add({
@@ -63,7 +100,15 @@ export async function POST(
       projectId: id,
       deletedBy: decoded.uid,
       deletedAt: Date.now(),
-      projectData: projectData,
+      project: deletedProjectSummary(projectData),
+      counts: {
+        portionsDeleted: portionsSnap.size,
+        claimsDeleted: claimsSnap.size,
+        reportsDeleted: reportsSnap.size,
+        contactsDeleted: contactsSnap.size,
+        emailsDeleted: emailsSnap.size,
+        photoDeleted,
+      },
     });
 
     // Delete the project itself

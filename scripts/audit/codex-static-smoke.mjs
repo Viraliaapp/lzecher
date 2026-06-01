@@ -145,8 +145,18 @@ const projectClaimRoute = read("src/app/api/projects/[id]/claims/[claimId]/route
 assert(
   projectClaimRoute.includes("portData.projectId !== projectId") &&
     projectClaimRoute.includes("portionRefToRename") &&
+    projectClaimRoute.includes("removeOneName") &&
+    projectClaimRoute.includes("replaceOneName") &&
     projectClaimRoute.includes("batch.commit()"),
-  "Creator claim edit/delete routes must verify portions stay inside the selected Lzecher project"
+  "Creator claim edit/delete routes must verify portions stay inside the selected Lzecher project and keep inclusive names in sync"
+);
+
+const projectClaimsRoute = read("src/app/api/projects/[id]/claims/route.ts");
+assert(
+  projectClaimsRoute.includes('where("projectId", "==", projectId)') &&
+    projectClaimsRoute.includes(".sort((a: Record<string, unknown>, b: Record<string, unknown>)") &&
+    !projectClaimsRoute.includes(".orderBy(\"claimedAt\""),
+  "Creator claim list must stay project-scoped and sort in JS to avoid a required Firestore index"
 );
 
 const heMessages = JSON.parse(read("messages/he.json"));
@@ -240,6 +250,23 @@ assert(
     creatorProjectUpdateRoute.includes("PARSHIYOT") &&
     creatorProjectUpdateRoute.includes("displayNameHebrew: `פרשת ${p.nameHebrew}`"),
   "Creator project update must seed real portions when adding Mishnayos, Tehillim, or Shnayim Mikra tracks"
+);
+
+const creatorResetRoute = read("src/app/api/projects/[id]/reset-claims/route.ts");
+assert(
+  creatorResetRoute.includes("currentClaimerCount: 0") &&
+    creatorResetRoute.includes("claimerNames: []") &&
+    creatorResetRoute.includes('collection("lzecher_portions").where("projectId", "==", id)'),
+  "Creator reset must clear inclusive participant counters/names and stay project-scoped"
+);
+
+const creatorDeleteRoute = read("src/app/api/projects/[id]/delete/route.ts");
+assert(
+  creatorDeleteRoute.includes("deletedProjectSummary") &&
+    !creatorDeleteRoute.includes("projectData: projectData") &&
+    creatorDeleteRoute.includes('collection("lzecher_contact_messages").where("projectId", "==", id)') &&
+    creatorDeleteRoute.includes('prefix: `lzecher/photos/${creatorUid}/${id}`'),
+  "Creator delete must sanitize audit data, delete contact messages, and only clean Lzecher-scoped photos"
 );
 
 const adminProjectUpdateRoute = read("src/app/api/admin/projects/[id]/update/route.ts");

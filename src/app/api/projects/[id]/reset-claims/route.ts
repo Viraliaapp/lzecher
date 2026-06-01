@@ -81,6 +81,8 @@ export async function POST(
           claimedAt: null,
           completedAt: null,
           deadline: null,
+          currentClaimerCount: 0,
+          claimerNames: [],
         });
       }
       await batch.commit();

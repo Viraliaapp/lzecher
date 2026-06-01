@@ -1,7 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
+import { getAdminDb } from "@/lib/firebase/admin";
+import { verifyToken } from "@/lib/auth-roles";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import { recomputeGlobalStats } from "@/lib/recompute-global";
+
+function removeOneName(names: unknown, name: string): string[] {
+  const next = Array.isArray(names) ? names.filter((item): item is string => typeof item === "string") : [];
+  const index = next.findIndex((item) => item === name);
+  if (index >= 0) next.splice(index, 1);
+  return next;
+}
+
+function replaceOneName(names: unknown, oldName: string, newName: string): string[] {
+  const next = Array.isArray(names) ? names.filter((item): item is string => typeof item === "string") : [];
+  const index = next.findIndex((item) => item === oldName);
+  if (index >= 0) next[index] = newName;
+  return next;
+}
 
 // DELETE — remove a claim and release the portion back to available
 export async function DELETE(
@@ -13,8 +28,7 @@ export async function DELETE(
     const { idToken } = await request.json();
     if (!idToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(idToken);
+    const decoded = await verifyToken(idToken);
     const uid = decoded.uid;
 
     const db = getAdminDb();
@@ -49,7 +63,7 @@ export async function DELETE(
         }
         if (claimMode === "inclusive" || portData.claimMode === "inclusive") {
           const count = Math.max(0, (portData.currentClaimerCount || 1) - 1);
-          const names: string[] = (portData.claimerNames || []).filter((n: string) => n !== claim.userName);
+          const names = removeOneName(portData.claimerNames, claim.userName || "");
           await portRef.update({ currentClaimerCount: count, claimerNames: names });
         } else {
           // Exclusive: release back to available
@@ -95,8 +109,7 @@ export async function PATCH(
     const { idToken, userName } = await request.json();
     if (!idToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(idToken);
+    const decoded = await verifyToken(idToken);
     const uid = decoded.uid;
     const db = getAdminDb();
 
@@ -115,21 +128,30 @@ export async function PATCH(
     if (!newName) return NextResponse.json({ error: "Name required" }, { status: 400 });
 
     let portionRefToRename: FirebaseFirestore.DocumentReference | null = null;
+    let portionRenameUpdate: FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData> | null = null;
 
-    // Also update the portion's claimedByName if exclusive
-    if (claim.portionId && (claim.claimMode || "exclusive") === "exclusive") {
+    // Also update the portion display state so public cards stay in sync.
+    if (claim.portionId) {
       const portRef = db.collection("lzecher_portions").doc(claim.portionId as string);
       const portSnap = await portRef.get();
       if (!portSnap.exists || portSnap.data()!.projectId !== projectId) {
         return NextResponse.json({ error: "Portion not in project" }, { status: 400 });
       }
+      const portData = portSnap.data()!;
       portionRefToRename = portRef;
+      if ((claim.claimMode || portData.claimMode || "exclusive") === "inclusive") {
+        portionRenameUpdate = {
+          claimerNames: replaceOneName(portData.claimerNames, claim.userName || "", newName),
+        };
+      } else {
+        portionRenameUpdate = { claimedByName: newName };
+      }
     }
 
     const batch = db.batch();
     batch.update(db.collection("lzecher_claims").doc(claimId), { userName: newName });
-    if (portionRefToRename) {
-      batch.update(portionRefToRename, { claimedByName: newName });
+    if (portionRefToRename && portionRenameUpdate) {
+      batch.update(portionRefToRename, portionRenameUpdate);
     }
     await batch.commit();
 

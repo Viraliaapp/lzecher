@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
+import { getAdminDb } from "@/lib/firebase/admin";
+import { verifyToken } from "@/lib/auth-roles";
 
 export async function POST(
   request: NextRequest,
@@ -10,8 +11,7 @@ export async function POST(
     const { idToken } = await request.json();
     if (!idToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(idToken);
+    const decoded = await verifyToken(idToken);
     const uid = decoded.uid;
     const db = getAdminDb();
 
@@ -22,13 +22,17 @@ export async function POST(
     const isAdmin = Boolean(decoded.isAdmin || decoded.isSuperAdmin);
     if (proj.createdBy !== uid && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+    // Avoid requiring a composite Firestore index; sort the project-scoped claims in JS.
     const claimsSnap = await db.collection("lzecher_claims")
       .where("projectId", "==", projectId)
-      .orderBy("claimedAt", "desc")
-      .limit(1000)
       .get();
 
-    const claims = claimsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const claims = claimsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a: Record<string, unknown>, b: Record<string, unknown>) =>
+        ((b.claimedAt as number) || 0) - ((a.claimedAt as number) || 0)
+      )
+      .slice(0, 1000);
     return NextResponse.json({ claims });
   } catch (err) {
     console.error("[list-claims] error:", err);
