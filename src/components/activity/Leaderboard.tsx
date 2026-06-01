@@ -63,21 +63,21 @@ export function Leaderboard({ projectId, initial }: { projectId: string; initial
           aria-label={t("title")}
           onClick={() => setIsOpen((open) => !open)}
           className={cn(
-            "group relative flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-full border bg-cream-glow text-navy shadow-[0_14px_32px_rgba(15,27,45,0.12)] transition",
+            "group relative flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-full border bg-cream-glow text-navy shadow-[0_14px_32px_rgba(15,27,45,0.12)] transition",
             "border-gold/35 hover:-translate-y-0.5 hover:border-gold/55 hover:shadow-[0_18px_38px_rgba(15,27,45,0.16)] focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/60",
             "sm:h-20 sm:w-20"
           )}
         >
           <Award className="h-4 w-4 text-gold sm:h-5 sm:w-5" aria-hidden="true" />
           <span
-            className="px-1 text-center font-heading text-[11px] font-bold leading-tight tracking-normal sm:text-sm"
+            className="whitespace-nowrap px-1 text-center font-heading text-[10px] font-bold leading-none tracking-normal sm:text-xs"
             dir={isRtl ? "rtl" : "ltr"}
           >
             {t("title")}
           </span>
           <span
             className={cn(
-              "absolute -bottom-1 grid h-6 w-6 place-items-center rounded-full border border-gold/25 bg-[#F0E3C4] text-gold transition",
+              "absolute -bottom-3 grid h-5 w-8 place-items-center rounded-full border border-gold/25 bg-[#F0E3C4] text-gold shadow-sm transition sm:-bottom-2 sm:h-6 sm:w-6",
               isOpen && "rotate-180"
             )}
             aria-hidden="true"
