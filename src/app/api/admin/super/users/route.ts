@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
           typeof permission === "string" && VALID_PERMISSIONS.has(permission)
         )
       : [];
+    const nextPermissions = nextAdmin ? safePermissions : [];
 
     const db = getAdminDb();
     const now = Date.now();
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
       ...(userRecord.customClaims || {}),
       isAdmin: nextAdmin,
       isSuperAdmin: nextSuper,
-      lzecherPermissions: safePermissions,
+      lzecherPermissions: nextPermissions,
     });
     await db.collection("lzecher_users").doc(userRecord.uid).set({
       id: userRecord.uid,
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
       photoURL: userRecord.photoURL || null,
       isAdmin: nextAdmin,
       isSuperAdmin: nextSuper,
-      permissions: safePermissions,
+      permissions: nextPermissions,
       updatedAt: now,
       adminUpdatedBy: decoded.uid,
     }, { merge: true });
@@ -90,12 +91,12 @@ export async function POST(request: NextRequest) {
       details: {
         isAdmin: nextAdmin,
         isSuperAdmin: nextSuper,
-        permissions: safePermissions,
+        permissions: nextPermissions,
       },
       after: {
         isAdmin: nextAdmin,
         isSuperAdmin: nextSuper,
-        permissions: safePermissions,
+        permissions: nextPermissions,
       },
     });
 
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
         displayName: userRecord.displayName || null,
         isAdmin: nextAdmin,
         isSuperAdmin: nextSuper,
-        permissions: safePermissions,
+        permissions: nextPermissions,
       },
     });
   } catch (err) {

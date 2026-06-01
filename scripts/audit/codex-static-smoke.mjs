@@ -465,6 +465,16 @@ assert(
   "Super-admin site settings must require super admin, write only lzecher_settings/site, and audit changes"
 );
 
+const superUsersRoute = read("src/app/api/admin/super/users/route.ts");
+assert(
+  superUsersRoute.includes("requireSuperAdmin(idToken)") &&
+    superUsersRoute.includes("const nextPermissions = nextAdmin ? safePermissions : []") &&
+    superUsersRoute.includes("decoded.uid === userRecord.uid && !nextSuper") &&
+    superUsersRoute.includes('collection("lzecher_admin_audit")') &&
+    superUsersRoute.includes('collection("lzecher_users").doc(userRecord.uid)'),
+  "Super-admin users route must require super admin, prevent self-demotion, clear permissions when admin is off, update Lzecher profile, and audit"
+);
+
 const publicSettingsRoute = read("src/app/api/settings/route.ts");
 assert(
   publicSettingsRoute.includes('collection("lzecher_settings").doc("site")') &&
