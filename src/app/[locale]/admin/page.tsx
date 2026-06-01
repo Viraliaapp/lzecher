@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil, Share2, Inbox, UserPlus, BarChart3, RotateCw, Wrench, History, CheckCircle2, Lock, Unlock, ClipboardList, Mail, Settings, Megaphone, ShieldCheck } from "lucide-react";
+import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil, Share2, Inbox, UserPlus, BarChart3, RotateCw, Wrench, History, CheckCircle2, Lock, Unlock, ClipboardList, Mail, Settings, Megaphone, ShieldCheck, Languages } from "lucide-react";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
@@ -171,6 +171,22 @@ type AdminRole = {
   isAdmin: boolean;
   isSuperAdmin: boolean;
   permissions: string[];
+};
+
+type TranslationLocaleAudit = {
+  locale: string;
+  totalKeys: number;
+  missingKeys: string[];
+  emptyKeys: string[];
+  forbiddenHits: { key: string; phrase: string }[];
+};
+
+type TranslationAudit = {
+  generatedAt: number;
+  totalKeys: number;
+  forbiddenPhrases: string[];
+  locales: TranslationLocaleAudit[];
+  hebrewEnglishSamples: { key: string; word: string; text: string }[];
 };
 
 const PERMISSIONS = [
@@ -707,6 +723,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [savingSettings, setSavingSettings] = useState(false);
   const [auditSearch, setAuditSearch] = useState("");
   const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
+  const [translationAudit, setTranslationAudit] = useState<TranslationAudit | null>(null);
 
   async function loadOverview() {
     setRefreshing(true);
@@ -753,10 +770,30 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     }
   }
 
+  async function loadTranslationAudit() {
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch("/api/admin/super/translations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || label(locale, "לא ניתן לטעון בדיקת שפה", "Could not load language QA"));
+        return;
+      }
+      setTranslationAudit(data);
+    } catch {
+      toast.error(label(locale, "לא ניתן לטעון בדיקת שפה", "Could not load language QA"));
+    }
+  }
+
   useEffect(() => {
     const kickoff = setTimeout(() => {
       void loadOverview();
       void loadSiteSettings();
+      void loadTranslationAudit();
     }, 0);
     return () => clearTimeout(kickoff);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1026,6 +1063,9 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   );
   const auditEntries = overview?.recentAudit || [];
   const auditActions = Array.from(new Set(auditEntries.map((entry) => entry.action))).sort();
+  const translationMissingTotal = translationAudit?.locales.reduce((sum, item) => sum + item.missingKeys.length, 0) || 0;
+  const translationEmptyTotal = translationAudit?.locales.reduce((sum, item) => sum + item.emptyKeys.length, 0) || 0;
+  const translationForbiddenTotal = translationAudit?.locales.reduce((sum, item) => sum + item.forbiddenHits.length, 0) || 0;
   const filteredAuditEntries = auditEntries.filter((entry) => {
     const query = auditSearch.trim().toLowerCase();
     if (!query) return true;
@@ -1094,6 +1134,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
               <TabsTrigger value="projects"><ClipboardList className="h-4 w-4" /> {label(locale, "פרויקטים", "Projects")}</TabsTrigger>
               <TabsTrigger value="support"><Inbox className="h-4 w-4" /> {label(locale, "תמיכה", "Support")}</TabsTrigger>
               <TabsTrigger value="integrity"><ShieldCheck className="h-4 w-4" /> {label(locale, "תקינות", "Integrity")}</TabsTrigger>
+              <TabsTrigger value="language"><Languages className="h-4 w-4" /> {label(locale, "שפה", "Language")}</TabsTrigger>
               <TabsTrigger value="health"><Wrench className="h-4 w-4" /> {label(locale, "בדיקות", "Health")}</TabsTrigger>
               <TabsTrigger value="audit"><History className="h-4 w-4" /> {label(locale, "יומן", "Audit")}</TabsTrigger>
               <TabsTrigger value="control"><Settings className="h-4 w-4" /> {label(locale, "בקרה", "Control")}</TabsTrigger>
@@ -1559,6 +1600,98 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     <p className="mt-1 text-xs text-muted">
                       {label(locale, "אין כאן תיקון גורף. כל פעולה דורשת בחירת פרויקט אחד, אישור מזהה פרויקט, ורישום ביומן ביקורת.", "There is no bulk repair here. Every action requires one selected project, explicit project confirmation, and an audit entry.")}
                     </p>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="language">
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3 rounded-lg border border-navy/10 bg-white p-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-2">
+                    <Languages className="mt-0.5 h-5 w-5 text-gold" />
+                    <div>
+                      <h3 className="font-heading font-bold text-navy">{label(locale, "בדיקת שפה ותרגום", "Language QA")}</h3>
+                      <p className="text-xs text-muted">
+                        {label(locale, "בדיקה לקריאת קטלוגי התרגום בלבד: חסרים, שדות ריקים, מילים אסורות ואנגלית חשודה בעברית.", "Read-only scan of translation catalogs: missing keys, empty values, forbidden wording, and suspicious English inside Hebrew copy.")}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={loadTranslationAudit}>
+                    <RotateCw className="h-4 w-4" />
+                    {label(locale, "רענן", "Refresh")}
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <p className="text-xs text-muted">{label(locale, "מפתחות", "Keys")}</p>
+                    <p className="font-heading text-2xl font-bold text-navy">{translationAudit?.totalKeys || 0}</p>
+                  </div>
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <p className="text-xs text-muted">{label(locale, "חסרים", "Missing")}</p>
+                    <p className="font-heading text-2xl font-bold text-navy">{translationMissingTotal}</p>
+                  </div>
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <p className="text-xs text-muted">{label(locale, "ריקים", "Empty")}</p>
+                    <p className="font-heading text-2xl font-bold text-navy">{translationEmptyTotal}</p>
+                  </div>
+                  <div className={cn("rounded-lg border p-3", translationForbiddenTotal ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50")}>
+                    <p className={cn("text-xs", translationForbiddenTotal ? "text-red-700" : "text-green-700")}>{label(locale, "מילים אסורות", "Forbidden")}</p>
+                    <p className={cn("font-heading text-2xl font-bold", translationForbiddenTotal ? "text-red-800" : "text-green-800")}>{translationForbiddenTotal}</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <h4 className="mb-2 font-medium text-navy">{label(locale, "מצב לפי שפה", "Locale status")}</h4>
+                    <div className="space-y-2">
+                      {(translationAudit?.locales || []).map((item) => (
+                        <div key={item.locale} className="rounded-lg bg-cream/40 p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="font-medium uppercase text-navy">{item.locale}</p>
+                            <div className="flex flex-wrap gap-1">
+                              <Badge variant="secondary">{item.totalKeys} {label(locale, "מפתחות", "keys")}</Badge>
+                              <Badge variant={item.missingKeys.length ? "destructive" : "secondary"}>{item.missingKeys.length} {label(locale, "חסרים", "missing")}</Badge>
+                              <Badge variant={item.emptyKeys.length ? "destructive" : "secondary"}>{item.emptyKeys.length} {label(locale, "ריקים", "empty")}</Badge>
+                            </div>
+                          </div>
+                          {(item.missingKeys.length > 0 || item.emptyKeys.length > 0 || item.forbiddenHits.length > 0) && (
+                            <div className="mt-2 space-y-1 text-xs text-muted">
+                              {item.missingKeys.slice(0, 5).map((key) => <p key={`missing-${item.locale}-${key}`}>{label(locale, "חסר", "Missing")}: {key}</p>)}
+                              {item.emptyKeys.slice(0, 5).map((key) => <p key={`empty-${item.locale}-${key}`}>{label(locale, "ריק", "Empty")}: {key}</p>)}
+                              {item.forbiddenHits.slice(0, 5).map((hit) => <p key={`forbidden-${item.locale}-${hit.key}-${hit.phrase}`}>{label(locale, "אסור", "Forbidden")}: {hit.phrase} · {hit.key}</p>)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {!translationAudit && (
+                        <p className="py-6 text-center text-sm text-muted">{label(locale, "בדיקת השפה נטענת...", "Language QA is loading...")}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="rounded-lg border border-navy/10 bg-white p-3">
+                      <h4 className="mb-2 font-medium text-navy">{label(locale, "אנגלית חשודה בעברית", "English in Hebrew copy")}</h4>
+                      <div className="space-y-1.5">
+                        {(translationAudit?.hebrewEnglishSamples || []).slice(0, 12).map((sample) => (
+                          <div key={`${sample.key}-${sample.word}`} className="rounded-md bg-cream/40 px-2 py-1.5 text-xs">
+                            <p className="font-medium text-navy">{sample.word} · {sample.key}</p>
+                            <p className="mt-0.5 text-muted" dir="rtl">{sample.text}</p>
+                          </div>
+                        ))}
+                        {translationAudit && translationAudit.hebrewEnglishSamples.length === 0 && (
+                          <p className="py-4 text-center text-sm text-muted">{label(locale, "לא נמצאה אנגלית חשודה בעברית.", "No suspicious English found in Hebrew copy.")}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-gold/20 bg-gold/5 p-4 text-sm text-navy">
+                      <p className="font-medium">{label(locale, "שומרי ניסוח", "Wording guards")}</p>
+                      <p className="mt-1 text-xs text-muted">
+                        {label(locale, "הבדיקה עוקבת במיוחד אחרי ניסוחים שכבר נפסלו: לשון משפטית מדי, כותרות תחרותיות מדי, וקטגוריות משוב שלא מתאימות לאופי האתר.", "The scan watches wording that was already rejected: overly legal phrasing, overly competitive headings, and feedback categories that do not fit the tone of the site.")}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

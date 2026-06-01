@@ -180,20 +180,21 @@ assert(
   "Admin page should use the server-verified admin role to show the super-admin portal"
 );
 assert(
-  ["stats", "projects", "support", "integrity", "health", "audit", "control", "admins"].every((tab) =>
+  ["stats", "projects", "support", "integrity", "language", "health", "audit", "control", "admins"].every((tab) =>
     adminPage.includes(`TabsTrigger value="${tab}"`)
   ) &&
     adminPage.includes("loadProjectDetail") &&
     adminPage.includes("recomputeSelectedProject") &&
     adminPage.includes("Data Integrity Center") &&
     adminPage.includes("projectIssueSeverity") &&
+    adminPage.includes("loadTranslationAudit") &&
     adminPage.includes("auditSearch") &&
     adminPage.includes("expandedAuditId") &&
     adminPage.includes("updateProjectControls") &&
     adminPage.includes("updateReportStatus") &&
     adminPage.includes("saveSiteSettings") &&
     adminPage.includes("targetIsAdmin"),
-  "Super-admin portal should expose stats, projects, support, integrity, health, audit, control, admins, report review, project repair, and settings flows"
+  "Super-admin portal should expose stats, projects, support, integrity, language, health, audit, control, admins, report review, project repair, and settings flows"
 );
 
 const adminProjectsRoute = read("src/app/api/admin/projects/route.ts");
@@ -247,6 +248,15 @@ assert(
     superProjectSettingsRoute.includes("BOOLEAN_FIELDS") &&
     superProjectSettingsRoute.includes("VALID_STATUSES"),
   "Super-admin project controls must require explicit single-project confirmation, use a narrow allowlist, touch one Lzecher project, and audit changes"
+);
+
+const superTranslationsRoute = read("src/app/api/admin/super/translations/route.ts");
+assert(
+  superTranslationsRoute.includes("requireSuperAdmin(idToken)") &&
+    superTranslationsRoute.includes("messages") &&
+    superTranslationsRoute.includes("FORBIDDEN_HEBREW_PHRASES") &&
+    superTranslationsRoute.includes("hebrewEnglishSamples"),
+  "Super-admin translation QA must require super admin and audit local message catalogs"
 );
 
 const superAuditRoute = read("src/app/api/admin/super/audit/route.ts");
