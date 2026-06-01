@@ -220,6 +220,18 @@ assert(
   "Memorial page must not serialize password hash/salt into the client component"
 );
 
+const memorialAccessRoute = read("src/app/api/memorials/[slug]/access/route.ts");
+assert(
+  memorialAccessRoute.includes('collection("lzecher_projects")') &&
+    memorialAccessRoute.includes("verifyPassword") &&
+    memorialAccessRoute.includes("purpose: \"project_access\"") &&
+    memorialAccessRoute.includes("projectId") &&
+    memorialAccessRoute.includes("httpOnly: true") &&
+    memorialAccessRoute.includes('sameSite: "lax"') &&
+    memorialAccessRoute.includes('secure: process.env.NODE_ENV === "production"'),
+  "Memorial password access must be Lzecher-scoped, project-scoped, httpOnly, and local-dev compatible"
+);
+
 const creatorProjectUpdateRoute = read("src/app/api/projects/[id]/update/route.ts");
 assert(
   creatorProjectUpdateRoute.includes('import { seedSetForTrack } from "@/lib/seed-set"') &&

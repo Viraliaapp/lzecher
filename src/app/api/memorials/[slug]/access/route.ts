@@ -67,7 +67,7 @@ export async function POST(
     const res = NextResponse.json({ success: true });
     res.cookies.set(accessCookieName(projectId), token, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
       maxAge: Math.floor(TTL.PROJECT_ACCESS / 1000),
