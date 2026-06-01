@@ -659,6 +659,8 @@
   },
   "leaderboard": {
     "title": "Yasher Koach",
-    "subtitle": ""
+    "subtitle": "",
+    "showAll": "Show all",
+    "showTop": "Show top 5"
   }
 }

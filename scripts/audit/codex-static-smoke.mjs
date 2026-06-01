@@ -240,21 +240,26 @@ assert(
 assert(
   leaderboard.includes("MAX_VISIBLE_MATMIDIM = 5") &&
     leaderboard.includes("aria-expanded") &&
+    leaderboard.includes('t("showAll")') &&
+    leaderboard.includes('t("showTop")') &&
     leaderboard.includes("Award"),
-  "Leaderboard should be a collapsible medal-style top-5 panel"
+  "Leaderboard should be a collapsible medal-style top-5 panel with an optional full ranking"
 );
 
 const leaderboardRoute = read("src/app/api/projects/[id]/leaderboard/route.ts");
 assert(
   leaderboardRoute.includes("LEADERBOARD_LIMIT = 5") &&
-    leaderboardRoute.includes("matmidim.slice(0, LEADERBOARD_LIMIT)"),
-  "Leaderboard API should only return the top 5"
+    leaderboardRoute.includes("LEADERBOARD_FULL_LIMIT") &&
+    leaderboardRoute.includes('searchParams.get("all") === "1"') &&
+    leaderboardRoute.includes("computeTopMatmidim("),
+  "Leaderboard API should return top 5 by default and compute a full ranking only when requested"
 );
 
 const recomputeProgress = read("src/lib/recompute-progress.ts");
 assert(
-  recomputeProgress.includes(".slice(0, 5)"),
-  "Stored topMatmidim should be limited to top 5"
+  recomputeProgress.includes("limit = 5") &&
+    recomputeProgress.includes("Number.isFinite(limit)"),
+  "Stored topMatmidim should default to top 5 while allowing the API to compute a longer ranked list"
 );
 
 const dashboardRoute = read("src/app/api/dashboard/route.ts");

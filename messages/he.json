@@ -659,6 +659,8 @@
   },
   "leaderboard": {
     "title": "יישר כח",
-    "subtitle": ""
+    "subtitle": "",
+    "showAll": "הצג הכל",
+    "showTop": "הצג רק 5"
   }
 }

@@ -55,9 +55,12 @@ export async function recomputeParticipantCount(
  * Top "matmidim" (most-dedicated takers) for a project, by portions taken — computed
  * from the portions already in hand (no extra reads). Exclusive portions count their
  * claimedByName; inclusive portions count each name in claimerNames. Anonymous /
- * nameless takers are skipped. Returns up to 10, sorted desc.
+ * nameless takers are skipped. Returns a sorted list capped by `limit`.
  */
-export function computeTopMatmidim(portions: { claimMode?: string; status?: string; claimedByName?: string; claimerNames?: string[] }[]): Matmid[] {
+export function computeTopMatmidim(
+  portions: { claimMode?: string; status?: string; claimedByName?: string; claimerNames?: string[] }[],
+  limit = 5
+): Matmid[] {
   const counts = new Map<string, number>();
   const bump = (raw?: string) => {
     const name = (raw || "").trim();
@@ -74,7 +77,7 @@ export function computeTopMatmidim(portions: { claimMode?: string; status?: stri
   return [...counts.entries()]
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
+    .slice(0, Number.isFinite(limit) ? Math.max(0, limit) : undefined);
 }
 
 export async function recomputeProjectProgress(
