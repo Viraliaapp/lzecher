@@ -237,7 +237,7 @@ assert(
   "Admin page should use the server-verified admin role to show the super-admin portal"
 );
 assert(
-  ["stats", "analytics", "projects", "support", "integrity", "language", "health", "audit", "control", "admins"].every((tab) =>
+  ["stats", "analytics", "projects", "users", "support", "integrity", "language", "health", "audit", "control", "admins"].every((tab) =>
     adminPage.includes(`TabsTrigger value="${tab}"`)
   ) &&
     adminPage.includes("loadProjectDetail") &&
@@ -245,6 +245,8 @@ assert(
     adminPage.includes("analyticsRates") &&
     adminPage.includes("trackAnalytics") &&
     adminPage.includes("supportSearch") &&
+    adminPage.includes("userSearch") &&
+    adminPage.includes("filteredUserSummaries") &&
     adminPage.includes("filteredFeedbackItems") &&
     adminPage.includes("Data Integrity Center") &&
     adminPage.includes("projectIssueSeverity") &&
@@ -255,7 +257,7 @@ assert(
     adminPage.includes("updateReportStatus") &&
     adminPage.includes("saveSiteSettings") &&
     adminPage.includes("targetIsAdmin"),
-  "Super-admin portal should expose stats, analytics, projects, support, integrity, language, health, audit, control, admins, report review, project repair, and settings flows"
+  "Super-admin portal should expose stats, analytics, projects, users, support, integrity, language, health, audit, control, admins, report review, project repair, and settings flows"
 );
 
 const adminProjectsRoute = read("src/app/api/admin/projects/route.ts");
@@ -276,6 +278,8 @@ assert(
   superOverviewRoute.includes("requireSuperAdmin(idToken)") &&
     superOverviewRoute.includes('collection("lzecher_projects")') &&
     superOverviewRoute.includes('collection("lzecher_admin_audit")') &&
+    superOverviewRoute.includes("userSummaries") &&
+    superOverviewRoute.includes("claimsForUsersSnap") &&
     superOverviewRoute.includes("healthChecks") &&
     superOverviewRoute.includes("projectSummaries") &&
     superOverviewRoute.includes("recentAudit") &&

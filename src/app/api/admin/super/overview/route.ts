@@ -37,6 +37,34 @@ function publicAdminUser(data: FirebaseFirestore.DocumentData, uid: string) {
   };
 }
 
+function baseUserSummary(data: FirebaseFirestore.DocumentData, uid: string) {
+  return {
+    uid,
+    email: data.email || null,
+    displayName: data.displayName || null,
+    isAdmin: data.isAdmin === true,
+    isSuperAdmin: data.isSuperAdmin === true,
+    permissions: Array.isArray(data.permissions) ? data.permissions.filter((p) => typeof p === "string") : [],
+    updatedAt: data.updatedAt || null,
+    createdAt: data.createdAt || null,
+    projectCount: 0,
+    activeProjectCount: 0,
+    claimCount: 0,
+    completedClaimCount: 0,
+    lastProjectAt: null as number | null,
+    lastClaimAt: null as number | null,
+    lastActivityAt: Number(data.updatedAt || data.createdAt || 0),
+    projects: [] as {
+      id: string;
+      slug: string | null;
+      nameHebrew: string;
+      familyNameHebrew: string;
+      status: string;
+      progressPct: number;
+    }[],
+  };
+}
+
 function publicReport(data: FirebaseFirestore.DocumentData, id: string) {
   return {
     id,
@@ -168,6 +196,8 @@ export async function POST(request: NextRequest) {
       totalReports,
       openReports,
       totalUsers,
+      usersListSnap,
+      claimsForUsersSnap,
       projectsSnap,
       feedbackSnap,
       claimsSnap,
@@ -199,6 +229,8 @@ export async function POST(request: NextRequest) {
       countOf(reportsRef),
       countOf(reportsRef.where("status", "==", "open")),
       countOf(usersRef),
+      usersRef.limit(500).get(),
+      claimsRef.limit(5000).get(),
       projectsRef.orderBy("createdAt", "desc").get(),
       feedbackRef.orderBy("submittedAt", "desc").limit(RECENT_LIMIT).get(),
       claimsRef.orderBy("claimedAt", "desc").limit(RECENT_LIMIT).get(),
@@ -218,6 +250,56 @@ export async function POST(request: NextRequest) {
     for (const doc of superSnap.docs) adminUsers.set(doc.id, publicAdminUser(doc.data(), doc.id));
 
     const projectSummaries = projectsSnap.docs.map((doc) => publicProjectSummary(doc.data(), doc.id));
+    const userSummaries = new Map<string, ReturnType<typeof baseUserSummary>>();
+    for (const doc of usersListSnap.docs) {
+      userSummaries.set(doc.id, baseUserSummary(doc.data(), doc.id));
+    }
+    const ensureUser = (uid: string, data: FirebaseFirestore.DocumentData = {}) => {
+      if (!userSummaries.has(uid)) userSummaries.set(uid, baseUserSummary(data, uid));
+      const item = userSummaries.get(uid)!;
+      if (!item.email && data.email) item.email = data.email;
+      if (!item.displayName && data.displayName) item.displayName = data.displayName;
+      return item;
+    };
+    for (const project of projectSummaries) {
+      if (!project.createdBy) continue;
+      const item = ensureUser(project.createdBy, { email: project.createdByEmail });
+      item.projectCount += 1;
+      if (project.status === "active") item.activeProjectCount += 1;
+      item.lastProjectAt = Math.max(Number(item.lastProjectAt || 0), Number(project.createdAt || project.updatedAt || 0)) || null;
+      item.lastActivityAt = Math.max(item.lastActivityAt, Number(project.updatedAt || project.createdAt || 0));
+      item.projects.push({
+        id: project.id,
+        slug: project.slug,
+        nameHebrew: project.nameHebrew,
+        familyNameHebrew: project.familyNameHebrew,
+        status: project.status,
+        progressPct: project.progressPct,
+      });
+    }
+    for (const doc of claimsForUsersSnap.docs) {
+      const claim = doc.data();
+      const uid = typeof claim.userId === "string" && claim.userId && claim.userId !== "anonymous" ? claim.userId : "";
+      if (!uid) continue;
+      const item = ensureUser(uid, { email: claim.userEmail, displayName: claim.userName });
+      item.claimCount += 1;
+      if (claim.status === "completed") item.completedClaimCount += 1;
+      item.lastClaimAt = Math.max(Number(item.lastClaimAt || 0), Number(claim.completedAt || claim.claimedAt || 0)) || null;
+      item.lastActivityAt = Math.max(item.lastActivityAt, Number(claim.completedAt || claim.claimedAt || 0));
+    }
+    const publicUserSummaries = Array.from(userSummaries.values())
+      .map((item) => ({
+        ...item,
+        projects: item.projects
+          .sort((a, b) => b.progressPct - a.progressPct || a.nameHebrew.localeCompare(b.nameHebrew))
+          .slice(0, 5),
+      }))
+      .sort((a, b) =>
+        Number(b.isSuperAdmin) - Number(a.isSuperAdmin) ||
+        Number(b.isAdmin) - Number(a.isAdmin) ||
+        b.projectCount - a.projectCount ||
+        b.lastActivityAt - a.lastActivityAt
+      );
     const siteSettings = settingsSnap?.exists
       ? sanitizeSiteSettings({ ...DEFAULT_SITE_SETTINGS, ...settingsSnap.data() })
       : DEFAULT_SITE_SETTINGS;
@@ -304,6 +386,7 @@ export async function POST(request: NextRequest) {
         },
       ],
       projectSummaries,
+      userSummaries: publicUserSummaries,
       recentFeedback: feedbackSnap.docs.map((doc) => publicFeedback(doc.data(), doc.id)),
       recentClaims,
       adminUsers: Array.from(adminUsers.values()).sort((a, b) => Number(b.isSuperAdmin) - Number(a.isSuperAdmin)),

@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil, Share2, Inbox, UserPlus, BarChart3, RotateCw, Wrench, History, CheckCircle2, Lock, Unlock, ClipboardList, Mail, Settings, Megaphone, ShieldCheck, Languages, TrendingUp } from "lucide-react";
+import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil, Share2, Inbox, UserPlus, Users, BarChart3, RotateCw, Wrench, History, CheckCircle2, Lock, Unlock, ClipboardList, Mail, Settings, Megaphone, ShieldCheck, Languages, TrendingUp } from "lucide-react";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
@@ -54,6 +54,24 @@ type AdminUserSummary = {
   permissions: string[];
   updatedAt?: number | null;
   createdAt?: number | null;
+};
+
+type UserSummary = AdminUserSummary & {
+  projectCount: number;
+  activeProjectCount: number;
+  claimCount: number;
+  completedClaimCount: number;
+  lastProjectAt: number | null;
+  lastClaimAt: number | null;
+  lastActivityAt: number;
+  projects: {
+    id: string;
+    slug: string | null;
+    nameHebrew: string;
+    familyNameHebrew: string;
+    status: string;
+    progressPct: number;
+  }[];
 };
 
 type SuperProjectSummary = {
@@ -150,6 +168,7 @@ type SuperOverview = {
   recentFeedback: SuperFeedback[];
   recentClaims: SuperClaim[];
   adminUsers: AdminUserSummary[];
+  userSummaries: UserSummary[];
   recentReports: SuperReport[];
   recentContacts: SuperContactMessage[];
   recentAudit: SuperAuditEntry[];
@@ -725,6 +744,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
   const [translationAudit, setTranslationAudit] = useState<TranslationAudit | null>(null);
   const [supportSearch, setSupportSearch] = useState("");
+  const [userSearch, setUserSearch] = useState("");
 
   async function loadOverview() {
     setRefreshing(true);
@@ -1047,6 +1067,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
 
   const stats = overview?.stats || {};
   const projectSummaries = overview?.projectSummaries || [];
+  const userSummaries = overview?.userSummaries || [];
   const projectsWithIssues = projectSummaries
     .filter((project) => project.issues.length > 0)
     .sort((a, b) => b.issues.length - a.issues.length || Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
@@ -1136,6 +1157,19 @@ function SuperAdminPortal({ locale }: { locale: string }) {
       project.id,
     ].some((value) => String(value || "").toLowerCase().includes(query));
   });
+  const filteredUserSummaries = userSummaries.filter((user) => {
+    const query = userSearch.trim().toLowerCase();
+    if (!query) return true;
+    return [
+      user.email || "",
+      user.displayName || "",
+      user.uid,
+      user.permissions.join(" "),
+      ...user.projects.flatMap((project) => [project.nameHebrew, project.familyNameHebrew, project.slug || "", project.id]),
+    ].some((value) => String(value || "").toLowerCase().includes(query));
+  });
+  const creatorCount = userSummaries.filter((user) => user.projectCount > 0).length;
+  const userAdminCount = userSummaries.filter((user) => user.isAdmin || user.isSuperAdmin).length;
   const selectedProject = projectSummaries.find((project) => project.id === selectedProjectId) || filteredProjects[0] || null;
 
   return (
@@ -1178,6 +1212,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
               <TabsTrigger value="stats"><BarChart3 className="h-4 w-4" /> {label(locale, "נתונים", "Stats")}</TabsTrigger>
               <TabsTrigger value="analytics"><TrendingUp className="h-4 w-4" /> {label(locale, "מגמות", "Analytics")}</TabsTrigger>
               <TabsTrigger value="projects"><ClipboardList className="h-4 w-4" /> {label(locale, "פרויקטים", "Projects")}</TabsTrigger>
+              <TabsTrigger value="users"><Users className="h-4 w-4" /> {label(locale, "משתמשים", "Users")}</TabsTrigger>
               <TabsTrigger value="support"><Inbox className="h-4 w-4" /> {label(locale, "תמיכה", "Support")}</TabsTrigger>
               <TabsTrigger value="integrity"><ShieldCheck className="h-4 w-4" /> {label(locale, "תקינות", "Integrity")}</TabsTrigger>
               <TabsTrigger value="language"><Languages className="h-4 w-4" /> {label(locale, "שפה", "Language")}</TabsTrigger>
@@ -1568,6 +1603,108 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     <p className="py-12 text-center text-sm text-muted">{label(locale, "אין פרויקטים להצגה", "No projects to show")}</p>
                   )}
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="users">
+              <div className="mb-4 space-y-3">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                    <Input
+                      value={userSearch}
+                      onChange={(event) => setUserSearch(event.target.value)}
+                      placeholder={label(locale, "חיפוש לפי אימייל, שם, UID או פרויקט", "Search by email, name, UID, or project")}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Button variant="ghost" onClick={() => setUserSearch("")} disabled={!userSearch.trim()}>
+                    {label(locale, "נקה", "Clear")}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {[
+                    [label(locale, "חשבונות", "Accounts"), userSummaries.length],
+                    [label(locale, "יוצרים", "Creators"), creatorCount],
+                    [label(locale, "מנהלים", "Admins"), userAdminCount],
+                    [label(locale, "בתוצאות", "Shown"), filteredUserSummaries.length],
+                  ].map(([name, value]) => (
+                    <div key={String(name)} className="rounded-lg border border-navy/10 bg-white p-3">
+                      <p className="text-xs text-muted">{name}</p>
+                      <p className="font-heading text-2xl font-bold text-navy">{Number(value || 0).toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-3 xl:grid-cols-2">
+                {filteredUserSummaries.map((user) => (
+                  <div key={user.uid} className="rounded-lg border border-navy/10 bg-white p-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="min-w-0 truncate font-medium text-navy">{user.email || user.displayName || user.uid}</p>
+                          {user.isSuperAdmin && <Badge variant="default">{label(locale, "מנהל ראשי", "Super")}</Badge>}
+                          {!user.isSuperAdmin && user.isAdmin && <Badge variant="secondary">{label(locale, "מנהל", "Admin")}</Badge>}
+                        </div>
+                        <p className="mt-1 truncate text-xs text-muted">{user.displayName || user.uid}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setTarget(user.email || user.uid);
+                          setTargetIsAdmin(user.isAdmin || user.isSuperAdmin);
+                          setTargetIsSuper(user.isSuperAdmin);
+                          setTargetPermissions(user.permissions.length ? user.permissions : ["projects", "feedback", "reports", "stats"]);
+                          setSuperTab("admins");
+                        }}
+                      >
+                        <Shield className="h-4 w-4" />
+                        {label(locale, "הרשאות", "Permissions")}
+                      </Button>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                      <div className="rounded-md bg-cream/40 p-2">
+                        <p className="text-xs text-muted">{label(locale, "פרויקטים", "Projects")}</p>
+                        <p className="font-heading font-bold text-navy">{user.projectCount}</p>
+                      </div>
+                      <div className="rounded-md bg-cream/40 p-2">
+                        <p className="text-xs text-muted">{label(locale, "בחירות", "Claims")}</p>
+                        <p className="font-heading font-bold text-navy">{user.claimCount}</p>
+                      </div>
+                      <div className="rounded-md bg-cream/40 p-2">
+                        <p className="text-xs text-muted">{label(locale, "הושלמו", "Completed")}</p>
+                        <p className="font-heading font-bold text-navy">{user.completedClaimCount}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+                      <span>{label(locale, "פעילות אחרונה", "Last activity")}: {user.lastActivityAt ? formatTimestamp(user.lastActivityAt) : label(locale, "לא ידוע", "Unknown")}</span>
+                      <span>{label(locale, "פרויקטים פעילים", "Active projects")}: {user.activeProjectCount}</span>
+                    </div>
+
+                    {user.projects.length > 0 && (
+                      <div className="mt-3 space-y-1.5">
+                        {user.projects.map((project) => (
+                          <button
+                            key={project.id}
+                            type="button"
+                            onClick={() => inspectProject(project.id)}
+                            className="flex w-full items-center justify-between gap-3 rounded-md bg-gold/5 px-2 py-1.5 text-start text-xs transition hover:bg-gold/10"
+                          >
+                            <span className="min-w-0 truncate text-navy" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</span>
+                            <span className="shrink-0 text-muted">{projectStatusLabel(locale, project.status)} · {Math.round(project.progressPct || 0)}%</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {!filteredUserSummaries.length && (
+                  <p className="py-8 text-center text-sm text-muted xl:col-span-2">{label(locale, "לא נמצאו משתמשים", "No users found")}</p>
+                )}
               </div>
             </TabsContent>
 
