@@ -7,8 +7,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { verifyToken } from "@/lib/auth-roles";
-import { MITZVAH_TEMPLATES } from "@/lib/seed-data";
+import { MITZVAH_TEMPLATES, PARSHIYOT } from "@/lib/seed-data";
 import { hashPassword } from "@/lib/password";
+import { seedSetForTrack } from "@/lib/seed-set";
 import type { TrackType } from "@/lib/types";
 
 const EDITABLE_FIELDS = new Set([
@@ -212,12 +213,49 @@ async function updateDocsInChunks(
 }
 
 async function seedPortionsForTrack(db: FirebaseFirestore.Firestore, projectId: string, track: TrackType): Promise<number> {
+  if (track === "mishnayos" || track === "tehillim") {
+    const existing = await db
+      .collection("lzecher_portions")
+      .where("projectId", "==", projectId)
+      .where("trackType", "==", track)
+      .limit(1)
+      .get();
+    if (!existing.empty) return 0;
+    return seedSetForTrack(db, projectId, track, 1);
+  }
+
+  const allP = await db.collection("lzecher_portions").where("projectId", "==", projectId).get();
+  let maxOrder = 0;
+  allP.forEach(d => { const o = d.data().order || 0; if (o > maxOrder) maxOrder = o; });
+
+  if (track === "shnayim_mikra") {
+    const batch = db.batch();
+    let added = 0;
+    for (const p of PARSHIYOT) {
+      maxOrder++;
+      const ref = db.collection("lzecher_portions").doc();
+      batch.set(ref, {
+        id: ref.id,
+        projectId,
+        trackType: "shnayim_mikra",
+        claimMode: "inclusive",
+        reference: `Parshas ${p.name}`,
+        displayName: `Parshas ${p.name}`,
+        displayNameHebrew: `פרשת ${p.nameHebrew}`,
+        order: maxOrder,
+        status: "available",
+        parsha: p.name,
+        currentClaimerCount: 0,
+      });
+      added++;
+    }
+    await batch.commit();
+    return added;
+  }
+
   if (track === "kabalos") {
     const batch = db.batch();
     let added = 0;
-    const allP = await db.collection("lzecher_portions").where("projectId", "==", projectId).get();
-    let maxOrder = 0;
-    allP.forEach(d => { const o = d.data().order || 0; if (o > maxOrder) maxOrder = o; });
     const FEMININE_KABALOS = new Set(["shabbat-candles", "hafrashat-challah"]);
     for (const mt of MITZVAH_TEMPLATES) {
       maxOrder++;
@@ -229,13 +267,9 @@ async function seedPortionsForTrack(db: FirebaseFirestore.Firestore, projectId: 
     return added;
   }
   if (track === "daf_yomi") {
-    const allP = await db.collection("lzecher_portions").where("projectId", "==", projectId).get();
-    let maxOrder = 0;
-    allP.forEach(d => { const o = d.data().order || 0; if (o > maxOrder) maxOrder = o; });
     const ref = db.collection("lzecher_portions").doc();
     await ref.set({ id: ref.id, projectId, trackType: "daf_yomi", claimMode: "inclusive", reference: "Daf Yomi commitment", displayName: "Daf Yomi", displayNameHebrew: "דף יומי", order: maxOrder + 1, status: "available", currentClaimerCount: 0 });
     return 1;
   }
-  // mishnayos/tehillim/shnayim_mikra — seed via seedSetForTrack or return 0
   return 0;
 }

@@ -8,8 +8,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdmin } from "@/lib/auth-roles";
-import { MITZVAH_TEMPLATES } from "@/lib/seed-data";
+import { MITZVAH_TEMPLATES, PARSHIYOT } from "@/lib/seed-data";
 import { hashPassword } from "@/lib/password";
+import { seedSetForTrack } from "@/lib/seed-set";
 import type { TrackType } from "@/lib/types";
 
 const EDITABLE_FIELDS = new Set([
@@ -256,6 +257,17 @@ async function seedPortionsForTrack(
   projectId: string,
   track: TrackType
 ): Promise<number> {
+  if (track === "mishnayos" || track === "tehillim") {
+    const existing = await db
+      .collection("lzecher_portions")
+      .where("projectId", "==", projectId)
+      .where("trackType", "==", track)
+      .limit(1)
+      .get();
+    if (!existing.empty) return 0;
+    return seedSetForTrack(db, projectId, track, 1);
+  }
+
   // Find existing max order for this project
   const allPortions = await db
     .collection("lzecher_portions")
@@ -267,10 +279,35 @@ async function seedPortionsForTrack(
     if (o > maxOrder) maxOrder = o;
   });
 
-  const batch = db.batch();
-  let added = 0;
+  if (track === "shnayim_mikra") {
+    const batch = db.batch();
+    let added = 0;
+    for (const p of PARSHIYOT) {
+      maxOrder++;
+      const ref = db.collection("lzecher_portions").doc();
+      batch.set(ref, {
+        id: ref.id,
+        projectId,
+        trackType: "shnayim_mikra",
+        claimMode: "inclusive",
+        reference: `Parshas ${p.name}`,
+        displayName: `Parshas ${p.name}`,
+        displayNameHebrew: `פרשת ${p.nameHebrew}`,
+        order: maxOrder,
+        status: "available",
+        parsha: p.name,
+        currentClaimerCount: 0,
+      });
+      added++;
+    }
+    await batch.commit();
+    return added;
+  }
 
   if (track === "kabalos") {
+    const batch = db.batch();
+    let added = 0;
+    const FEMININE_KABALOS = new Set(["shabbat-candles", "hafrashat-challah"]);
     for (const mt of MITZVAH_TEMPLATES) {
       maxOrder++;
       const ref = db.collection("lzecher_portions").doc();
@@ -279,19 +316,24 @@ async function seedPortionsForTrack(
         projectId,
         trackType: "kabalos",
         claimMode: "inclusive",
-        reference: mt.title,
+        reference: mt.titleHebrew,
         displayName: mt.title,
         displayNameHebrew: mt.titleHebrew,
         order: maxOrder,
         status: "available",
         currentClaimerCount: 0,
+        claimerNames: [],
+        claimVerbForm: FEMININE_KABALOS.has(mt.id) ? "feminine" : "both",
+        isFreeText: mt.id === "kabbalah-ishit",
       });
       added++;
     }
+    await batch.commit();
+    return added;
   } else if (track === "daf_yomi") {
     maxOrder++;
     const ref = db.collection("lzecher_portions").doc();
-    batch.set(ref, {
+    await ref.set({
       id: ref.id,
       projectId,
       trackType: "daf_yomi",
@@ -303,13 +345,8 @@ async function seedPortionsForTrack(
       status: "available",
       currentClaimerCount: 0,
     });
-    added = 1;
+    return 1;
   } else {
-    // mishnayos/tehillim/shnayim_mikra — too much data to re-seed inline.
-    // Return 0; admin should re-run the original create flow if needed.
-    // (Alternatively call /api/seed/portions; out of scope here.)
     return 0;
   }
-  await batch.commit();
-  return added;
 }
