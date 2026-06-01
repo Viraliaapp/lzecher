@@ -83,8 +83,8 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          if (res.status === 403) { toast.error("Not authorized"); router.push("/dashboard" as const); return; }
-          if (res.status === 404) { toast.error("Project not found"); router.push("/dashboard" as const); return; }
+          if (res.status === 403) { toast.error(locale === "he" ? "אין לך הרשאה לערוך הנצחה זו" : "Not authorized"); router.push("/dashboard" as const); return; }
+          if (res.status === 404) { toast.error(locale === "he" ? "ההנצחה לא נמצאה" : "Project not found"); router.push("/dashboard" as const); return; }
           throw new Error(errData.error || "Load failed");
         }
         const data = await res.json();
@@ -114,7 +114,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         setSelectedTracks(tracks);
       } catch (err) {
         console.error("[edit] load failed", err);
-        toast.error("Failed to load project");
+        toast.error(locale === "he" ? "לא ניתן לטעון את ההנצחה" : "Failed to load project");
       } finally {
         setLoading(false);
       }
@@ -175,7 +175,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
           ? `מסלול לימוד זה כולל ${data.activeCount} חלקים בלימוד ו-${data.completedCount} חלקים שנלמדו. הסרה תמחק אותם.\n\nהזן את מזהה הפרויקט לאישור: ${id}`
           : `This learning track has ${data.activeCount} active participant entries + ${data.completedCount} learned portions. Removing it will delete them.\n\nType the project ID to confirm: ${id}`;
         const typed = window.prompt(confirmText);
-        if (typed !== id) { toast.error("Confirmation mismatch"); setSaving(false); return; }
+        if (typed !== id) { toast.error(locale === "he" ? "האישור לא תאם" : "Confirmation mismatch"); setSaving(false); return; }
         trackChanges.confirmDestructive = id;
         res = await fetch(`/api/projects/${id}/update`, {
           method: "POST",
@@ -185,7 +185,10 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         data = await res.json().catch(() => ({}));
       }
 
-      if (!res.ok) { toast.error(data.error || "Save failed"); return; }
+      if (!res.ok) {
+        toast.error(locale === "he" ? "לא ניתן לשמור את השינויים" : (data.error || "Save failed"));
+        return;
+      }
       toast.success(locale === "he" ? "השינויים נשמרו" : "Changes saved");
       setOriginalTracks(selectedTracks);
       if (passwordArg !== undefined) {
@@ -195,7 +198,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
       }
     } catch (err) {
       console.error("[edit] save failed", err);
-      toast.error("Save failed");
+      toast.error(locale === "he" ? "לא ניתן לשמור את השינויים" : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -215,13 +218,16 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         body: JSON.stringify({ idToken, confirmation: resetConfirm }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { toast.error(data.error || "Reset failed"); return; }
+      if (!res.ok) {
+        toast.error(locale === "he" ? "לא ניתן לאפס את חלוקת הלימוד" : (data.error || "Reset failed"));
+        return;
+      }
       toast.success(locale === "he" ? "כל חלוקת הלימוד אופסה" : "All learning assignments reset");
       setResetConfirm("");
       setShowResetSection(false);
     } catch (err) {
       console.error("[edit] reset failed", err);
-      toast.error("Reset failed");
+      toast.error(locale === "he" ? "לא ניתן לאפס את חלוקת הלימוד" : "Reset failed");
     } finally {
       setResetting(false);
     }
@@ -242,12 +248,15 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         body: JSON.stringify({ idToken, confirmation: deleteConfirm.trim() }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { toast.error(data.error || "Delete failed"); return; }
+      if (!res.ok) {
+        toast.error(locale === "he" ? "לא ניתן למחוק את ההנצחה" : (data.error || "Delete failed"));
+        return;
+      }
       toast.success(locale === "he" ? "ההנצחה נמחקה" : "Memorial deleted");
       router.push("/dashboard" as const);
     } catch (err) {
       console.error("[edit] delete failed", err);
-      toast.error("Delete failed");
+      toast.error(locale === "he" ? "לא ניתן למחוק את ההנצחה" : "Delete failed");
     } finally {
       setDeleting(false);
     }

@@ -595,6 +595,7 @@
     "promise3": "Cancela la suscripcion en un clic",
     "emailPlaceholder": "tu@ejemplo.com",
     "sendLink": "Enviar enlace magico",
+    "errorSendingLink": "No se pudo enviar el enlace de inicio de sesion. Intentalo de nuevo.",
     "checkEmail": "Revisa tu correo",
     "checkEmailDesc": "Enviamos un enlace de inicio de sesion a {email}. Haz clic en el enlace para iniciar sesion y guardar tu compromiso.",
     "orAnonymous": "O reclamar anonimamente sin recordatorios",

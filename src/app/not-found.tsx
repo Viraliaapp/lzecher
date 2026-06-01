@@ -96,7 +96,7 @@ export default function NotFound() {
               color: "#FAF6EC",
             }}
           >
-            This page is no longer with us
+            הדף לא נמצא / Page not found
           </h1>
 
           {/* Multilingual subtitle */}
@@ -109,10 +109,10 @@ export default function NotFound() {
               fontStyle: "italic",
             }}
           >
-            Esta pagina ya no existe &middot; Cette page n&apos;existe plus &middot;{" "}
             <span style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
               דף זה אינו קיים עוד
             </span>
+            {" "}&middot; This page is no longer available
           </p>
 
           {/* Back to Home button */}
@@ -132,7 +132,7 @@ export default function NotFound() {
               boxShadow: "0 4px 24px rgba(201, 169, 97, 0.3)",
             }}
           >
-            Back to Home
+            חזרה לבית / Back to Home
           </a>
         </div>
       </body>

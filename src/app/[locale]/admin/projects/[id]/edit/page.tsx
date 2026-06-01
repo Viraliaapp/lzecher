@@ -55,7 +55,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
       try {
         const idToken = await auth.currentUser?.getIdToken(true);
         if (!idToken) {
-          toast.error("Sign in expired");
+          toast.error(locale === "he" ? "פג תוקף ההתחברות" : "Sign in expired");
           setLoading(false);
           return;
         }
@@ -65,7 +65,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
           body: JSON.stringify({ idToken }),
         });
         if (!res.ok) {
-          toast.error("Project not found");
+          toast.error(locale === "he" ? "ההנצחה לא נמצאה" : "Project not found");
           router.push("/admin" as const);
           return;
         }
@@ -89,12 +89,12 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
         setSelectedTracks(tracks);
       } catch (err) {
         console.error("[admin/edit] load failed", err);
-        toast.error("Failed to load project");
+        toast.error(locale === "he" ? "לא ניתן לטעון את ההנצחה" : "Failed to load project");
       } finally {
         setLoading(false);
       }
     })();
-  }, [authLoading, profile, id, router]);
+  }, [authLoading, profile, id, router, locale]);
 
   function toggleTrack(track: TrackType) {
     setSelectedTracks((prev) =>
@@ -108,7 +108,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
     try {
       const idToken = await auth.currentUser?.getIdToken(true);
       if (!idToken) {
-        toast.error("Sign in expired");
+        toast.error(locale === "he" ? "פג תוקף ההתחברות" : "Sign in expired");
         return;
       }
 
@@ -150,7 +150,11 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
           setSaving(false);
           return;
         }
-        const typed = window.prompt(`Type "${id}" to confirm destructive track removal:`);
+        const typed = window.prompt(
+          locale === "he"
+            ? `הקלד "${id}" כדי לאשר הסרת מסלול עם נתוני משתתפים:`
+            : `Type "${id}" to confirm destructive track removal:`
+        );
         if (typed !== id) {
           toast.error(t("editProject.confirmationMismatch") || "Confirmation did not match");
           setSaving(false);
@@ -166,14 +170,14 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
       }
 
       if (!res.ok) {
-        toast.error(data.error || "Save failed");
+        toast.error(locale === "he" ? "לא ניתן לשמור את השינויים" : (data.error || "Save failed"));
         return;
       }
       toast.success(t("editProject.saved") || "Saved");
       router.push("/admin" as const);
     } catch (err) {
       console.error("[admin/edit] save failed", err);
-      toast.error("Save failed");
+      toast.error(locale === "he" ? "לא ניתן לשמור את השינויים" : "Save failed");
     } finally {
       setSaving(false);
     }

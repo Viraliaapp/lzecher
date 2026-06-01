@@ -130,7 +130,7 @@ function ReminderSection({
           type="email"
           value={claimerEmail}
           onChange={(e) => setClaimerEmail(e.target.value)}
-          placeholder={t("emailPlaceholder") || "you@example.com"}
+          placeholder={t("emailPlaceholder")}
         />
       </div>
       {claimerEmail && (
@@ -434,7 +434,10 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { toast.error(data.error || "Failed to mark complete"); return; }
+      if (!res.ok) {
+        toast.error(locale === "he" ? "לא ניתן לסמן כנלמד" : (data.error || "Failed to mark complete"));
+        return;
+      }
       const now = Date.now();
       setPortions(prev => prev.map(p =>
         ids.includes(p.id) && p.status === "claimed"
@@ -445,7 +448,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       setCompleteDialogOpen(false);
     } catch(err) {
       console.error("[complete] error:", err);
-      toast.error("Failed to mark complete");
+      toast.error(locale === "he" ? "לא ניתן לסמן כנלמד" : "Failed to mark complete");
     } finally {
       setSubmittingComplete(false);
     }

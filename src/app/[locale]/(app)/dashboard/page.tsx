@@ -375,7 +375,11 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
               </div>
               <Switch checked={leaderboardVisible} onCheckedChange={updateLeaderboardVisibility} disabled={saving} />
             </div>
-            {loadingClaims && <p style={{ fontSize: "12px", color: "#8B7355", textAlign: "center", padding: "8px" }}>Loading...</p>}
+            {loadingClaims && (
+              <p style={{ fontSize: "12px", color: "#8B7355", textAlign: "center", padding: "8px" }}>
+                {locale === "he" ? "טוען משתתפים..." : "Loading participants..."}
+              </p>
+            )}
             {!loadingClaims && claims.length > 0 && (
               <div style={{ margin: "4px 0 10px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px", marginBottom: "8px" }}>

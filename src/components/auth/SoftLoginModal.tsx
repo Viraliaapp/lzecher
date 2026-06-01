@@ -65,13 +65,12 @@ export function SoftLoginModal({
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to send link");
+        throw new Error(t("errorSendingLink"));
       }
 
       setState("sent");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send link. Please try again.");
+      setError(err instanceof Error ? err.message : t("errorSendingLink"));
       setState("idle");
     }
   }

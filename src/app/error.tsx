@@ -2,6 +2,7 @@
 
 /* eslint-disable @next/next/no-html-link-for-pages, @next/next/no-page-custom-font */
 import "./globals.css";
+import { usePathname } from "next/navigation";
 
 const candleStyles = `
   @keyframes flicker {
@@ -21,8 +22,11 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const pathname = usePathname();
+  const isHebrew = pathname?.startsWith("/he");
+
   return (
-    <html lang="en">
+    <html lang={isHebrew ? "he" : "en"} dir={isHebrew ? "rtl" : "ltr"}>
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700&family=Inter:wght@400;500;600&display=swap"
@@ -75,7 +79,7 @@ export default function GlobalError({
               marginBottom: "1rem",
             }}
           >
-            Error
+            {isHebrew ? "שגיאה" : "Error"}
           </p>
 
           <h1
@@ -88,7 +92,7 @@ export default function GlobalError({
               color: "#FAF6EC",
             }}
           >
-            Something went wrong
+            {isHebrew ? "משהו השתבש" : "Something went wrong"}
           </h1>
 
           <p
@@ -99,7 +103,9 @@ export default function GlobalError({
               marginBottom: "2.5rem",
             }}
           >
-            An unexpected error occurred. Please try again or return home.
+            {isHebrew
+              ? "אירעה שגיאה לא צפויה. נסו שוב או חזרו לעמוד הבית."
+              : "An unexpected error occurred. Please try again or return home."}
           </p>
 
           {error.digest && (
@@ -111,7 +117,7 @@ export default function GlobalError({
                 fontFamily: "monospace",
               }}
             >
-              Error ID: {error.digest}
+              {isHebrew ? "מזהה שגיאה" : "Error ID"}: {error.digest}
             </p>
           )}
 
@@ -131,7 +137,7 @@ export default function GlobalError({
                 boxShadow: "0 4px 24px rgba(201, 169, 97, 0.3)",
               }}
             >
-              Try Again
+              {isHebrew ? "נסה שוב" : "Try Again"}
             </button>
 
             <a
@@ -149,7 +155,7 @@ export default function GlobalError({
                 cursor: "pointer",
               }}
             >
-              Back to Home
+              {isHebrew ? "חזרה לבית" : "Back to Home"}
             </a>
           </div>
         </div>

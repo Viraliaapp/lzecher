@@ -595,6 +595,7 @@
     "promise3": "Unsubscribe from anything in one click",
     "emailPlaceholder": "you@example.com",
     "sendLink": "Send magic link",
+    "errorSendingLink": "Could not send the sign-in link. Please try again.",
     "checkEmail": "Check your email",
     "checkEmailDesc": "We sent a sign-in link to {email}. Click the link to sign in and your portion will be saved.",
     "orAnonymous": "Or participate anonymously without reminders",

@@ -27,6 +27,17 @@ const ALLOWED_HEBREW_ENGLISH_WORDS = new Set([
   "PDF",
   "WhatsApp",
   "Email",
+  "Firebase",
+  "Google",
+  "Cloud",
+  "Vercel",
+  "Resend",
+  "HTTPS",
+  "JPG",
+  "PNG",
+  "JPEG",
+  "WebP",
+  "Zoom",
 ]);
 
 type FlatMessages = Record<string, string>;
@@ -63,7 +74,13 @@ function hasForbiddenPhrase(value: string, phrase: string) {
 function hebrewEnglishSamples(messages: FlatMessages) {
   const samples: { key: string; word: string; text: string }[] = [];
   for (const [key, value] of Object.entries(messages)) {
-    const matches = value.match(/\b[A-Za-z][A-Za-z'-]{2,}\b/g) || [];
+    if (/EnglishPlaceholder$/.test(key)) continue;
+    const reviewText = value
+      .replace(/\{[^}]+\}/g, " ")
+      .replace(/\b(?:plural|select|one|two|few|many|other)\b/g, " ")
+      .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, " ")
+      .replace(/\b[a-z0-9.-]+\.[a-z]{2,}\b/gi, " ");
+    const matches = reviewText.match(/\b[A-Za-z][A-Za-z'-]{2,}\b/g) || [];
     for (const word of matches) {
       if (ALLOWED_HEBREW_ENGLISH_WORDS.has(word)) continue;
       samples.push({ key, word, text: value.slice(0, 180) });

@@ -8,6 +8,7 @@ const requiredMessagePaths = [
   ["dashboard", "communityDesc"],
   ["dashboard", "browseMemorials"],
   ["dashboard", "signIn"],
+  ["softLogin", "errorSendingLink"],
   ["contact", "error"],
 ];
 
@@ -471,6 +472,38 @@ assert(
     superTranslationsRoute.includes("FORBIDDEN_HEBREW_PHRASES") &&
     superTranslationsRoute.includes("hebrewEnglishSamples"),
   "Super-admin translation QA must require super admin and audit local message catalogs"
+);
+
+const heMessagesRaw = read("messages/he.json");
+for (const phrase of [
+  "ניהול תביעות",
+  "המתמידים",
+  "לומדים שלקחו על עצמם הכי הרבה חלקים",
+  "דיווח באג",
+  "With the dignity owed to their memory",
+  "your@example.com",
+  "you@example.com",
+]) {
+  assert(!heMessagesRaw.includes(phrase), `Hebrew copy should not contain rejected wording: ${phrase}`);
+}
+
+const creatorDashboard = read("src/app/[locale]/(app)/dashboard/page.tsx");
+assert(
+  creatorDashboard.includes("טוען משתתפים...") && !creatorDashboard.includes(">Loading...</p>"),
+  "Creator dashboard participant loading state must be localized in Hebrew"
+);
+
+const softLoginModal = read("src/components/auth/SoftLoginModal.tsx");
+assert(
+  softLoginModal.includes('t("errorSendingLink")') && !softLoginModal.includes("Failed to send link"),
+  "Soft login modal errors must use localized copy"
+);
+
+const memorialPageClient = read("src/components/memorial/MemorialPageClient.tsx");
+assert(
+  memorialPageClient.includes('placeholder={t("emailPlaceholder")}') &&
+    memorialPageClient.includes("לא ניתן לסמן כנלמד"),
+  "Memorial page should avoid English fallback copy on Hebrew-facing completion and email fields"
 );
 
 const superAuditRoute = read("src/app/api/admin/super/audit/route.ts");
