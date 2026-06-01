@@ -185,6 +185,7 @@ assert(
   ) &&
     adminPage.includes("loadProjectDetail") &&
     adminPage.includes("recomputeSelectedProject") &&
+    adminPage.includes("updateProjectControls") &&
     adminPage.includes("updateReportStatus") &&
     adminPage.includes("saveSiteSettings") &&
     adminPage.includes("targetIsAdmin"),
@@ -230,6 +231,18 @@ assert(
     superRecomputeRoute.includes('collection("lzecher_admin_audit")') &&
     superRecomputeRoute.includes('scope: "single_project"'),
   "Super-admin recompute must require explicit single-project confirmation and audit every repair"
+);
+
+const superProjectSettingsRoute = read("src/app/api/admin/super/projects/[id]/settings/route.ts");
+assert(
+  superProjectSettingsRoute.includes("requireSuperAdmin(idToken)") &&
+    superProjectSettingsRoute.includes("confirmProjectId !== id") &&
+    superProjectSettingsRoute.includes('collection("lzecher_projects").doc(id)') &&
+    superProjectSettingsRoute.includes('collection("lzecher_admin_audit")') &&
+    superProjectSettingsRoute.includes('action: "super_admin_update_project_controls"') &&
+    superProjectSettingsRoute.includes("BOOLEAN_FIELDS") &&
+    superProjectSettingsRoute.includes("VALID_STATUSES"),
+  "Super-admin project controls must require explicit single-project confirmation, use a narrow allowlist, touch one Lzecher project, and audit changes"
 );
 
 const superAuditRoute = read("src/app/api/admin/super/audit/route.ts");

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -71,7 +72,12 @@ type SuperProjectSummary = {
   isPasswordProtected: boolean;
   showLeaderboard: boolean;
   allowAnonymous: boolean;
+  isPublic?: boolean;
   locked: boolean;
+  repeatingSetEnabled?: boolean;
+  startedByVisible?: boolean;
+  announcement?: string | null;
+  customDedication?: string | null;
   totalPortions: number;
   claimedPortions: number;
   completedPortions: number;
@@ -230,6 +236,8 @@ const EMPTY_SITE_SETTINGS: SiteSettings = {
   updatedAt: null,
   updatedBy: null,
 };
+
+const PROJECT_STATUS_OPTIONS = ["active", "completed", "hidden", "archived", "pending_moderation"] as const;
 
 const MASECHTA_HE_BY_NAME = new Map(MASECHTOS.map((masechta) => [masechta.name, masechta.nameHebrew]));
 
@@ -638,6 +646,9 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [projectDetail, setProjectDetail] = useState<SuperProjectDetail | null>(null);
   const [loadingProject, setLoadingProject] = useState(false);
   const [recomputingProject, setRecomputingProject] = useState(false);
+  const [savingProjectControls, setSavingProjectControls] = useState(false);
+  const [projectAnnouncement, setProjectAnnouncement] = useState("");
+  const [projectDedication, setProjectDedication] = useState("");
   const [target, setTarget] = useState("");
   const [targetIsAdmin, setTargetIsAdmin] = useState(true);
   const [targetIsSuper, setTargetIsSuper] = useState(false);
@@ -730,6 +741,8 @@ function SuperAdminPortal({ locale }: { locale: string }) {
         return;
       }
       setProjectDetail(data);
+      setProjectAnnouncement(typeof data.project?.announcement === "string" ? data.project.announcement : "");
+      setProjectDedication(typeof data.project?.customDedication === "string" ? data.project.customDedication : "");
     } catch {
       toast.error(label(locale, "לא ניתן לטעון פרויקט", "Could not load project"));
     } finally {
@@ -758,6 +771,34 @@ function SuperAdminPortal({ locale }: { locale: string }) {
       toast.error(label(locale, "לא ניתן לחשב מחדש", "Could not recompute"));
     } finally {
       setRecomputingProject(false);
+    }
+  }
+
+  async function updateProjectControls(updates: Record<string, unknown>) {
+    if (!selectedProjectId) return;
+    setSavingProjectControls(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch(`/api/admin/super/projects/${selectedProjectId}/settings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, confirmProjectId: selectedProjectId, updates }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || label(locale, "לא ניתן לעדכן בקרת פרויקט", "Could not update project controls"));
+        return;
+      }
+      if (data.noChanges) {
+        toast.message(label(locale, "לא היו שינויים לשמור", "No changes to save"));
+        return;
+      }
+      toast.success(label(locale, "בקרת הפרויקט עודכנה", "Project controls updated"));
+      await Promise.all([loadOverview(), loadProjectDetail(selectedProjectId)]);
+    } catch {
+      toast.error(label(locale, "לא ניתן לעדכן בקרת פרויקט", "Could not update project controls"));
+    } finally {
+      setSavingProjectControls(false);
     }
   }
 
@@ -1089,6 +1130,115 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                             <p className="font-heading text-xl font-bold text-navy">{Number(value || 0).toLocaleString()}</p>
                           </div>
                         ))}
+                      </div>
+
+                      <div className="rounded-lg border border-gold/20 bg-cream/30 p-3">
+                        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h4 className="font-medium text-navy">{label(locale, "בקרת פרויקט", "Project controls")}</h4>
+                            <p className="text-xs text-muted">
+                              {label(locale, "שינויים כאן נוגעים רק לפרויקט הזה ונרשמים ביומן ביקורת.", "Changes here affect only this project and are written to the audit log.")}
+                            </p>
+                          </div>
+                          {savingProjectControls && <Spinner className="h-4 w-4" />}
+                        </div>
+                        <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-muted">{label(locale, "סטטוס", "Status")}</label>
+                            <Select
+                              value={String(projectDetail?.project?.status || selectedProject.status || "active")}
+                              onValueChange={(value) => updateProjectControls({ status: value })}
+                              disabled={savingProjectControls}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PROJECT_STATUS_OPTIONS.map((status) => (
+                                  <SelectItem key={status} value={status}>
+                                    {projectStatusLabel(locale, status)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                            {[
+                              {
+                                key: "isPublic",
+                                value: (projectDetail?.project?.isPublic ?? selectedProject.isPublic ?? true) !== false,
+                                he: "מופיע בספרייה",
+                                en: "Directory listing",
+                              },
+                              {
+                                key: "allowAnonymous",
+                                value: (projectDetail?.project?.allowAnonymous ?? selectedProject.allowAnonymous) !== false,
+                                he: "אפשר אנונימי",
+                                en: "Allow anonymous",
+                              },
+                              {
+                                key: "showLeaderboard",
+                                value: (projectDetail?.project?.showLeaderboard ?? selectedProject.showLeaderboard) !== false,
+                                he: "הצג יישר כח",
+                                en: "Show Yasher Koach",
+                              },
+                              {
+                                key: "locked",
+                                value: (projectDetail?.project?.locked ?? selectedProject.locked) === true,
+                                he: "נעול לבחירות חדשות",
+                                en: "Lock new claims",
+                              },
+                              {
+                                key: "repeatingSetEnabled",
+                                value: (projectDetail?.project?.repeatingSetEnabled ?? selectedProject.repeatingSetEnabled ?? true) !== false,
+                                he: "פתח מחזור נוסף",
+                                en: "Open bonus rounds",
+                              },
+                              {
+                                key: "startedByVisible",
+                                value: (projectDetail?.project?.startedByVisible ?? selectedProject.startedByVisible ?? true) !== false,
+                                he: "הצג הוקם על ידי",
+                                en: "Show started by",
+                              },
+                            ].map((control) => (
+                              <label key={control.key} className="flex items-center justify-between gap-3 rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy">
+                                <span>{label(locale, control.he, control.en)}</span>
+                                <Switch
+                                  checked={control.value}
+                                  disabled={savingProjectControls}
+                                  onCheckedChange={(checked) => updateProjectControls({ [control.key]: checked })}
+                                />
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                          <Textarea
+                            value={projectAnnouncement}
+                            onChange={(e) => setProjectAnnouncement(e.target.value)}
+                            placeholder={label(locale, "הודעה מוצמדת בדף ההנצחה", "Pinned announcement on the memorial page")}
+                            rows={2}
+                            dir={locale === "he" ? "rtl" : "ltr"}
+                          />
+                          <Textarea
+                            value={projectDedication}
+                            onChange={(e) => setProjectDedication(e.target.value)}
+                            placeholder={label(locale, "הקדשה מותאמת בראש הדף", "Custom dedication at the top of the page")}
+                            rows={2}
+                            dir={locale === "he" ? "rtl" : "ltr"}
+                          />
+                        </div>
+                        <div className="mt-2 flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => updateProjectControls({ announcement: projectAnnouncement, customDedication: projectDedication })}
+                            disabled={savingProjectControls}
+                          >
+                            {savingProjectControls ? <Spinner className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+                            {label(locale, "שמור הודעות פרויקט", "Save project notes")}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="grid gap-3 lg:grid-cols-2">

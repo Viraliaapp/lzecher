@@ -125,7 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       async (error) => {
         // Firestore profile read failed.
-        console.error("[auth] Firestore profile error:", error);
+        const expectedFallback = error.code === "permission-denied" || error.code === "unauthenticated";
+        if (!expectedFallback) {
+          console.error("[auth] Firestore profile error:", error);
+        }
         const claims = await roleClaims(user);
         if (!cancelled && (claims.isAdmin || claims.isSuperAdmin)) {
           setProfile({
