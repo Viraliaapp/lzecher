@@ -165,13 +165,16 @@ assert(
   "Reminder emails must include a signed one-click mark-learned link"
 );
 assert(
-  cronReminderRoute.includes("lzecherEmailFrom()") &&
+  cronReminderRoute.includes('lzecherEmailFrom(locale === "he" ? "לזכרו" : "Lzecher")') &&
     cronReminderRoute.includes("RESEND_CHUNK_SIZE") &&
     cronReminderRoute.includes("RESEND_CHUNK_PAUSE_MS") &&
     cronReminderRoute.includes("isPermanentEmailError") &&
     cronReminderRoute.includes("isValidRecipientEmail") &&
+    cronReminderRoute.includes("learningScopeLabel") &&
+    cronReminderRoute.includes("learningLabel") &&
+    cronReminderRoute.includes("toHebrewCalendarDate") &&
     !cronReminderRoute.includes("onboarding@resend.dev"),
-  "Reminder emails must use the verified Lzecher sender and throttle Resend calls"
+  "Reminder emails must use the verified localized Lzecher sender, localize learning labels/dates, and throttle Resend calls"
 );
 
 const signedTokens = read("src/lib/signed-tokens.ts");
@@ -600,8 +603,23 @@ assert(
   learningLabel.includes("Tehillim") &&
     learningLabel.includes("תהלים") &&
     learningLabel.includes("MASECHTOS") &&
-    learningLabel.includes("hebrewNumberSequence"),
-  "Hebrew learning labels should translate seeded references like Tehillim and Sotah"
+    learningLabel.includes("hebrewNumberSequence") &&
+    learningLabel.includes("learningScopeLabel") &&
+    learningLabel.includes("Masechta") &&
+    learningLabel.includes("Shas Mishnayos") &&
+    learningLabel.includes("portions"),
+  "Hebrew learning labels should translate seeded references, bulk claims, Tehillim books, and multi-select counts"
+);
+
+const magicLinkRoute = read("src/app/api/send-magic-link/route.ts");
+assert(
+  magicLinkRoute.includes('he: "כניסה לחשבון באתר לזכרו"') &&
+    magicLinkRoute.includes('he: "כניסה לחשבון"') &&
+    magicLinkRoute.includes('const brandName = isHebrew ? "לזכרו" : "Lzecher"') &&
+    magicLinkRoute.includes("lzecherEmailFrom(brandName)") &&
+    !magicLinkRoute.includes("התחברות ל-Lzecher") &&
+    !magicLinkRoute.includes("התחבר ל-Lzecher"),
+  "Hebrew magic-link emails should use Hebrew subject, button, sender, and visible brand copy"
 );
 
 const trackHierarchy = read("src/components/memorial/TrackHierarchy.tsx");

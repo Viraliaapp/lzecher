@@ -5,6 +5,7 @@ import { queueRemindersForClaim } from "@/lib/queue-reminders";
 import { maybeOpenNextSet } from "@/lib/open-next-set";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import { recomputeGlobalStats } from "@/lib/recompute-global";
+import { learningScopeLabel } from "@/lib/learning-label";
 
 export async function POST(request: NextRequest) {
   try {
@@ -203,7 +204,13 @@ export async function POST(request: NextRequest) {
           durationEndDate: null,
           locale,
           honoreeName,
-          commitmentDesc: scope === "shas" ? "Shas Mishnayos" : scope === "seder" ? `Seder ${scopeId}` : `Masechta ${scopeId}`,
+          commitmentDesc: learningScopeLabel(
+            locale,
+            scope,
+            scopeId,
+            firstPortion.trackType,
+            availablePortions.length
+          ),
         });
       } catch (e) {
         console.error("[bulk-claim] queue reminders failed:", e);

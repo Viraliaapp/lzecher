@@ -6,6 +6,7 @@ import { maybeOpenNextSet } from "@/lib/open-next-set";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import { recomputeGlobalStats } from "@/lib/recompute-global";
 import { getClaimMode } from "@/lib/track-config";
+import { learningScopeLabel } from "@/lib/learning-label";
 import type { TrackType } from "@/lib/types";
 import type * as FirebaseFirestore from "@google-cloud/firestore";
 
@@ -206,7 +207,7 @@ export async function POST(request: NextRequest) {
           reminderPreferences,
           durationEndDate: null,
           locale,
-          commitmentDesc: `${claimedCount} portions`,
+          commitmentDesc: learningScopeLabel(locale, "multi", null, validPortions[0]?.data.trackType as string | undefined, claimedCount),
         });
       } catch (e) {
         console.error("[multi-claim] queue reminders failed:", e);

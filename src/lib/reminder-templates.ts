@@ -39,37 +39,43 @@ function emailWrapper(
   unsubscribeLink?: string,
   unsubscribeText?: string
 ): string {
+  const isHebrew = locale === "he";
+  const brandName = isHebrew ? "לזכרו" : "Lzecher";
+  const siteText = isHebrew ? "כניסה לאתר" : "lzecher.com";
+  const fontStack = isHebrew
+    ? "Arial,'Noto Sans Hebrew','Segoe UI',sans-serif"
+    : "Georgia,'Times New Roman',serif";
   return `<!DOCTYPE html>
 <html dir="${dir}" lang="${locale}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#FAF6EC;font-family:Georgia,'Times New Roman',serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAF6EC;padding:40px 20px;">
+<body style="margin:0;padding:0;background:#FAF6EC;font-family:${fontStack};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAF6EC;padding:34px 16px;">
     <tr><td align="center">
-      <table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;">
+      <table width="540" cellpadding="0" cellspacing="0" style="max-width:540px;width:100%;border-collapse:separate;">
 
         <!-- Header -->
-        <tr><td style="background:#0F1B2D;border-radius:16px 16px 0 0;padding:28px 32px;text-align:center;">
-          <div style="display:inline-block;width:44px;height:44px;background:rgba(201,169,97,0.15);border-radius:10px;line-height:44px;text-align:center;">
+        <tr><td style="background:#FFFCF6;border:1px solid rgba(15,27,45,0.08);border-bottom:none;border-radius:18px 18px 0 0;padding:28px 30px 22px;text-align:center;">
+          <div style="display:inline-block;width:42px;height:42px;background:#F3E6C1;border-radius:12px;line-height:42px;text-align:center;">
             <span style="font-size:22px;color:#C9A961;">&#x2727;</span>
           </div>
-          <h1 style="margin:10px 0 0;font-size:26px;color:#FAF6EC;font-weight:700;letter-spacing:-0.5px;">Lzecher</h1>
-          <p style="margin:4px 0 0;font-size:12px;color:#C9A961;letter-spacing:1px;">${tagline}</p>
+          <h1 style="margin:10px 0 0;font-size:27px;color:#0F1B2D;font-weight:700;">${brandName}</h1>
+          <p style="margin:4px 0 0;font-size:13px;color:#9A7A2F;">${tagline}</p>
         </td></tr>
 
         <!-- Body card -->
-        <tr><td style="background:#FFFFFF;padding:36px 32px;border:1px solid rgba(15,27,45,0.07);">
+        <tr><td style="background:#FFFFFF;padding:34px 30px;border-left:1px solid rgba(15,27,45,0.08);border-right:1px solid rgba(15,27,45,0.08);">
           ${content}
         </td></tr>
 
         <!-- Footer -->
-        <tr><td style="background:#0F1B2D;border-radius:0 0 16px 16px;padding:20px 32px;text-align:center;">
-          <p style="margin:0;font-size:11px;color:#6B8CAA;">&copy; ${new Date().getFullYear()} Lzecher &nbsp;·&nbsp;
-            <a href="https://lzecher.com" style="color:#C9A961;text-decoration:none;">lzecher.com</a>
+        <tr><td style="background:#FFFCF6;border:1px solid rgba(15,27,45,0.08);border-top:none;border-radius:0 0 18px 18px;padding:18px 30px;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#697386;">&copy; ${new Date().getFullYear()} ${brandName} &nbsp;·&nbsp;
+            <a href="https://lzecher.com" style="color:#9A7A2F;text-decoration:none;">${siteText}</a>
           </p>
           ${
             unsubscribeLink
-              ? `<p style="margin:8px 0 0;font-size:11px;color:#6B8CAA;">
-              <a href="${unsubscribeLink}" style="color:#6B8CAA;text-decoration:underline;">${unsubscribeText || "Manage reminder preferences"}</a>
+              ? `<p style="margin:8px 0 0;font-size:11px;color:#697386;">
+              <a href="${unsubscribeLink}" style="color:#697386;text-decoration:underline;">${unsubscribeText || "Manage reminder preferences"}</a>
             </p>`
               : ""
           }
@@ -104,21 +110,21 @@ function secondaryButton(href: string, text: string): string {
 
 const MARK_COMPLETE_TEXT: Record<ReminderLocale, string> = {
   en: "I learned this",
-  he: "למדתי את זה",
+  he: "סמן כנלמד",
   es: "Ya lo estudie",
   fr: "J'ai etudie ceci",
 };
 
 const VIEW_MEMORIAL_TEXT: Record<ReminderLocale, string> = {
   en: "View memorial",
-  he: "צפה בהנצחה",
+  he: "דף ההנצחה",
   es: "Ver memorial",
   fr: "Voir le memorial",
 };
 
 const VIEW_DASHBOARD_TEXT: Record<ReminderLocale, string> = {
   en: "View your dashboard",
-  he: "מעבר ללוח שלי",
+  he: "לוח הלימוד שלי",
   es: "Ver mi panel",
   fr: "Voir mon tableau de bord",
 };
@@ -150,7 +156,7 @@ const TAGLINES: Record<ReminderLocale, string> = {
 
 const UNSUBSCRIBE_TEXT: Record<ReminderLocale, string> = {
   en: "Manage reminder preferences",
-  he: "ניהול העדפות תזכורת",
+  he: "ניהול תזכורות",
   es: "Gestionar preferencias de recordatorio",
   fr: "Gerer les preferences de rappel",
 };
@@ -186,18 +192,18 @@ const templates: Record<
     }),
 
     he: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink, markCompleteLink, dashboardLink }) => ({
-      subject: `ההתחייבות שלך לעילוי נשמת ${honoreeName} אושרה`,
+      subject: `קבלת הלימוד שלך לעילוי נשמת ${honoreeName} אושרה`,
       body: emailWrapper(
         `
-        ${heading(`ההתחייבות שלך אושרה`)}
+        ${heading(`קבלת הלימוד שלך אושרה`)}
         ${badge(`לעילוי נשמת ${honoreeName}`)}
-        ${body(`תודה שקיבלת על עצמך ללמוד לעילוי נשמת <strong>${honoreeName}</strong>. ההתחייבות שלך נרשמה ותהיה זכות לנשמה.`)}
-        ${body(`<strong>מה שקיבלת על עצמך:</strong> ${commitmentDesc}${deadline ? `<br><strong>עד:</strong> ${deadline}` : ""}`)}
+        ${body(`יישר כוח שקיבלת על עצמך ללמוד לעילוי נשמת <strong>${honoreeName}</strong>. הקבלה נרשמה בדף ההנצחה.`)}
+        ${body(`<strong>הלימוד שקיבלת על עצמך:</strong> ${commitmentDesc}${deadline ? `<br><strong>עד:</strong> ${deadline}` : ""}`)}
         ${markCompleteLink ? ctaButton(markCompleteLink, MARK_COMPLETE_TEXT.he) : ""}
         ${dashboardLink ? secondaryButton(dashboardLink, VIEW_DASHBOARD_TEXT.he) : ""}
         ${secondaryButton(link, VIEW_MEMORIAL_TEXT.he)}
         ${divider()}
-        ${body(`<em>יהי רצון שהתורה שתלמד תהיה לעילוי נשמת ${honoreeName}.</em>`)}
+        ${body(`<em style="font-size:15px;color:#6B6F76;">ת.נ.צ.ב.ה.</em>`)}
         `,
         TAGLINES.he,
         "rtl",
@@ -273,13 +279,13 @@ const templates: Record<
     }),
 
     he: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink }) => ({
-      subject: `באמצע הדרך — המשך לזכות את נשמת ${honoreeName}`,
+      subject: `באמצע הדרך — הלימוד לעילוי נשמת ${honoreeName}`,
       body: emailWrapper(
         `
         ${heading(`הגעת לאמצע הדרך!`)}
         ${badge(`לעילוי נשמת ${honoreeName}`)}
-        ${body(`הגעת לאמצע ההתחייבות שלך לעילוי נשמת <strong>${honoreeName}</strong>. כל מילה שלמדת היא זכות לנשמה — המשך!`)}
-        ${body(`<strong>ההתחייבות שלך:</strong> ${commitmentDesc}${deadline ? `<br><strong>עד:</strong> ${deadline}` : ""}`)}
+        ${body(`הגעת לאמצע הקבלה שלך לעילוי נשמת <strong>${honoreeName}</strong>. כל לימוד שנעשה הוא זכות לנשמה.`)}
+        ${body(`<strong>הלימוד שלך:</strong> ${commitmentDesc}${deadline ? `<br><strong>עד:</strong> ${deadline}` : ""}`)}
         ${ctaButton(link, "המשך ללמוד")}
         `,
         TAGLINES.he,
@@ -348,14 +354,14 @@ const templates: Record<
     }),
 
     he: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink }) => ({
-      subject: `נותרו 7 ימים — ההתחייבות שלך לעילוי נשמת ${honoreeName}`,
+      subject: `נותרו 7 ימים — הלימוד לעילוי נשמת ${honoreeName}`,
       body: emailWrapper(
         `
         ${heading(`נותרו 7 ימים`)}
         ${badge(`לעילוי נשמת ${honoreeName}`)}
-        ${body(`נותרו לך <strong>7 ימים</strong> להשלים את ההתחייבות שלך לעילוי נשמת <strong>${honoreeName}</strong>. עוד יש זמן!`)}
-        ${body(`<strong>ההתחייבות שלך:</strong> ${commitmentDesc}${deadline ? `<br><strong>עד:</strong> ${deadline}` : ""}`)}
-        ${ctaButton(link, "צפה בהתחייבות שלי")}
+        ${body(`נותרו <strong>7 ימים</strong> להשלים את הלימוד שקיבלת לעילוי נשמת <strong>${honoreeName}</strong>. עוד יש זמן להתקדם בנחת.`)}
+        ${body(`<strong>הלימוד שלך:</strong> ${commitmentDesc}${deadline ? `<br><strong>עד:</strong> ${deadline}` : ""}`)}
+        ${ctaButton(link, "לצפייה בלימוד שלי")}
         `,
         TAGLINES.he,
         "rtl",
@@ -428,7 +434,7 @@ const templates: Record<
         `
         ${heading(`נותרו 3 ימים`)}
         ${badge(`לעילוי נשמת ${honoreeName}`)}
-        ${body(`המועד האחרון הוא בעוד <strong>3 ימים</strong>. עכשיו זה הזמן ללמוד את ${commitmentDesc} לעילוי נשמת <strong>${honoreeName}</strong>.`)}
+        ${body(`המועד האחרון הוא בעוד <strong>3 ימים</strong>. זה זמן טוב להתקדם בלימוד שקיבלת: <strong>${commitmentDesc}</strong>, לעילוי נשמת <strong>${honoreeName}</strong>.`)}
         ${deadline ? body(`<strong>עד:</strong> ${deadline}`) : ""}
         ${ctaButton(link, "למד עכשיו")}
         `,
@@ -503,7 +509,7 @@ const templates: Record<
         `
         ${heading(`המועד האחרון שלך הוא מחר`)}
         ${badge(`לעילוי נשמת ${honoreeName}`)}
-        ${body(`ההתחייבות שלך של ${commitmentDesc} לעילוי נשמת <strong>${honoreeName}</strong> היא <strong>מחר</strong>. זוהי התזכורת האחרונה שלך — אתה כמעט שם!`)}
+        ${body(`הלימוד שקיבלת, <strong>${commitmentDesc}</strong>, לעילוי נשמת <strong>${honoreeName}</strong>, אמור להסתיים <strong>מחר</strong>. זו התזכורת האחרונה.`)}
         ${deadline ? body(`<strong>עד:</strong> ${deadline}`) : ""}
         ${ctaButton(link, "למד עכשיו")}
         `,
@@ -577,7 +583,7 @@ const templates: Record<
         `
         ${heading(`תזכורת להיום`)}
         ${badge(`לעילוי נשמת ${honoreeName}`)}
-        ${body(`זוהי תזכורת יומית ללמוד <strong>${commitmentDesc}</strong> לעילוי נשמת <strong>${honoreeName}</strong>. כל יום שאתה לומד הוא זכות לנשמה.`)}
+        ${body(`תזכורת יומית ללמוד <strong>${commitmentDesc}</strong> לעילוי נשמת <strong>${honoreeName}</strong>. כל יום של לימוד מוסיף זכות לנשמה.`)}
         ${ctaButton(link, "למד היום")}
         `,
         TAGLINES.he,
@@ -651,11 +657,11 @@ const templates: Record<
         `
         ${heading(`סיכום הלימוד השבועי שלך`)}
         ${badge(`לעילוי נשמת ${honoreeName}`)}
-        ${body(`זוהי תזכורת שבועית על ההתחייבות שלך של <strong>${commitmentDesc}</strong> לעילוי נשמת <strong>${honoreeName}</strong>.`)}
-        ${body(`כל חלק שאתה מסיים מוסיף לזכות הכוללת המוקדשת לנשמה. ההשתתפות שלך חשובה.`)}
-        ${ctaButton(link, "צפה בהתקדמות שלי")}
+        ${body(`תזכורת שבועית על הלימוד שקיבלת: <strong>${commitmentDesc}</strong>, לעילוי נשמת <strong>${honoreeName}</strong>.`)}
+        ${body(`כל חלק שמסיימים מוסיף לזכות הכוללת המוקדשת לנשמה. ההשתתפות שלך חשובה.`)}
+        ${ctaButton(link, "התקדמות הלימוד שלי")}
         ${divider()}
-        ${body(`<em style="font-size:13px;color:#6B6F76;">יהי רצון שלימוד השבוע יביא נחמה ועלייה לנשמת ${honoreeName}.</em>`)}
+        ${body(`<em style="font-size:13px;color:#6B6F76;">ת.נ.צ.ב.ה.</em>`)}
         `,
         TAGLINES.he,
         "rtl",

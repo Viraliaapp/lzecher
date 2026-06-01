@@ -8,6 +8,8 @@ import {
 } from "@/lib/reminder-templates";
 import { signToken, TTL } from "@/lib/signed-tokens";
 import { lzecherEmailFrom } from "@/lib/email-config";
+import { toHebrewCalendarDate } from "@/lib/hebrew-date";
+import { learningLabel, learningScopeLabel } from "@/lib/learning-label";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -91,7 +93,7 @@ async function processEmail(
     }
 
     const { error } = await resend.emails.send({
-      from: lzecherEmailFrom(),
+      from: lzecherEmailFrom(locale === "he" ? "לזכרו" : "Lzecher"),
       to: data.toEmail,
       subject: email.subject,
       html: email.body,
@@ -149,8 +151,12 @@ async function buildTemplateArgs(
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lzecher.com";
   const locale = data.locale || "en";
 
-  let honoreeName = data.honoreeName || "their loved one";
-  let commitmentDesc = data.commitmentDesc || "Torah learning";
+  let honoreeName = data.honoreeName || (locale === "he" ? "הנפטר/ת" : "their loved one");
+  let commitmentDesc = learningLabel(
+    locale,
+    data.commitmentDesc || (locale === "he" ? "לימוד תורה" : "Torah learning"),
+    data.trackType
+  );
   let deadline: string | undefined;
 
   // Try to enrich from claim doc if we have a claimId
@@ -163,13 +169,28 @@ async function buildTemplateArgs(
       if (claimSnap.exists) {
         const claim = claimSnap.data()!;
         if (claim.durationEndDate) {
-          deadline = new Date(claim.durationEndDate).toLocaleDateString(
-            localeToDateLocale(locale),
-            { year: "numeric", month: "long", day: "numeric" }
-          );
+          const deadlineMillis =
+            typeof claim.durationEndDate === "number"
+              ? claim.durationEndDate
+              : typeof claim.durationEndDate.toMillis === "function"
+                ? claim.durationEndDate.toMillis()
+                : Number(claim.durationEndDate);
+          if (Number.isFinite(deadlineMillis)) {
+            deadline = toHebrewCalendarDate(deadlineMillis, locale);
+          }
         }
-        if (!data.commitmentDesc && claim.reference) {
-          commitmentDesc = claim.reference;
+        if (claim.isParent && claim.scope) {
+          commitmentDesc = learningScopeLabel(
+            locale,
+            claim.scope,
+            claim.scopeId,
+            claim.trackType,
+            Array.isArray(claim.portionIds) ? claim.portionIds.length : undefined
+          );
+        } else if (claim.reference) {
+          commitmentDesc = learningLabel(locale, claim.reference, claim.trackType);
+        } else {
+          commitmentDesc = learningLabel(locale, commitmentDesc, claim.trackType || data.trackType);
         }
       }
     } catch {
@@ -227,6 +248,8 @@ async function buildTemplateArgs(
     dashboardLink = `${baseUrl}/${locale}/auto-signin?token=${dashToken}`;
   }
 
+  commitmentDesc = learningLabel(locale, commitmentDesc, data.trackType);
+
   return { honoreeName, commitmentDesc, deadline, link, unsubscribeLink, markCompleteLink, dashboardLink };
 }
 
@@ -250,16 +273,6 @@ async function buildUnsubscribeToken(userId: string, claimId: string): Promise<s
   return `${encoded}.${sigB64}`;
 }
 
-function localeToDateLocale(locale: string): string {
-  const map: Record<string, string> = {
-    en: "en-US",
-    he: "he-IL",
-    es: "es-ES",
-    fr: "fr-FR",
-  };
-  return map[locale] || "en-US";
-}
-
 // ── Firestore document shape ──────────────────────────────────────────────────
 
 interface ScheduledEmail {
@@ -277,4 +290,5 @@ interface ScheduledEmail {
   // Pre-resolved template vars (optional, used as fallback)
   honoreeName?: string;
   commitmentDesc?: string;
+  trackType?: string;
 }

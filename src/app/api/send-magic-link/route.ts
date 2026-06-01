@@ -9,14 +9,14 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const SUBJECTS: Record<string, string> = {
   en: "Sign in to Lzecher",
-  he: "התחברות ל-Lzecher",
+  he: "כניסה לחשבון באתר לזכרו",
   es: "Iniciar sesion en Lzecher",
   fr: "Connexion a Lzecher",
 };
 
 const BUTTON_TEXT: Record<string, string> = {
   en: "Sign in to Lzecher",
-  he: "התחבר ל-Lzecher",
+  he: "כניסה לחשבון",
   es: "Iniciar sesion",
   fr: "Se connecter",
 };
@@ -89,16 +89,21 @@ export async function POST(request: NextRequest) {
     const expiresText = EXPIRES_TEXT[locale] || EXPIRES_TEXT.en;
     const tagline = TAGLINE[locale] || TAGLINE.en;
     const dir = locale === "he" ? "rtl" : "ltr";
+    const isHebrew = locale === "he";
+    const brandName = isHebrew ? "לזכרו" : "Lzecher";
+    const fontStack = isHebrew
+      ? "Arial,'Noto Sans Hebrew','Segoe UI',sans-serif"
+      : "Georgia,'Times New Roman',serif";
 
     const { error } = await resend.emails.send({
-      from: lzecherEmailFrom(),
+      from: lzecherEmailFrom(brandName),
       to: email,
       subject,
       html: `
 <!DOCTYPE html>
 <html dir="${dir}" lang="${locale}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#FAF6EC;font-family:Georgia,'Times New Roman',serif;">
+<body style="margin:0;padding:0;background:#FAF6EC;font-family:${fontStack};">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAF6EC;padding:40px 20px;">
     <tr><td align="center">
       <table width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;">
@@ -107,8 +112,8 @@ export async function POST(request: NextRequest) {
           <div style="display:inline-block;width:48px;height:48px;background:rgba(201,169,97,0.1);border-radius:12px;line-height:48px;text-align:center;">
             <span style="font-size:24px;color:#C9A961;">&#x2727;</span>
           </div>
-          <h1 style="margin:12px 0 0;font-size:28px;color:#0F1B2D;font-weight:700;letter-spacing:-0.5px;">Lzecher</h1>
-          <p style="margin:4px 0 0;font-size:13px;color:#C9A961;letter-spacing:1px;">${tagline}</p>
+          <h1 style="margin:12px 0 0;font-size:28px;color:#0F1B2D;font-weight:700;">${brandName}</h1>
+          <p style="margin:4px 0 0;font-size:13px;color:#C9A961;">${tagline}</p>
         </td></tr>
 
         <!-- Card -->
@@ -140,7 +145,7 @@ export async function POST(request: NextRequest) {
 
         <!-- Footer -->
         <tr><td align="center" style="padding-top:24px;">
-          <p style="margin:0;font-size:11px;color:#6B6F76;">&copy; ${new Date().getFullYear()} Lzecher</p>
+          <p style="margin:0;font-size:11px;color:#6B6F76;">&copy; ${new Date().getFullYear()} ${brandName}</p>
         </td></tr>
       </table>
     </td></tr>

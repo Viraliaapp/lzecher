@@ -7,6 +7,7 @@ import { queueRemindersForClaim } from "@/lib/queue-reminders";
 import { maybeOpenNextSet } from "@/lib/open-next-set";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import { recomputeGlobalStats } from "@/lib/recompute-global";
+import { learningLabel } from "@/lib/learning-label";
 
 export async function POST(request: NextRequest) {
   try {
@@ -200,7 +201,7 @@ export async function POST(request: NextRequest) {
             reminderPreferences,
             durationEndDate: resolvedEndDate,
             locale,
-            commitmentDesc: portionData.reference || portionData.displayName,
+            commitmentDesc: learningLabel(locale, portionData.reference || portionData.displayName, trackType),
           });
         } catch (e) {
           console.error("Failed to queue reminders:", e);
@@ -328,7 +329,7 @@ export async function POST(request: NextRequest) {
             reminderPreferences,
             durationEndDate: resolvedEndDate,
             locale,
-            commitmentDesc: portionData.reference || portionData.displayName,
+            commitmentDesc: learningLabel(locale, portionData.reference || portionData.displayName, trackType),
           });
         } catch (e) {
           console.error("Failed to queue reminders:", e);
