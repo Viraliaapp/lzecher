@@ -174,12 +174,73 @@ assert(
     adminPage.includes("profile?.isSuperAdmin || adminRole?.isSuperAdmin"),
   "Admin page should use the server-verified admin role to show the super-admin portal"
 );
+assert(
+  ["stats", "projects", "support", "health", "audit", "admins"].every((tab) =>
+    adminPage.includes(`TabsTrigger value="${tab}"`)
+  ) &&
+    adminPage.includes("loadProjectDetail") &&
+    adminPage.includes("recomputeSelectedProject") &&
+    adminPage.includes("updateReportStatus") &&
+    adminPage.includes("targetIsAdmin"),
+  "Super-admin portal should expose stats, projects, support, health, audit, admins, report review, and project repair flows"
+);
 
 const adminProjectsRoute = read("src/app/api/admin/projects/route.ts");
 assert(
   adminProjectsRoute.includes("adminRole") &&
     adminProjectsRoute.includes("isSuperAdmin: Boolean(admin.isSuperAdmin)"),
   "Admin projects API should return the verified admin role"
+);
+
+const superOverviewRoute = read("src/app/api/admin/super/overview/route.ts");
+assert(
+  superOverviewRoute.includes("requireSuperAdmin(idToken)") &&
+    superOverviewRoute.includes('collection("lzecher_projects")') &&
+    superOverviewRoute.includes('collection("lzecher_admin_audit")') &&
+    superOverviewRoute.includes("healthChecks") &&
+    superOverviewRoute.includes("projectSummaries") &&
+    superOverviewRoute.includes("recentAudit") &&
+    superOverviewRoute.includes("recentContacts"),
+  "Super-admin overview must stay Lzecher-scoped and return command-center sections"
+);
+
+const superProjectDetailRoute = read("src/app/api/admin/super/projects/[id]/route.ts");
+assert(
+  superProjectDetailRoute.includes("requireSuperAdmin(idToken)") &&
+    superProjectDetailRoute.includes('collection("lzecher_projects").doc(id).get()') &&
+    superProjectDetailRoute.includes("stripProject") &&
+    superProjectDetailRoute.includes("passwordHash") &&
+    superProjectDetailRoute.includes("diagnostics(") &&
+    superProjectDetailRoute.includes("trackStats") &&
+    superProjectDetailRoute.includes('collection("lzecher_contact_messages")'),
+  "Super-admin project inspector must require super admin, stay project-scoped, strip passwords, and return diagnostics"
+);
+
+const superRecomputeRoute = read("src/app/api/admin/super/projects/[id]/recompute/route.ts");
+assert(
+  superRecomputeRoute.includes("requireSuperAdmin(idToken)") &&
+    superRecomputeRoute.includes("confirmProjectId !== id") &&
+    superRecomputeRoute.includes("recomputeProjectProgress(db, id)") &&
+    superRecomputeRoute.includes('collection("lzecher_admin_audit")') &&
+    superRecomputeRoute.includes('scope: "single_project"'),
+  "Super-admin recompute must require explicit single-project confirmation and audit every repair"
+);
+
+const superAuditRoute = read("src/app/api/admin/super/audit/route.ts");
+assert(
+  superAuditRoute.includes("requireSuperAdmin(idToken)") &&
+    superAuditRoute.includes('collection("lzecher_admin_audit")') &&
+    superAuditRoute.includes("publicAudit"),
+  "Super-admin audit API must require super admin and read only the Lzecher audit log"
+);
+
+const superReportRoute = read("src/app/api/admin/super/reports/[id]/route.ts");
+assert(
+  superReportRoute.includes("requireSuperAdmin(idToken)") &&
+    superReportRoute.includes('collection("lzecher_reports").doc(id)') &&
+    superReportRoute.includes('collection("lzecher_admin_audit")') &&
+    superReportRoute.includes('action: "super_admin_update_report"'),
+  "Super-admin report updates must require super admin, touch one Lzecher report, and write an audit entry"
 );
 
 const authContext = read("src/context/AuthContext.tsx");

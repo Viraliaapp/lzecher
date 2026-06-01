@@ -85,7 +85,13 @@ export async function POST(request: NextRequest) {
       targetUid: userRecord.uid,
       targetEmail: userRecord.email || email || null,
       adminUid: decoded.uid,
+      at: now,
       timestamp: now,
+      details: {
+        isAdmin: nextAdmin,
+        isSuperAdmin: nextSuper,
+        permissions: safePermissions,
+      },
       after: {
         isAdmin: nextAdmin,
         isSuperAdmin: nextSuper,
