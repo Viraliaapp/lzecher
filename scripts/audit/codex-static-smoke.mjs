@@ -188,6 +188,16 @@ assert(
   "Dashboard stats and personal claim lists must hide parent summary rows"
 );
 
+const superOverviewStatsRoute = read("src/app/api/admin/super/overview/route.ts");
+assert(
+  superOverviewStatsRoute.includes("nonParentLoadedClaims") &&
+    superOverviewStatsRoute.includes("parentSummaryClaims") &&
+    superOverviewStatsRoute.includes('collection("lzecher_scheduled_emails")') &&
+    superOverviewStatsRoute.includes("pendingReminderEmails") &&
+    superOverviewStatsRoute.includes("reminder_queue"),
+  "Super-admin overview must exclude parent summary claims from activity stats and expose reminder queue health"
+);
+
 const heMessages = JSON.parse(read("messages/he.json"));
 assert(
   heMessages.leaderboard?.title === "יישר כח",

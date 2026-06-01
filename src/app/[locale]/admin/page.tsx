@@ -731,6 +731,12 @@ function healthCheckCopy(locale: string, check: SuperHealthCheck, stats: Record<
       detail: `${count} מתגי אתר פעילים מתוך מסמך lzecher_settings/site.`,
     };
   }
+  if (check.key === "reminder_queue") {
+    return {
+      title: "תור תזכורות באימייל",
+      detail: `${Number(stats.pendingReminderEmails || 0)} ממתינות, ${Number(stats.failedReminderEmails || 0)} נכשלו, ${Number(stats.sentReminderEmails || 0)} נשלחו.`,
+    };
+  }
   return { title: check.label, detail: check.detail };
 }
 
@@ -1488,6 +1494,8 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                   [label(locale, "דיווחים פתוחים", "Open reports"), stats.openReports],
                   [label(locale, "בעיות לבדיקה", "Diagnostics"), stats.projectsWithIssues],
                   [label(locale, "הודעות שלא נשלחו", "Undelivered contacts"), stats.undeliveredContacts],
+                  [label(locale, "תזכורות ממתינות", "Pending reminders"), stats.pendingReminderEmails],
+                  [label(locale, "תזכורות שנכשלו", "Failed reminders"), stats.failedReminderEmails],
                 ].map(([name, value]) => (
                   <div key={String(name)} className="rounded-lg border border-navy/10 bg-cream/40 p-3">
                     <p className="text-xs text-muted">{name}</p>

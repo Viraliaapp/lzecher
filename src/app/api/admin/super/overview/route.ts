@@ -187,6 +187,7 @@ export async function POST(request: NextRequest) {
     const usersRef = db.collection("lzecher_users");
     const contactsRef = db.collection("lzecher_contact_messages");
     const auditRef = db.collection("lzecher_admin_audit");
+    const scheduledEmailsRef = db.collection("lzecher_scheduled_emails");
     const settingsRef = db.collection("lzecher_settings").doc("site");
     const now = Date.now();
     const dayAgo = now - 24 * 60 * 60 * 1000;
@@ -212,6 +213,9 @@ export async function POST(request: NextRequest) {
       totalReports,
       openReports,
       totalUsers,
+      pendingReminderEmails,
+      failedReminderEmails,
+      sentReminderEmails,
       usersListSnap,
       claimsForUsersSnap,
       projectsSnap,
@@ -245,6 +249,9 @@ export async function POST(request: NextRequest) {
       countOf(reportsRef),
       countOf(reportsRef.where("status", "==", "open")),
       countOf(usersRef),
+      countOf(scheduledEmailsRef.where("status", "==", "pending")),
+      countOf(scheduledEmailsRef.where("status", "==", "failed")),
+      countOf(scheduledEmailsRef.where("status", "==", "sent")),
       usersRef.limit(500).get(),
       claimsRef.limit(5000).get(),
       projectsRef.orderBy("createdAt", "desc").get(),
@@ -266,6 +273,31 @@ export async function POST(request: NextRequest) {
     for (const doc of superSnap.docs) adminUsers.set(doc.id, publicAdminUser(doc.data(), doc.id));
 
     const projectSummaries = projectsSnap.docs.map((doc) => publicProjectSummary(doc.data(), doc.id));
+    const allLoadedClaims = claimsForUsersSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Record<string, unknown>);
+    const nonParentLoadedClaims = allLoadedClaims.filter((claim) => claim.isParent !== true);
+    const loadedAllClaims = claimsForUsersSnap.size < 5000;
+    const parentSummaryClaims = allLoadedClaims.length - nonParentLoadedClaims.length;
+    const learningClaimStats = {
+      total: loadedAllClaims ? nonParentLoadedClaims.length : Math.max(0, totalClaims - parentSummaryClaims),
+      completed: loadedAllClaims
+        ? nonParentLoadedClaims.filter((claim) => claim.status === "completed").length
+        : completedClaims,
+      today: loadedAllClaims
+        ? nonParentLoadedClaims.filter((claim) => Number(claim.claimedAt || 0) >= dayAgo).length
+        : claimsToday,
+      thisWeek: loadedAllClaims
+        ? nonParentLoadedClaims.filter((claim) => Number(claim.claimedAt || 0) >= weekAgo).length
+        : claimsThisWeek,
+      thisMonth: loadedAllClaims
+        ? nonParentLoadedClaims.filter((claim) => Number(claim.claimedAt || 0) >= monthAgo).length
+        : claimsThisMonth,
+      completedToday: loadedAllClaims
+        ? nonParentLoadedClaims.filter((claim) => Number(claim.completedAt || 0) >= dayAgo).length
+        : completedToday,
+      completedThisWeek: loadedAllClaims
+        ? nonParentLoadedClaims.filter((claim) => Number(claim.completedAt || 0) >= weekAgo).length
+        : completedThisWeek,
+    };
     const userSummaries = new Map<string, ReturnType<typeof baseUserSummary>>();
     for (const doc of usersListSnap.docs) {
       userSummaries.set(doc.id, baseUserSummary(doc.data(), doc.id));
@@ -293,8 +325,7 @@ export async function POST(request: NextRequest) {
         progressPct: project.progressPct,
       });
     }
-    for (const doc of claimsForUsersSnap.docs) {
-      const claim = doc.data();
+    for (const claim of nonParentLoadedClaims) {
       const uid = typeof claim.userId === "string" && claim.userId && claim.userId !== "anonymous" ? claim.userId : "";
       if (!uid) continue;
       const item = ensureUser(uid, { email: claim.userEmail, displayName: claim.userName });
@@ -337,7 +368,7 @@ export async function POST(request: NextRequest) {
         auditById.set(doc.id, publicAudit(doc.data(), doc.id));
       }
     }
-    const recentClaims = claimsSnap.docs.map((doc) => {
+    const recentClaims = claimsSnap.docs.filter((doc) => doc.data().isParent !== true).map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -362,18 +393,22 @@ export async function POST(request: NextRequest) {
         openProjects: Math.max(0, totalProjects - protectedProjects),
         projectsToday,
         projectsThisWeek,
-        totalClaims,
-        completedClaims,
-        claimsToday,
-        claimsThisWeek,
-        claimsThisMonth,
-        completedToday,
-        completedThisWeek,
+        totalClaims: learningClaimStats.total,
+        completedClaims: learningClaimStats.completed,
+        claimsToday: learningClaimStats.today,
+        claimsThisWeek: learningClaimStats.thisWeek,
+        claimsThisMonth: learningClaimStats.thisMonth,
+        completedToday: learningClaimStats.completedToday,
+        completedThisWeek: learningClaimStats.completedThisWeek,
         totalFeedback,
         newFeedback,
         totalReports,
         openReports,
         totalUsers,
+        parentSummaryClaims,
+        pendingReminderEmails,
+        failedReminderEmails,
+        sentReminderEmails,
         adminUsers: adminUsers.size,
         enabledFeatureFlags,
         projectsWithIssues: issueProjects.length,
@@ -407,6 +442,13 @@ export async function POST(request: NextRequest) {
           label: "Support queue",
           detail: `${newFeedback} new feedback, ${openReports} open reports, ${openContactMessages.length} open contact messages.`,
           count: newFeedback + openReports + openContactMessages.length,
+        },
+        {
+          key: "reminder_queue",
+          status: failedReminderEmails > 0 ? "warn" : "pass",
+          label: "Reminder email queue",
+          detail: `${pendingReminderEmails} pending, ${failedReminderEmails} failed, ${sentReminderEmails} sent reminder email(s).`,
+          count: failedReminderEmails,
         },
       ],
       projectSummaries,
