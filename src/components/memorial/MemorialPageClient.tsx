@@ -291,6 +291,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           ? `${setLabel(heroProgress.cycles, locale)} terminé · maintenant ${setLabel(activeSetNumber, locale)}`
           : `${setLabel(heroProgress.cycles, locale)} complete · now ${setLabel(activeSetNumber, locale)}`
     : null;
+  const firstRoundComplete = heroProgress.cycles > 0 || (completedPct === 100 && totalPortions > 0);
 
   const trackGroups = useMemo(() => {
     const groups: Record<string, Portion[]> = {};
@@ -789,15 +790,41 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         </div>
       </div>
 
-      {/* Siyum Banner — triggers when all portions are TAKEN (Item 3.4) */}
-      {pct === 100 && totalPortions > 0 && (
-        <div className="bg-gradient-to-r from-gold/20 via-gold/10 to-gold/20 border-b border-gold/20">
-          <div className="mx-auto max-w-3xl px-4 sm:px-6 py-6 text-center">
-            <h2 className="font-heading text-xl font-bold text-navy mb-2">{t("siyumEligible")}</h2>
-            <p className="text-sm text-muted mb-3">{t("completionBanner", { name: hebrewFirstLast })}</p>
-            <p className="font-heading text-navy text-sm leading-relaxed" dir="rtl">
-              הדרן עלך ועלן דעתך. לא נתנשי מינך ולא תתנשי מינן, לא בעלמא הדין ולא בעלמא דאתי.
-            </p>
+      {/* Completion / bonus-round banner */}
+      {firstRoundComplete && (
+        <div className="border-b border-gold/20 bg-gradient-to-r from-gold/20 via-gold/10 to-gold/20">
+          <div className="mx-auto grid max-w-5xl gap-4 px-4 py-6 text-center sm:px-6 lg:grid-cols-[1fr_auto] lg:text-start" dir={locale === "he" ? "rtl" : "ltr"}>
+            <div>
+              <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-gold-deep">
+                {locale === "he" ? "סיום מחזור" : "Completion milestone"}
+              </p>
+              <h2 className="mb-2 font-heading text-2xl font-bold text-navy">
+                {heroProgress.cycles > 0
+                  ? (locale === "he" ? `${setLabel(heroProgress.cycles, locale)} הושלם` : `${setLabel(heroProgress.cycles, locale)} complete`)
+                  : t("siyumEligible")}
+              </h2>
+              <p className="text-sm text-muted">
+                {heroProgress.cycles > 0
+                  ? (locale === "he"
+                      ? `המחזור הראשון כבר הושלם לעילוי נשמת ${hebrewFirstLast}. הדף ממשיך עכשיו למחזור נוסף כדי להרבות זכויות.`
+                      : `The first round has been completed in memory of ${hebrewFirstLast}. This page is now continuing into an additional round.`)
+                  : t("completionBanner", { name: hebrewFirstLast })}
+              </p>
+              <p className="mt-3 font-heading text-sm leading-relaxed text-navy" dir="rtl">
+                הדרן עלך ועלן דעתך. לא נתנשי מינך ולא תתנשי מינן, לא בעלמא הדין ולא בעלמא דאתי.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 lg:flex-col">
+              <Button size="sm" onClick={shareLink}>
+                <Share2 className="h-4 w-4" />
+                {locale === "he" ? "שתפו את הסיום" : "Share completion"}
+              </Button>
+              {heroProgress.cycles > 0 && (
+                <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-navy">
+                  {locale === "he" ? `עכשיו ${setLabel(activeSetNumber, locale)}` : `Now ${setLabel(activeSetNumber, locale)}`}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}

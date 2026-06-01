@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 import { Spinner } from "@/components/ui/spinner";
-import { ChevronDown, ChevronRight, Download, Mail, Plus, Users } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, ClipboardCheck, Download, Mail, Plus, Search, Send, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Claim } from "@/lib/types";
@@ -66,6 +66,16 @@ function formatDate(ts: unknown, locale: string): string {
   } catch {
     return "";
   }
+}
+
+function claimStatusLabel(status: string, locale: string) {
+  if (status === "completed") return locale === "he" ? "נלמד" : "Learned";
+  if (status === "expired") return locale === "he" ? "עבר הזמן" : "Expired";
+  return locale === "he" ? "בלימוד" : "Learning";
+}
+
+function mailtoUrl(email: string, subject: string, body: string) {
+  return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 // ─── Stat cards ───────────────────────────────────────────────────────────────
@@ -127,6 +137,8 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
   const [leaderboardVisible, setLeaderboardVisible] = useState(project.showLeaderboard !== false);
+  const [participantSearch, setParticipantSearch] = useState("");
+  const [participantStatus, setParticipantStatus] = useState<"all" | "active" | "completed" | "expired">("all");
 
   const progress = progressFromProject(project);
   const fallbackPct = project.totalPortions > 0
@@ -145,6 +157,50 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
   const hebrewName = `${project.nameHebrew} ${project.familyNameHebrew || ""}`.trim();
   const englishName = `${project.nameEnglish || ""} ${project.familyNameEnglish || ""}`.trim();
   const isActive = project.status === "active";
+  const memorialUrl = typeof window !== "undefined" ? `${window.location.origin}/${locale}/memorial/${project.slug}` : "";
+  const launchItems = [
+    {
+      key: "details",
+      done: Boolean(project.nameHebrew && project.familyNameHebrew && (project.dateOfPassing || project.dateOfPassingGregorian)),
+      label: locale === "he" ? "שם ותאריך מוכנים" : "Name and date ready",
+    },
+    {
+      key: "tracks",
+      done: Array.isArray(project.tracks) && project.tracks.length > 0 && project.totalPortions > 0,
+      label: locale === "he" ? "תחומי לימוד נטענו" : "Learning tracks loaded",
+    },
+    {
+      key: "access",
+      done: Boolean(project.slug),
+      label: project.isPasswordProtected
+        ? (locale === "he" ? "קישור עם סיסמה" : "Password link")
+        : (locale === "he" ? "קישור פתוח לשיתוף" : "Open share link"),
+    },
+    {
+      key: "sharing",
+      done: Boolean(project.slug),
+      label: locale === "he" ? "הודעות שיתוף מוכנות" : "Share messages ready",
+    },
+    {
+      key: "encouragement",
+      done: leaderboardVisible,
+      label: locale === "he" ? "יישר כח פעיל לעידוד" : "Yasher Koach encouragement on",
+    },
+  ];
+  const launchDone = launchItems.filter((item) => item.done).length;
+  const filteredClaims = claims.filter((claim) => {
+    const query = participantSearch.trim().toLowerCase();
+    const statusOk = participantStatus === "all" || claim.status === participantStatus;
+    if (!statusOk) return false;
+    if (!query) return true;
+    return [
+      claim.userName || "",
+      claim.userEmail || "",
+      claim.reference || "",
+      claim.trackType || "",
+      claim.status || "",
+    ].some((value) => String(value).toLowerCase().includes(query));
+  });
 
   async function loadClaims() {
     if (claims.length > 0) return; // already loaded
@@ -205,8 +261,8 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
 
   function exportClaimsCsv() {
     const rows = [
-      ["name", "email", "track", "reference", "status", "taken_at"],
-      ...claims.map((c) => {
+      ["name", "email", "track", "reference", "status", "taken_at", "completed_at"],
+      ...filteredClaims.map((c) => {
         return [
           c.userName || "",
           c.userEmail || "",
@@ -214,6 +270,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
           c.reference || "",
           c.status || "",
           c.claimedAt ? new Date(Number(c.claimedAt)).toISOString() : "",
+          c.completedAt ? new Date(Number(c.completedAt)).toISOString() : "",
         ];
       }),
     ];
@@ -229,12 +286,23 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
 
   function emailParticipants() {
     const emails = Array.from(new Set(
-      claims
+      filteredClaims
         .map((c) => String(c.userEmail || "").trim())
         .filter((email) => email.includes("@"))
     ));
     if (emails.length === 0) return;
-    window.location.href = `mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(hebrewName)}`;
+    const body = locale === "he"
+      ? `שלום,\n\nתודה שלקחתם חלק בלימוד לעילוי נשמת ${hebrewName}.\nאפשר לחזור לדף כאן:\n${memorialUrl}\n\nתזכו למצוות.`
+      : `Hello,\n\nThank you for taking part in the learning in memory of ${hebrewName}.\nYou can return to the page here:\n${memorialUrl}\n\nTizku l'mitzvos.`;
+    window.location.href = `mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(hebrewName)}&body=${encodeURIComponent(body)}`;
+  }
+
+  function emailParticipant(claim: Claim) {
+    if (!claim.userEmail) return;
+    const body = locale === "he"
+      ? `שלום ${claim.userName || ""},\n\nיישר כח שלקחת על עצמך ${claim.reference || "חלק לימוד"} לעילוי נשמת ${hebrewName}.\nאפשר לחזור לדף כאן:\n${memorialUrl}\n\nתזכו למצוות.`
+      : `Hello ${claim.userName || ""},\n\nYasher koach for taking ${claim.reference || "a portion"} in memory of ${hebrewName}.\nYou can return to the page here:\n${memorialUrl}\n\nTizku l'mitzvos.`;
+    window.location.href = mailtoUrl(claim.userEmail, hebrewName, body);
   }
 
   async function updateLeaderboardVisibility(next: boolean) {
@@ -333,6 +401,26 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
             {locale === "he" ? `${cycleText} · עכשיו במחזור הבא` : cycleText}
           </div>
         )}
+        <div
+          style={{ marginTop: "12px", borderRadius: "12px", border: "1px solid rgba(201,169,97,0.18)", background: "rgba(250,246,236,0.65)", padding: "10px" }}
+          dir={locale === "he" ? "rtl" : "ltr"}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "8px" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#0F1B2D", fontSize: "12px", fontWeight: 800 }}>
+              <ClipboardCheck className="h-3.5 w-3.5 text-gold" />
+              {locale === "he" ? "בדיקת שיתוף" : "Launch checklist"}
+            </span>
+            <span style={{ fontSize: "11px", color: "#8B7355", fontWeight: 700 }}>{launchDone}/{launchItems.length}</span>
+          </div>
+          <div style={{ display: "grid", gap: "5px" }}>
+            {launchItems.map((item) => (
+              <div key={item.key} style={{ display: "flex", alignItems: "center", gap: "6px", color: item.done ? "#5B7A52" : "#8B7355", fontSize: "11px" }}>
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" style={{ color: item.done ? "#5B7A52" : "rgba(139,115,85,0.35)" }} />
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Action row — 3 equal buttons */}
@@ -415,6 +503,46 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                     {locale === "he" ? "אימייל" : "Email"}
                   </button>
                 </div>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: "8px", marginTop: "8px" }}>
+                  <label style={{ position: "relative", display: "block" }}>
+                    <Search
+                      className="h-3.5 w-3.5"
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        [locale === "he" ? "right" : "left"]: "8px",
+                        transform: "translateY(-50%)",
+                        color: "#8B7355",
+                      }}
+                    />
+                    <input
+                      value={participantSearch}
+                      onChange={(event) => setParticipantSearch(event.target.value)}
+                      placeholder={locale === "he" ? "חיפוש שם, אימייל או חלק" : "Search name, email, or portion"}
+                      style={{
+                        width: "100%",
+                        minHeight: "32px",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(232,223,200,0.9)",
+                        background: "#FFFDF8",
+                        color: "#0F1B2D",
+                        fontSize: "12px",
+                        padding: locale === "he" ? "4px 28px 4px 8px" : "4px 8px 4px 28px",
+                      }}
+                      dir={locale === "he" ? "rtl" : "ltr"}
+                    />
+                  </label>
+                  <select
+                    value={participantStatus}
+                    onChange={(event) => setParticipantStatus(event.target.value as "all" | "active" | "completed" | "expired")}
+                    style={{ minHeight: "32px", borderRadius: "8px", border: "1px solid rgba(232,223,200,0.9)", background: "#FFFDF8", color: "#0F1B2D", fontSize: "12px", padding: "4px 8px" }}
+                  >
+                    <option value="all">{locale === "he" ? "הכל" : "All"}</option>
+                    <option value="active">{locale === "he" ? "בלימוד" : "Learning"}</option>
+                    <option value="completed">{locale === "he" ? "נלמד" : "Learned"}</option>
+                    <option value="expired">{locale === "he" ? "עבר הזמן" : "Expired"}</option>
+                  </select>
+                </div>
               </div>
             )}
             {!loadingClaims && claims.length === 0 && (
@@ -422,7 +550,12 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                 {locale === "he" ? "אין משתתפים עדיין" : "No participants yet"}
               </p>
             )}
-            {claims.map((c) => {
+            {!loadingClaims && claims.length > 0 && filteredClaims.length === 0 && (
+              <p style={{ fontSize: "12px", color: "#8B7355", textAlign: "center", padding: "8px" }}>
+                {locale === "he" ? "אין משתתפים שמתאימים לחיפוש" : "No participants match this filter"}
+              </p>
+            )}
+            {filteredClaims.map((c) => {
               const cl = c as Claim;
               const isEditing = editingId === cl.id;
               const statusColor = cl.status === "completed" ? "#5B7A52" : "#C9A961";
@@ -442,7 +575,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                         <span style={{ fontWeight: 600, color: "#0F1B2D" }} dir="rtl">{cl.userName}</span>
                         <span style={{ color: "#8B7355", marginLeft: "4px" }}>{cl.reference}</span>
                         <span style={{ color: statusColor, marginLeft: "4px", fontSize: "10px", fontWeight: 700 }}>
-                          {cl.status === "completed" ? (locale === "he" ? "נלמד" : "learned") : (locale === "he" ? "בלימוד" : "learning")}
+                          {claimStatusLabel(cl.status, locale)}
                         </span>
                         {cl.userEmail && (
                           <span style={{ color: "#8B7355", marginLeft: "4px", fontSize: "11px" }}>{cl.userEmail}</span>
@@ -461,6 +594,11 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                   ) : (
                     <>
                       <button onClick={() => { setEditingId(cl.id); setEditName(cl.userName); }} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer" }}>✎</button>
+                      {cl.userEmail && (
+                        <button onClick={() => emailParticipant(cl)} disabled={saving} title={locale === "he" ? "שלח תזכורת באימייל" : "Email reminder"} style={{ fontSize: "11px", color: "#5B7A52", background: "none", border: "none", cursor: "pointer" }}>
+                          <Send className="h-3 w-3" />
+                        </button>
+                      )}
                       <button onClick={() => removeClaim(cl.id)} disabled={saving} style={{ fontSize: "11px", color: "#cc4444", background: "none", border: "none", cursor: "pointer" }}>✕</button>
                     </>
                   )}

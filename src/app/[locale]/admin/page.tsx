@@ -1640,6 +1640,37 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     anonymousOpen: projectSummaries.filter((project) => !project.isPasswordProtected && project.allowAnonymous !== false).length,
     review: accessRows.filter((row) => row.notes.some((note) => note.severity === "warn")).length,
   };
+  const commandCenterItems = [
+    {
+      key: "failed_reminders",
+      severity: Number(stats.failedReminderEmails || 0) > 0 ? "warn" : "pass",
+      title: label(locale, "תזכורות שנכשלו", "Failed reminders"),
+      detail: label(locale, `${Number(stats.failedReminderEmails || 0)} הודעות תזכורת נכשלו ודורשות בדיקה בתור התזכורות.`, `${Number(stats.failedReminderEmails || 0)} reminder emails failed and need review in the reminder queue.`),
+      action: () => setSuperTab("communications"),
+    },
+    {
+      key: "support_queue",
+      severity: Number(stats.newFeedback || 0) + Number(stats.openReports || 0) + Number(stats.openContactMessages || 0) > 0 ? "warn" : "pass",
+      title: label(locale, "תור תמיכה", "Support queue"),
+      detail: label(locale, `${Number(stats.newFeedback || 0)} משובים חדשים, ${Number(stats.openReports || 0)} דיווחים פתוחים, ${Number(stats.openContactMessages || 0)} הודעות משפחה פתוחות.`, `${Number(stats.newFeedback || 0)} new feedback, ${Number(stats.openReports || 0)} open reports, ${Number(stats.openContactMessages || 0)} open family messages.`),
+      action: () => setSuperTab("support"),
+    },
+    {
+      key: "project_integrity",
+      severity: projectsWithIssues.length > 0 ? "warn" : "pass",
+      title: label(locale, "תקינות פרויקטים", "Project integrity"),
+      detail: label(locale, `${projectsWithIssues.length} פרויקטים דורשים בדיקה או תיקון נקודתי.`, `${projectsWithIssues.length} projects need review or single-project repair.`),
+      action: () => setSuperTab("integrity"),
+    },
+    {
+      key: "access_review",
+      severity: accessStats.review > 0 ? "warn" : "pass",
+      title: label(locale, "בדיקת גישה ושיתוף", "Access and sharing"),
+      detail: label(locale, `${accessStats.review} פרויקטים עם שילוב גישה שכדאי לבדוק.`, `${accessStats.review} projects have access combinations worth reviewing.`),
+      action: () => setSuperTab("access"),
+    },
+  ];
+  const commandAttentionCount = commandCenterItems.filter((item) => item.severity === "warn").length;
   const filteredUserSummaries = userSummaries.filter((user) => {
     const query = userSearch.trim().toLowerCase();
     if (!query) return true;
@@ -1883,6 +1914,38 @@ function SuperAdminPortal({ locale }: { locale: string }) {
             </TabsList>
 
             <TabsContent value="stats">
+              <div className="mb-4 rounded-lg border border-navy/10 bg-white p-4">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 className="font-heading font-bold text-navy">{label(locale, "תור תשומת לב", "Attention Queue")}</h3>
+                    <p className="text-xs text-muted">
+                      {label(locale, "מבט מהיר על הדברים שכדאי לבדוק קודם, בלי פעולות גורפות.", "A quick read-only view of what deserves attention first, with no bulk actions.")}
+                    </p>
+                  </div>
+                  <Badge variant={commandAttentionCount ? "destructive" : "secondary"}>
+                    {commandAttentionCount ? label(locale, `${commandAttentionCount} לבדיקה`, `${commandAttentionCount} to review`) : label(locale, "תקין", "Clear")}
+                  </Badge>
+                </div>
+                <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                  {commandCenterItems.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={item.action}
+                      className={cn(
+                        "rounded-lg border p-3 text-start transition hover:border-gold/40 hover:bg-gold/5",
+                        item.severity === "warn" ? "border-gold/35 bg-gold/10" : "border-navy/10 bg-cream/30"
+                      )}
+                    >
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <p className="font-medium text-navy">{item.title}</p>
+                        {item.severity === "warn" ? <AlertTriangle className="h-4 w-4 text-gold" /> : <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                      </div>
+                      <p className="text-xs text-muted">{item.detail}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
                   [label(locale, "פרויקטים", "Projects"), stats.totalProjects],
@@ -3085,6 +3148,28 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     <RotateCw className="h-4 w-4" />
                     {label(locale, "רענן", "Refresh")}
                   </Button>
+                </div>
+
+                <div className="grid gap-3 lg:grid-cols-3">
+                  {[
+                    {
+                      title: label(locale, "ניסוח שמתאים לעולם התורה", "Frum tone"),
+                      detail: label(locale, "העדפה ללשון מכבדת, חמה ופשוטה: לעילוי נשמת, תזכו למצוות, יישר כח, בלי לשון תחרותית מדי.", "Prefer respectful, warm, simple language: l'iluy nishmas, tizku l'mitzvos, Yasher Koach, without overly competitive phrasing."),
+                    },
+                    {
+                      title: label(locale, "מילים שצריך להימנע מהן", "Avoid list"),
+                      detail: label(locale, "לא להשתמש בלשון משפטית או קרה, בכותרות משוב לא מתאימות, או בכותרות שמרגישות כמו דירוג תחרותי.", "Avoid cold or legal wording, awkward feedback labels, and headings that feel like competitive ranking."),
+                    },
+                    {
+                      title: label(locale, "בדיקת RTL", "RTL review"),
+                      detail: label(locale, "בכל שינוי בעברית בודקים שהכפתורים, הבועות, הטבלאות והמספרים לא מכסים טקסט ולא נראים הפוכים.", "Every Hebrew change should check buttons, bubbles, tables, and numbers for overlap and proper RTL alignment."),
+                    },
+                  ].map((item) => (
+                    <div key={item.title} className="rounded-lg border border-gold/20 bg-gold/5 p-3">
+                      <p className="font-heading font-bold text-navy">{item.title}</p>
+                      <p className="mt-1 text-xs text-muted">{item.detail}</p>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

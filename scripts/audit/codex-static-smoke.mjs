@@ -67,6 +67,15 @@ for (const rel of sourceFiles) {
   }
 }
 
+const lzecherScope = read("src/lib/lzecher-scope.ts");
+assert(
+  lzecherScope.includes('LZECHER_COLLECTION_PREFIX = "lzecher_"') &&
+    lzecherScope.includes('LZECHER_STORAGE_PREFIX = "lzecher/"') &&
+    lzecherScope.includes("assertLzecherCollectionName") &&
+    lzecherScope.includes("lzecherStoragePath"),
+  "Lzecher scope guard should document and enforce the Firestore/storage boundary for the shared Viralia project"
+);
+
 const createRoute = read("src/app/api/projects/create/route.ts");
 assert(
   createRoute.includes("FIRESTORE_WRITE_CHUNK") && createRoute.includes("flushBatch"),
@@ -384,6 +393,8 @@ assert(
     adminPage.includes("filteredAccessRows") &&
     adminPage.includes("accessStats") &&
     adminPage.includes("Access and Sharing Audit") &&
+    adminPage.includes("commandCenterItems") &&
+    adminPage.includes("Attention Queue") &&
     adminPage.includes("supportSearch") &&
     adminPage.includes("userSearch") &&
     adminPage.includes("filteredUserSummaries") &&
@@ -397,6 +408,9 @@ assert(
     adminPage.includes("loadTranslationAudit") &&
     adminPage.includes("auditSearch") &&
     adminPage.includes("expandedAuditId") &&
+    adminPage.includes("Frum tone") &&
+    adminPage.includes("Avoid list") &&
+    adminPage.includes("RTL review") &&
     adminPage.includes("updateProjectControls") &&
     adminPage.includes("updateReportStatus") &&
     adminPage.includes("saveSiteSettings") &&
@@ -526,8 +540,14 @@ for (const phrase of [
 
 const creatorDashboard = read("src/app/[locale]/(app)/dashboard/page.tsx");
 assert(
-  creatorDashboard.includes("טוען משתתפים...") && !creatorDashboard.includes(">Loading...</p>"),
-  "Creator dashboard participant loading state must be localized in Hebrew"
+  creatorDashboard.includes("טוען משתתפים...") &&
+    !creatorDashboard.includes(">Loading...</p>") &&
+    creatorDashboard.includes("launchItems") &&
+    creatorDashboard.includes("בדיקת שיתוף") &&
+    creatorDashboard.includes("participantSearch") &&
+    creatorDashboard.includes("filteredClaims") &&
+    creatorDashboard.includes("emailParticipant"),
+  "Creator dashboard participant tools must be localized and expose launch checklist, filtering, CSV/email, and single-participant reminders"
 );
 
 const softLoginModal = read("src/components/auth/SoftLoginModal.tsx");
@@ -539,8 +559,20 @@ assert(
 const memorialPageClient = read("src/components/memorial/MemorialPageClient.tsx");
 assert(
   memorialPageClient.includes('placeholder={t("emailPlaceholder")}') &&
-    memorialPageClient.includes("לא ניתן לסמן כנלמד"),
-  "Memorial page should avoid English fallback copy on Hebrew-facing completion and email fields"
+    memorialPageClient.includes("לא ניתן לסמן כנלמד") &&
+    memorialPageClient.includes("firstRoundComplete") &&
+    memorialPageClient.includes("שתפו את הסיום"),
+  "Memorial page should avoid English fallback copy and clearly show completion/bonus-round state"
+);
+
+const shareTemplates = read("src/components/memorial/ShareTemplates.tsx");
+assert(
+  shareTemplates.includes("QRCode.toDataURL") &&
+    shareTemplates.includes("מרכז שיתוף") &&
+    shareTemplates.includes("whatsappUrl") &&
+    shareTemplates.includes("emailUrl") &&
+    shareTemplates.includes("window.print()"),
+  "Share center should include QR, WhatsApp, email, print, and localized Hebrew copy"
 );
 
 const superAuditRoute = read("src/app/api/admin/super/audit/route.ts");
