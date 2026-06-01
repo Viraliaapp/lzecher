@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    await requireAdmin(idToken, "projects");
+    const admin = await requireAdmin(idToken, "projects");
 
     const db = getAdminDb();
     const snap = await db
@@ -28,7 +28,14 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ projects });
+    return NextResponse.json({
+      projects,
+      adminRole: {
+        isAdmin: Boolean(admin.isAdmin || admin.isSuperAdmin),
+        isSuperAdmin: Boolean(admin.isSuperAdmin),
+        permissions: Array.isArray(admin.lzecherPermissions) ? admin.lzecherPermissions : [],
+      },
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     if (message.startsWith("FORBIDDEN:")) {

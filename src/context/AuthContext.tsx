@@ -36,6 +36,26 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
+async function roleClaims(user: User) {
+  try {
+    const token = await user.getIdTokenResult(true);
+    const claims = token.claims as {
+      isAdmin?: unknown;
+      isSuperAdmin?: unknown;
+      lzecherPermissions?: unknown;
+    };
+    return {
+      isAdmin: claims.isAdmin === true,
+      isSuperAdmin: claims.isSuperAdmin === true,
+      permissions: Array.isArray(claims.lzecherPermissions)
+        ? claims.lzecherPermissions.filter((permission): permission is string => typeof permission === "string")
+        : undefined,
+    };
+  } catch {
+    return { isAdmin: false, isSuperAdmin: false, permissions: undefined };
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -80,25 +100,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
 
     const unsub = onSnapshot(
       doc(db, "lzecher_users", user.uid),
-      (snap) => {
-        if (snap.exists()) {
-          setProfile({ uid: user.uid, ...snap.data() } as UserProfile);
-        } else {
+      async (snap) => {
+        const claims = await roleClaims(user);
+        if (cancelled) return;
+        const profileData = snap.exists()
+          ? ({ uid: user.uid, ...snap.data() } as UserProfile)
+          : ({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+          } as UserProfile);
+        setProfile({
+          ...profileData,
+          isAdmin: Boolean(profileData.isAdmin || claims.isAdmin || claims.isSuperAdmin),
+          isSuperAdmin: Boolean(profileData.isSuperAdmin || claims.isSuperAdmin),
+          permissions: profileData.permissions?.length ? profileData.permissions : claims.permissions,
+        });
+        resolveLoading();
+      },
+      async (error) => {
+        // Firestore profile read failed.
+        console.error("[auth] Firestore profile error:", error);
+        const claims = await roleClaims(user);
+        if (!cancelled && (claims.isAdmin || claims.isSuperAdmin)) {
           setProfile({
             uid: user.uid,
             email: user.email,
             displayName: user.displayName,
             photoURL: user.photoURL,
+            isAdmin: Boolean(claims.isAdmin || claims.isSuperAdmin),
+            isSuperAdmin: claims.isSuperAdmin,
+            permissions: claims.permissions,
           });
         }
-        resolveLoading();
-      },
-      (error) => {
-        // Firestore profile read failed.
-        console.error("[auth] Firestore profile error:", error);
         resolveLoading();
         // 'unauthenticated' = Firebase explicitly rejected the ID token (stale /
         // revoked) → sign out and self-heal.
@@ -110,7 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    return unsub;
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, [user]);
 
   return (

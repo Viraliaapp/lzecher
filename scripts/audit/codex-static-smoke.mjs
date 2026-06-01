@@ -169,5 +169,24 @@ assert(
     !adminPage.includes('collection(db, "lzecher_projects")'),
   "Admin project list must use the sanitized admin API instead of direct client Firestore reads"
 );
+assert(
+  adminPage.includes("adminRole") &&
+    adminPage.includes("profile?.isSuperAdmin || adminRole?.isSuperAdmin"),
+  "Admin page should use the server-verified admin role to show the super-admin portal"
+);
+
+const adminProjectsRoute = read("src/app/api/admin/projects/route.ts");
+assert(
+  adminProjectsRoute.includes("adminRole") &&
+    adminProjectsRoute.includes("isSuperAdmin: Boolean(admin.isSuperAdmin)"),
+  "Admin projects API should return the verified admin role"
+);
+
+const authContext = read("src/context/AuthContext.tsx");
+assert(
+  authContext.includes("getIdTokenResult(true)") &&
+    authContext.includes("isSuperAdmin: Boolean(profileData.isSuperAdmin || claims.isSuperAdmin)"),
+  "Auth context should merge refreshed Firebase role claims into the client profile"
+);
 
 console.log("Codex static smoke checks passed.");

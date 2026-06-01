@@ -59,6 +59,12 @@ type SuperOverview = {
   recentReports: Record<string, unknown>[];
 };
 
+type AdminRole = {
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
+  permissions: string[];
+};
+
 const PERMISSIONS = [
   { key: "projects", he: "פרויקטים", en: "Projects" },
   { key: "feedback", he: "משוב", en: "Feedback" },
@@ -78,6 +84,7 @@ export default function AdminPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
   const [projects, setProjects] = useState<MemorialProject[]>([]);
+  const [adminRole, setAdminRole] = useState<AdminRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -112,6 +119,7 @@ export default function AdminPage() {
         return;
       }
       setProjects(data.projects || []);
+      if (data.adminRole) setAdminRole(data.adminRole);
     } catch (err) {
       console.error("Load projects error:", err);
     } finally {
@@ -161,6 +169,7 @@ export default function AdminPage() {
     }
     return true;
   });
+  const isSuperAdmin = Boolean(profile?.isSuperAdmin || adminRole?.isSuperAdmin);
 
   if (authLoading || loading) {
     return (
@@ -183,7 +192,7 @@ export default function AdminPage() {
           <Badge variant="secondary">{projects.length}</Badge>
         </div>
 
-        {profile?.isSuperAdmin && <SuperAdminPortal locale={locale} />}
+        {isSuperAdmin && <SuperAdminPortal locale={locale} />}
 
         {/* Search + Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -260,7 +269,7 @@ export default function AdminPage() {
                         <Eye className="h-4 w-4 text-gold" />
                       </Button>
                     ) : null}
-                    {profile?.isSuperAdmin && (
+                    {isSuperAdmin && (
                       <Button variant="ghost" size="icon" onClick={() => { setActionId(project.id); setDeleteDialogOpen(true); }}>
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
