@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil, Share2, Inbox, UserPlus, Users, BarChart3, RotateCw, Wrench, History, CheckCircle2, Lock, Unlock, ClipboardList, Mail, Settings, Megaphone, ShieldCheck, Languages, TrendingUp } from "lucide-react";
+import { Shield, Eye, EyeOff, Trash2, Search, AlertTriangle, Pencil, Share2, Inbox, UserPlus, Users, BarChart3, RotateCw, Wrench, History, CheckCircle2, Lock, Unlock, ClipboardList, Mail, Settings, Megaphone, ShieldCheck, Languages, TrendingUp, Download } from "lucide-react";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
@@ -678,6 +678,31 @@ function priorityLabel(locale: string, priority: string) {
     urgent: "Urgent",
   };
   return locale === "he" ? he[priority] || priority : en[priority] || priority;
+}
+
+function csvValue(value: unknown) {
+  if (value === null || value === undefined) return "";
+  const text = typeof value === "object" ? JSON.stringify(value) : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
+  if (!rows.length) return false;
+  const headers = Object.keys(rows[0]);
+  const csv = [
+    headers.map(csvValue).join(","),
+    ...rows.map((row) => headers.map((header) => csvValue(row[header])).join(",")),
+  ].join("\r\n");
+  const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  return true;
 }
 
 function learningLabel(locale: string, reference?: string | null, trackType?: string | null) {
@@ -1426,6 +1451,123 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const creatorCount = userSummaries.filter((user) => user.projectCount > 0).length;
   const userAdminCount = userSummaries.filter((user) => user.isAdmin || user.isSuperAdmin).length;
   const selectedProject = projectSummaries.find((project) => project.id === selectedProjectId) || filteredProjects[0] || null;
+  const exportStamp = new Date().toISOString().slice(0, 10);
+  const exportSuccessMessage = label(locale, "קובץ הייצוא נוצר", "Export file created");
+  const exportEmptyMessage = label(locale, "אין נתונים לייצוא", "No data to export");
+
+  function finishExport(success: boolean) {
+    if (success) toast.success(exportSuccessMessage);
+    else toast.error(exportEmptyMessage);
+  }
+
+  function exportProjectsCsv() {
+    finishExport(downloadCsv(`lzecher-projects-${exportStamp}.csv`, projectSummaries.map((project) => ({
+      id: project.id,
+      slug: project.slug,
+      status: project.status,
+      nameHebrew: project.nameHebrew,
+      familyNameHebrew: project.familyNameHebrew,
+      nameEnglish: project.nameEnglish,
+      familyNameEnglish: project.familyNameEnglish,
+      createdBy: project.createdBy,
+      createdByEmail: project.createdByEmail,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      tracks: project.tracks.join("|"),
+      passwordProtected: project.isPasswordProtected,
+      public: project.isPublic !== false,
+      locked: project.locked,
+      anonymousAllowed: project.allowAnonymous,
+      leaderboardVisible: project.showLeaderboard,
+      totalPortions: project.totalPortions,
+      claimedPortions: project.claimedPortions,
+      completedPortions: project.completedPortions,
+      participantCount: project.participantCount,
+      progressPct: project.progressPct,
+      completedProgressPct: project.completedProgressPct,
+      completedCycles: project.completedCycles,
+      issues: project.issues.join("|"),
+    }))));
+  }
+
+  function exportUsersCsv() {
+    finishExport(downloadCsv(`lzecher-users-${exportStamp}.csv`, userSummaries.map((user) => ({
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      isAdmin: user.isAdmin,
+      isSuperAdmin: user.isSuperAdmin,
+      permissions: user.permissions.join("|"),
+      projectCount: user.projectCount,
+      activeProjectCount: user.activeProjectCount,
+      claimCount: user.claimCount,
+      completedClaimCount: user.completedClaimCount,
+      lastProjectAt: user.lastProjectAt,
+      lastClaimAt: user.lastClaimAt,
+      lastActivityAt: user.lastActivityAt,
+    }))));
+  }
+
+  function exportSupportCsv() {
+    const rows = [
+      ...filteredFeedbackItems.map((item) => ({
+        kind: "feedback",
+        id: item.id,
+        status: item.status,
+        priority: item.priority || "normal",
+        subject: item.type,
+        message: item.message,
+        email: item.email,
+        projectId: "",
+        path: item.currentPath,
+        submittedAt: item.submittedAt,
+        assignedTo: item.assignedTo || "",
+        tag: item.tag || "",
+      })),
+      ...filteredReportItems.map((item) => ({
+        kind: "report",
+        id: item.id,
+        status: item.status,
+        priority: item.priority || "normal",
+        subject: item.reason,
+        message: item.details || "",
+        email: item.reporterEmail,
+        projectId: item.projectId || "",
+        path: item.projectSlug || "",
+        submittedAt: item.reportedAt,
+        assignedTo: item.assignedTo || "",
+        tag: item.tag || "",
+      })),
+      ...filteredContactItems.map((item) => ({
+        kind: "contact",
+        id: item.id,
+        status: item.supportStatus || (item.delivered ? "resolved" : "new"),
+        priority: item.priority || "normal",
+        subject: item.reason || "contact",
+        message: item.message,
+        email: item.senderEmail,
+        projectId: item.projectId || "",
+        path: item.slug || "",
+        submittedAt: item.sentAt,
+        assignedTo: item.assignedTo || "",
+        tag: item.tag || "",
+      })),
+    ];
+    finishExport(downloadCsv(`lzecher-support-${exportStamp}.csv`, rows));
+  }
+
+  function exportAuditCsv() {
+    finishExport(downloadCsv(`lzecher-audit-${exportStamp}.csv`, auditEntries.map((entry) => ({
+      id: entry.id,
+      action: entry.action,
+      adminUid: entry.adminUid,
+      projectId: entry.projectId,
+      targetUid: entry.targetUid,
+      feedbackId: entry.feedbackId,
+      at: entry.at,
+      details: entry.details,
+    }))));
+  }
 
   return (
     <Card className="mb-8 overflow-hidden border-gold/30 shadow-md">
@@ -1466,6 +1608,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
             <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
               <TabsTrigger value="stats"><BarChart3 className="h-4 w-4" /> {label(locale, "נתונים", "Stats")}</TabsTrigger>
               <TabsTrigger value="analytics"><TrendingUp className="h-4 w-4" /> {label(locale, "מגמות", "Analytics")}</TabsTrigger>
+              <TabsTrigger value="exports"><Download className="h-4 w-4" /> {label(locale, "ייצוא", "Exports")}</TabsTrigger>
               <TabsTrigger value="projects"><ClipboardList className="h-4 w-4" /> {label(locale, "פרויקטים", "Projects")}</TabsTrigger>
               <TabsTrigger value="users"><Users className="h-4 w-4" /> {label(locale, "משתמשים", "Users")}</TabsTrigger>
               <TabsTrigger value="support"><Inbox className="h-4 w-4" /> {label(locale, "תמיכה", "Support")}</TabsTrigger>
@@ -1610,6 +1753,64 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                   <p className="mt-1 text-xs text-muted">
                     {label(locale, `${analyticsTotals.bonusProjects} פרויקטים כבר הגיעו למחזור נוסף. זה עוזר לזהות אילו דפי הנצחה מצליחים להמשיך לעורר לימוד אחרי הסיום הראשון.`, `${analyticsTotals.bonusProjects} projects have reached an additional cycle. This helps identify memorial pages that keep inspiring learning after the first completion.`)}
                   </p>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="exports">
+              <div className="space-y-4">
+                <div className="rounded-lg border border-gold/20 bg-gold/5 p-4">
+                  <div className="flex items-start gap-3">
+                    <Download className="mt-0.5 h-5 w-5 text-gold" />
+                    <div>
+                      <h3 className="font-heading font-bold text-navy">{label(locale, "ייצוא נתוני מנהל", "Admin data exports")}</h3>
+                      <p className="mt-1 text-xs text-muted">
+                        {label(locale, "הקבצים נוצרים רק מהנתונים שכבר נטענו בפורטל. אין כאן כתיבה למסד הנתונים ואין גישה מחוץ לאוספי לזכר.", "Files are generated only from data already loaded in this portal. This does not write to the database and stays within Lzecher-scoped data.")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {[
+                    {
+                      key: "projects",
+                      title: label(locale, "פרויקטים", "Projects"),
+                      detail: label(locale, `${projectSummaries.length} פרויקטים עם סטטוס, סיסמה, מסלולים, התקדמות ובעיות תקינות.`, `${projectSummaries.length} projects with status, password state, tracks, progress, and diagnostics.`),
+                      action: exportProjectsCsv,
+                    },
+                    {
+                      key: "users",
+                      title: label(locale, "משתמשים ומנהלים", "Users and admins"),
+                      detail: label(locale, `${userSummaries.length} משתמשים עם תפקידים, הרשאות, פרויקטים ופעילות לימוד.`, `${userSummaries.length} users with roles, permissions, projects, and learning activity.`),
+                      action: exportUsersCsv,
+                    },
+                    {
+                      key: "support",
+                      title: label(locale, "תור תמיכה", "Support queue"),
+                      detail: label(locale, `${filteredFeedbackItems.length + filteredReportItems.length + filteredContactItems.length} פריטי משוב, דיווחים והודעות מהתצוגה הנוכחית.`, `${filteredFeedbackItems.length + filteredReportItems.length + filteredContactItems.length} feedback, report, and contact items from the current view.`),
+                      action: exportSupportCsv,
+                    },
+                    {
+                      key: "audit",
+                      title: label(locale, "יומן ביקורת", "Audit log"),
+                      detail: label(locale, `${auditEntries.length} פעולות אחרונות עם מזהי מנהל, פרויקט ופרטים.`, `${auditEntries.length} recent actions with admin, project, and detail fields.`),
+                      action: exportAuditCsv,
+                    },
+                  ].map((item) => (
+                    <div key={item.key} className="rounded-lg border border-navy/10 bg-white p-4">
+                      <h4 className="font-heading font-bold text-navy">{item.title}</h4>
+                      <p className="mt-1 min-h-[3rem] text-xs text-muted">{item.detail}</p>
+                      <Button className="mt-4 w-full" variant="outline" onClick={item.action}>
+                        <Download className="h-4 w-4" />
+                        {label(locale, "הורד CSV", "Download CSV")}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-lg border border-navy/10 bg-cream/40 p-3 text-xs text-muted">
+                  {label(locale, "לייצוא מלא יותר בעתיד אפשר להוסיף דוחות לפי טווח תאריכים, אך בכוונה אין כאן מחיקה, שינוי הרשאות או תיקון גורף.", "For deeper exports later we can add date-range reports, but this intentionally does not delete, change permissions, or bulk-repair anything.")}
                 </div>
               </div>
             </TabsContent>

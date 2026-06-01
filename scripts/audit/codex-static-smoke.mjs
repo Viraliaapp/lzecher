@@ -356,13 +356,16 @@ assert(
   "Admin page should use the server-verified admin role to show the super-admin portal"
 );
 assert(
-  ["stats", "analytics", "projects", "users", "support", "integrity", "language", "health", "audit", "control", "admins"].every((tab) =>
+  ["stats", "analytics", "exports", "projects", "users", "support", "integrity", "language", "health", "audit", "control", "admins"].every((tab) =>
     adminPage.includes(`TabsTrigger value="${tab}"`)
   ) &&
     adminPage.includes("loadProjectDetail") &&
     adminPage.includes("recomputeSelectedProject") &&
     adminPage.includes("analyticsRates") &&
     adminPage.includes("trackAnalytics") &&
+    adminPage.includes("downloadCsv") &&
+    adminPage.includes("exportProjectsCsv") &&
+    adminPage.includes("exportAuditCsv") &&
     adminPage.includes("supportSearch") &&
     adminPage.includes("userSearch") &&
     adminPage.includes("filteredUserSummaries") &&
@@ -380,7 +383,7 @@ assert(
     adminPage.includes("updateReportStatus") &&
     adminPage.includes("saveSiteSettings") &&
     adminPage.includes("targetIsAdmin"),
-  "Super-admin portal should expose stats, analytics, projects, users, support, integrity, language, health, audit, control, admins, report review, project repair, and settings flows"
+  "Super-admin portal should expose stats, analytics, exports, projects, users, support, integrity, language, health, audit, control, admins, report review, project repair, and settings flows"
 );
 
 const adminProjectsRoute = read("src/app/api/admin/projects/route.ts");
