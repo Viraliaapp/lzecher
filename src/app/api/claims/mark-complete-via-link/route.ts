@@ -84,36 +84,57 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    if (!claimData.projectId) {
+      return NextResponse.redirect(
+        new URL(`/${locale}/confirm-complete?status=error`, req.url)
+      );
+    }
+    const projectRef = db.collection("lzecher_projects").doc(claimData.projectId);
+    const projectSnap = await projectRef.get();
+    if (!projectSnap.exists) {
+      return NextResponse.redirect(
+        new URL(`/${locale}/confirm-complete?status=not_found`, req.url)
+      );
+    }
+
     if (action === "mark_complete") {
-      await claimRef.update({
-        status: "completed",
-        completedAt: Date.now(),
-      });
+      const completedAt = Date.now();
+      let portionRefToComplete: FirebaseFirestore.DocumentReference | null = null;
 
       // Update portion status if exclusive
       if (claimData.portionId) {
         const portionRef = db.collection("lzecher_portions").doc(claimData.portionId);
         const portionSnap = await portionRef.get();
         if (portionSnap.exists) {
-          await portionRef.update({ status: "completed", completedAt: Date.now() });
+          const portionData = portionSnap.data()!;
+          if (portionData.projectId !== claimData.projectId) {
+            return NextResponse.redirect(
+              new URL(`/${locale}/confirm-complete?status=error`, req.url)
+            );
+          }
+          portionRefToComplete = portionRef;
         }
       }
 
+      const batch = db.batch();
+      if (portionRefToComplete) {
+        batch.update(portionRefToComplete, { status: "completed", completedAt });
+      }
+      batch.update(claimRef, {
+        status: "completed",
+        completedAt,
+      });
+      await batch.commit();
+
       // Update project stats
-      if (claimData.projectId) {
-        const projectRef = db.collection("lzecher_projects").doc(claimData.projectId);
-        const projectSnap = await projectRef.get();
-        if (projectSnap.exists) {
-          const projectData = projectSnap.data()!;
-          await projectRef.update({
-            completedPortions: (projectData.completedPortions || 0) + 1,
-          });
-          try {
-            await recomputeProjectProgress(db, claimData.projectId);
-          } catch (e) {
-            console.error("[mark-complete-via-link] recompute failed:", e);
-          }
-        }
+      const projectData = projectSnap.data()!;
+      await projectRef.update({
+        completedPortions: (projectData.completedPortions || 0) + 1,
+      });
+      try {
+        await recomputeProjectProgress(db, claimData.projectId);
+      } catch (e) {
+        console.error("[mark-complete-via-link] recompute failed:", e);
       }
     } else if (action === "check_in") {
       // Daily check-in for inclusive claims

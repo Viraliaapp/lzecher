@@ -44,6 +44,9 @@ export async function DELETE(
       const portSnap = await portRef.get();
       if (portSnap.exists) {
         const portData = portSnap.data()!;
+        if (portData.projectId !== projectId) {
+          return NextResponse.json({ error: "Portion not in project" }, { status: 400 });
+        }
         if (claimMode === "inclusive" || portData.claimMode === "inclusive") {
           const count = Math.max(0, (portData.currentClaimerCount || 1) - 1);
           const names: string[] = (portData.claimerNames || []).filter((n: string) => n !== claim.userName);
@@ -111,13 +114,24 @@ export async function PATCH(
     const newName = (userName || "").trim();
     if (!newName) return NextResponse.json({ error: "Name required" }, { status: 400 });
 
-    await db.collection("lzecher_claims").doc(claimId).update({ userName: newName });
+    let portionRefToRename: FirebaseFirestore.DocumentReference | null = null;
 
     // Also update the portion's claimedByName if exclusive
     if (claim.portionId && (claim.claimMode || "exclusive") === "exclusive") {
       const portRef = db.collection("lzecher_portions").doc(claim.portionId as string);
-      await portRef.update({ claimedByName: newName });
+      const portSnap = await portRef.get();
+      if (!portSnap.exists || portSnap.data()!.projectId !== projectId) {
+        return NextResponse.json({ error: "Portion not in project" }, { status: 400 });
+      }
+      portionRefToRename = portRef;
     }
+
+    const batch = db.batch();
+    batch.update(db.collection("lzecher_claims").doc(claimId), { userName: newName });
+    if (portionRefToRename) {
+      batch.update(portionRefToRename, { claimedByName: newName });
+    }
+    await batch.commit();
 
     return NextResponse.json({ success: true });
   } catch (err) {

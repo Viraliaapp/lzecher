@@ -77,19 +77,76 @@ assert(
   bulkRoute.includes("const BATCH_SIZE = 200"),
   "Bulk claims route should stay under the Firestore batch limit"
 );
+assert(
+  bulkRoute.includes("Project not found") &&
+    bulkRoute.includes('collection("lzecher_projects").doc(projectId)') &&
+    bulkRoute.includes('where("projectId", "==", projectId)'),
+  "Bulk claims must verify the Lzecher project exists before creating claims"
+);
+
+const claimRoute = read("src/app/api/claims/route.ts");
+assert(
+  claimRoute.includes("runTransaction") &&
+    claimRoute.includes("freshPortionData.projectId !== projectId") &&
+    claimRoute.includes("Portion does not belong to this memorial") &&
+    claimRoute.includes("Project not found"),
+  "Single claims must atomically verify project/portion ownership before writing"
+);
+
+const multiClaimRoute = read("src/app/api/claims/multi/route.ts");
+assert(
+  multiClaimRoute.includes("Project not found") &&
+    multiClaimRoute.includes("data.projectId !== projectId") &&
+    multiClaimRoute.includes("No available portions found"),
+  "Multi-claim must reject missing projects and skip portions outside the project"
+);
 
 const completeBulkRoute = read("src/app/api/claims/complete-bulk/route.ts");
 assert(
   completeBulkRoute.includes("const WRITE_CHUNK = 225"),
   "Bulk completion route should stay under the Firestore batch limit"
 );
+assert(
+  completeBulkRoute.includes("d.data().isParent !== true") &&
+    completeBulkRoute.includes("Project not found") &&
+    completeBulkRoute.includes("portionSnap.data()!.projectId !== pid") &&
+    completeBulkRoute.includes("completedCount"),
+  "Bulk completion must skip parent claims and verify claim-to-portion project ownership"
+);
 
 const completeBatchRoute = read("src/app/api/claims/complete-batch/route.ts");
 assert(
   completeBatchRoute.includes('collection("lzecher_claims")') &&
     completeBatchRoute.includes('status: "completed"') &&
-    completeBatchRoute.includes("completedPortionIds"),
+    completeBatchRoute.includes("completedPortionIds") &&
+    completeBatchRoute.includes("Project not found"),
   "Complete-batch route must update matching claim docs for dashboard sync"
+);
+
+const completeRoute = read("src/app/api/claims/complete/route.ts");
+assert(
+  completeRoute.includes("Project not found") &&
+    completeRoute.includes("portionData.projectId !== projectId") &&
+    completeRoute.includes("claimData.projectId !== projectId || claimData.portionId !== portionId") &&
+    completeRoute.includes('.where("projectId", "==", projectId)') &&
+    completeRoute.includes("completionBatch.commit()"),
+  "Single completion must verify project, portion, and claim ownership before writing"
+);
+
+const markCompleteViaLinkRoute = read("src/app/api/claims/mark-complete-via-link/route.ts");
+assert(
+  markCompleteViaLinkRoute.includes("!claimData.projectId") &&
+    markCompleteViaLinkRoute.includes("portionData.projectId !== claimData.projectId") &&
+    markCompleteViaLinkRoute.includes("batch.commit()"),
+  "Reminder completion links must verify claim-to-project and portion-to-project ownership before writing"
+);
+
+const projectClaimRoute = read("src/app/api/projects/[id]/claims/[claimId]/route.ts");
+assert(
+  projectClaimRoute.includes("portData.projectId !== projectId") &&
+    projectClaimRoute.includes("portionRefToRename") &&
+    projectClaimRoute.includes("batch.commit()"),
+  "Creator claim edit/delete routes must verify portions stay inside the selected Lzecher project"
 );
 
 const heMessages = JSON.parse(read("messages/he.json"));

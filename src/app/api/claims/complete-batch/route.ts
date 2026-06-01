@@ -44,6 +44,11 @@ export async function POST(request: NextRequest) {
     const db = getAdminDb();
     const now = Date.now();
     const completerName = (completedByName || "").trim() || null;
+    const projectRef = db.collection("lzecher_projects").doc(projectId);
+    const projectSnap = await projectRef.get();
+    if (!projectSnap.exists) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
 
     // Fetch all portions in chunks (getAll handles large sets but chunk to be safe)
     const ids = portionIds as string[];
@@ -107,11 +112,7 @@ export async function POST(request: NextRequest) {
 
     // Update project completedPortions counter ONCE for the whole batch
     if (count > 0) {
-      const projRef = db.collection("lzecher_projects").doc(projectId);
-      const projSnap = await projRef.get();
-      if (projSnap.exists) {
-        await projRef.update({ completedPortions: (projSnap.data()!.completedPortions || 0) + count });
-      }
+      await projectRef.update({ completedPortions: (projectSnap.data()!.completedPortions || 0) + count });
       try {
         await recomputeProjectProgress(db, projectId);
       } catch (e) {

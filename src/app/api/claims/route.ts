@@ -54,9 +54,14 @@ export async function POST(request: NextRequest) {
 
     const db = getAdminDb();
 
-    // Reject new claims when the project is locked.
-    const lockSnap = await db.collection("lzecher_projects").doc(projectId).get();
-    if (lockSnap.exists && lockSnap.data()!.locked === true) {
+    // Reject missing or locked projects before touching any portion. The Firebase
+    // project is shared with other apps, so every write must stay project-scoped.
+    const projectRef = db.collection("lzecher_projects").doc(projectId);
+    const lockSnap = await projectRef.get();
+    if (!lockSnap.exists) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    if (lockSnap.data()!.locked === true) {
       return NextResponse.json({ error: "This memorial is locked. No new portions can be taken." }, { status: 423 });
     }
 
@@ -67,6 +72,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Portion not found" }, { status: 404 });
     }
     const portionData = portionSnap.data()!;
+    if (portionData.projectId !== projectId) {
+      return NextResponse.json({ error: "Portion does not belong to this memorial" }, { status: 400 });
+    }
 
     // Determine claim mode from portion or from track config
     const trackType = portionData.trackType as TrackType;
@@ -88,42 +96,59 @@ export async function POST(request: NextRequest) {
 
     if (claimMode === "exclusive") {
       // Inclusive auth enforcement not needed here, anonymous allowed
-      if (portionData.status !== "available") {
-        return NextResponse.json({ error: "This portion was already taken." }, { status: 409 });
-      }
-
-      // Atomically claim the portion
-      await portionRef.update({
-        status: "claimed",
-        claimedBy: uid,
-        claimedByName: claimerName.trim(),
-        claimedAt: now,
-      });
-
-      // Create claim doc
       const claimRef = db.collection("lzecher_claims").doc();
-      await claimRef.set({
-        id: claimRef.id,
-        projectId,
-        portionId,
-        trackType,
-        reference: portionData.reference,
-        userId: uid,
-        userName: claimerName.trim(),
-        userEmail: email,
-        locale,
-        claimedAt: now,
-        status: "active",
-        duration: resolvedDuration,
-        durationValue: durationValue ?? null,
-        durationEndDate: resolvedEndDate,
-        specificItem: specificItem ?? null,
-        reminderPreferences: reminderPreferences ?? [],
+      const claimAttempt = await db.runTransaction(async (transaction) => {
+        const freshProjectSnap = await transaction.get(projectRef);
+        if (!freshProjectSnap.exists) {
+          return { ok: false as const, status: 404, error: "Project not found" };
+        }
+        if (freshProjectSnap.data()!.locked === true) {
+          return { ok: false as const, status: 423, error: "This memorial is locked. No new portions can be taken." };
+        }
+        const freshPortionSnap = await transaction.get(portionRef);
+        if (!freshPortionSnap.exists) {
+          return { ok: false as const, status: 404, error: "Portion not found" };
+        }
+        const freshPortionData = freshPortionSnap.data()!;
+        if (freshPortionData.projectId !== projectId) {
+          return { ok: false as const, status: 400, error: "Portion does not belong to this memorial" };
+        }
+        if (freshPortionData.status !== "available") {
+          return { ok: false as const, status: 409, error: "This portion was already taken." };
+        }
+
+        transaction.update(portionRef, {
+          status: "claimed",
+          claimedBy: uid,
+          claimedByName: claimerName.trim(),
+          claimedAt: now,
+        });
+        transaction.set(claimRef, {
+          id: claimRef.id,
+          projectId,
+          portionId,
+          trackType,
+          reference: freshPortionData.reference,
+          userId: uid,
+          userName: claimerName.trim(),
+          userEmail: email,
+          locale,
+          claimedAt: now,
+          status: "active",
+          duration: resolvedDuration,
+          durationValue: durationValue ?? null,
+          durationEndDate: resolvedEndDate,
+          specificItem: specificItem ?? null,
+          reminderPreferences: reminderPreferences ?? [],
+        });
+        return { ok: true as const };
       });
+      if (!claimAttempt.ok) {
+        return NextResponse.json({ error: claimAttempt.error }, { status: claimAttempt.status });
+      }
 
       // Update project stats — increment participantCount only if this is the
       // user's first claim on this project (prevents one person = N participants).
-      const projectRef = db.collection("lzecher_projects").doc(projectId);
       const projectSnap = await projectRef.get();
       let projectSlug: string | null = null;
       if (projectSnap.exists) {
@@ -233,37 +258,56 @@ export async function POST(request: NextRequest) {
 
       // Create claim doc (portion stays 'available' for others)
       const claimRef = db.collection("lzecher_claims").doc();
-      await claimRef.set({
-        id: claimRef.id,
-        projectId,
-        portionId,
-        trackType,
-        reference: portionData.reference,
-        userId: uid,
-        userName: claimerName.trim(),
-        userEmail: email,
-        locale,
-        claimedAt: now,
-        status: "active",
-        duration: resolvedDuration,
-        durationValue: durationValue ?? null,
-        durationEndDate: resolvedEndDate,
-        specificItem: specificItem ?? null,
-        reminderPreferences: reminderPreferences ?? [],
-        progress: progressTotal ? { completed: 0, total: progressTotal } : null,
-        lastCheckIn: null,
-        currentStreak: 0,
-        longestStreak: 0,
+      const claimAttempt = await db.runTransaction(async (transaction) => {
+        const freshProjectSnap = await transaction.get(projectRef);
+        if (!freshProjectSnap.exists) {
+          return { ok: false as const, status: 404, error: "Project not found" };
+        }
+        if (freshProjectSnap.data()!.locked === true) {
+          return { ok: false as const, status: 423, error: "This memorial is locked. No new portions can be taken." };
+        }
+        const freshPortionSnap = await transaction.get(portionRef);
+        if (!freshPortionSnap.exists) {
+          return { ok: false as const, status: 404, error: "Portion not found" };
+        }
+        const freshPortionData = freshPortionSnap.data()!;
+        if (freshPortionData.projectId !== projectId) {
+          return { ok: false as const, status: 400, error: "Portion does not belong to this memorial" };
+        }
+        transaction.set(claimRef, {
+          id: claimRef.id,
+          projectId,
+          portionId,
+          trackType,
+          reference: freshPortionData.reference,
+          userId: uid,
+          userName: claimerName.trim(),
+          userEmail: email,
+          locale,
+          claimedAt: now,
+          status: "active",
+          duration: resolvedDuration,
+          durationValue: durationValue ?? null,
+          durationEndDate: resolvedEndDate,
+          specificItem: specificItem ?? null,
+          reminderPreferences: reminderPreferences ?? [],
+          progress: progressTotal ? { completed: 0, total: progressTotal } : null,
+          lastCheckIn: null,
+          currentStreak: 0,
+          longestStreak: 0,
+        });
+        transaction.update(portionRef, {
+          currentClaimerCount: (freshPortionData.currentClaimerCount || 0) + 1,
+          claimerNames: [...((freshPortionData.claimerNames as string[]) || []), claimerName.trim()],
+        });
+        return { ok: true as const };
       });
-
-      // Increment currentClaimerCount and append claimer name
-      await portionRef.update({
-        currentClaimerCount: (portionData.currentClaimerCount || 0) + 1,
-        claimerNames: [...((portionData.claimerNames as string[]) || []), claimerName.trim()],
-      });
+      if (!claimAttempt.ok) {
+        return NextResponse.json({ error: claimAttempt.error }, { status: claimAttempt.status });
+      }
 
       // Update project stats
-      const projectRef2 = db.collection("lzecher_projects").doc(projectId);
+      const projectRef2 = projectRef;
       const projectSnap2b = await projectRef2.get();
       let projectSlugInc: string | null = null;
       if (projectSnap2b.exists) {

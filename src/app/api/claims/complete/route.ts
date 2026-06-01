@@ -49,6 +49,12 @@ export async function POST(request: NextRequest) {
 
     const db = getAdminDb();
     const now = Date.now();
+    const projectRef = db.collection("lzecher_projects").doc(projectId);
+    const projectSnap = await projectRef.get();
+    if (!projectSnap.exists) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    const projectData = projectSnap.data()!;
 
     // ── Check-in path (inclusive daily/weekly commitment) ── REQUIRES AUTH
     if (checkIn === true && claimId) {
@@ -61,6 +67,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Claim not found" }, { status: 404 });
       }
       const claimData = claimSnap.data()!;
+      if (claimData.projectId !== projectId) {
+        return NextResponse.json({ error: "Learning entry does not belong to this memorial" }, { status: 400 });
+      }
       if (claimData.userId !== uid) {
         return NextResponse.json({ error: "This learning entry belongs to another participant" }, { status: 403 });
       }
@@ -93,12 +102,7 @@ export async function POST(request: NextRequest) {
         ...(isFullyComplete ? { status: "completed" } : {}),
       });
 
-      const projectRefCheckin = db.collection("lzecher_projects").doc(projectId);
-      const projectSnapCheckin = await projectRefCheckin.get();
-      const projCheckin = projectSnapCheckin.exists ? projectSnapCheckin.data()! : null;
-      const honoreeNameCheckin = projCheckin
-        ? `${projCheckin.nameHebrew} ${projCheckin.familyNameHebrew || ""}`.trim()
-        : "";
+      const honoreeNameCheckin = `${projectData.nameHebrew} ${projectData.familyNameHebrew || ""}`.trim();
       const chizukCheckin = getChizukMessage("generic_checkin");
       return NextResponse.json({
         success: true,
@@ -127,6 +131,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Portion not found" }, { status: 404 });
     }
     const portionData = portionSnap.data()!;
+    if (portionData.projectId !== projectId) {
+      return NextResponse.json({ error: "Portion does not belong to this memorial" }, { status: 400 });
+    }
 
     const trackType = portionData.trackType as TrackType;
     const claimMode = portionData.claimMode ?? getClaimMode(trackType);
@@ -146,50 +153,58 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Name required to mark someone else's learning as complete" }, { status: 400 });
       }
 
-      await portionRef.update({
+      // Mark the claim doc as completed
+      let claimRefToComplete: FirebaseFirestore.DocumentReference | null = null;
+      if (claimId) {
+        const claimRef = db.collection("lzecher_claims").doc(claimId);
+        const claimSnap = await claimRef.get();
+        if (!claimSnap.exists) {
+          return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+        }
+        const claimData = claimSnap.data()!;
+        if (claimData.projectId !== projectId || claimData.portionId !== portionId) {
+          return NextResponse.json({ error: "Learning entry does not belong to this portion" }, { status: 400 });
+        }
+        if (claimData.status !== "active") {
+          return NextResponse.json({ error: "Learning entry is not active" }, { status: 400 });
+        }
+        claimRefToComplete = claimRef;
+      } else {
+        // Find active claim by portionId
+        const claimQuery = await db
+          .collection("lzecher_claims")
+          .where("projectId", "==", projectId)
+          .where("portionId", "==", portionId)
+          .where("status", "==", "active")
+          .limit(1)
+          .get();
+        if (!claimQuery.empty) {
+          claimRefToComplete = claimQuery.docs[0].ref;
+        }
+      }
+
+      const completionBatch = db.batch();
+      completionBatch.update(portionRef, {
         status: "completed",
         completedAt: now,
         completedByName: completerName || portionData.claimedByName || null,
         completedByEmail: completerEmail,
         completedByUid: uid,
       });
-
-      // Mark the claim doc as completed
-      if (claimId) {
-        const claimRef = db.collection("lzecher_claims").doc(claimId);
-        await claimRef.update({
+      if (claimRefToComplete) {
+        completionBatch.update(claimRefToComplete, {
           status: "completed",
           completedAt: now,
           completedByName: completerName,
           completedByUid: uid,
         });
-      } else {
-        // Find active claim by portionId
-        const claimQuery = await db
-          .collection("lzecher_claims")
-          .where("portionId", "==", portionId)
-          .where("status", "==", "active")
-          .limit(1)
-          .get();
-        if (!claimQuery.empty) {
-          await claimQuery.docs[0].ref.update({
-            status: "completed",
-            completedAt: now,
-            completedByName: completerName,
-            completedByUid: uid,
-          });
-        }
       }
+      await completionBatch.commit();
 
       // Update project stats
-      const projectRef = db.collection("lzecher_projects").doc(projectId);
-      const projectSnap = await projectRef.get();
-      if (projectSnap.exists) {
-        const proj = projectSnap.data()!;
-        await projectRef.update({
-          completedPortions: (proj.completedPortions || 0) + 1,
-        });
-      }
+      await projectRef.update({
+        completedPortions: (projectData.completedPortions || 0) + 1,
+      });
     } else {
       // Inclusive one-time completion — must reference a specific claim
       if (!claimId) {
@@ -201,6 +216,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Claim not found" }, { status: 404 });
       }
       const claimData = claimSnap.data()!;
+      if (claimData.projectId !== projectId || claimData.portionId !== portionId) {
+        return NextResponse.json({ error: "Learning entry does not belong to this portion" }, { status: 400 });
+      }
+      if (claimData.status !== "active") {
+        return NextResponse.json({ error: "Learning entry is not active" }, { status: 400 });
+      }
       const isOwner = uid !== null && claimData.userId === uid;
       if (!isOwner && !isAdmin && !completerName) {
         return NextResponse.json({ error: "Name required to mark someone else's learning as complete" }, { status: 400 });
@@ -212,14 +233,9 @@ export async function POST(request: NextRequest) {
         completedByUid: uid,
       });
 
-      const projectRef = db.collection("lzecher_projects").doc(projectId);
-      const projectSnap = await projectRef.get();
-      if (projectSnap.exists) {
-        const proj = projectSnap.data()!;
-        await projectRef.update({
-          completedPortions: (proj.completedPortions || 0) + 1,
-        });
-      }
+      await projectRef.update({
+        completedPortions: (projectData.completedPortions || 0) + 1,
+      });
     }
 
     // Authoritative stat recompute (self-healing; can't drift). Non-fatal.
@@ -230,12 +246,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build chizuk response
-    const projectRefFinal = db.collection("lzecher_projects").doc(projectId);
-    const projectSnapFinal = await projectRefFinal.get();
-    const projFinal = projectSnapFinal.exists ? projectSnapFinal.data()! : null;
-    const honoreeName = projFinal
-      ? `${projFinal.nameHebrew} ${projFinal.familyNameHebrew || ""}`.trim()
-      : "";
+    const honoreeName = `${projectData.nameHebrew} ${projectData.familyNameHebrew || ""}`.trim();
     const chizuk = getChizukMessage("generic_complete");
     return NextResponse.json({
       success: true,

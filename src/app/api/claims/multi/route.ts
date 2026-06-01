@@ -62,9 +62,13 @@ export async function POST(request: NextRequest) {
     const db = getAdminDb();
     const now = Date.now();
 
-    // Reject new claims when the project is locked.
-    const lockSnap = await db.collection("lzecher_projects").doc(projectId).get();
-    if (lockSnap.exists && lockSnap.data()!.locked === true) {
+    // Reject missing or locked projects before creating any claim documents.
+    const projectRef = db.collection("lzecher_projects").doc(projectId);
+    const lockSnap = await projectRef.get();
+    if (!lockSnap.exists) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    if (lockSnap.data()!.locked === true) {
       return NextResponse.json({ error: "This memorial is locked. No new portions can be taken." }, { status: 423 });
     }
 
@@ -132,7 +136,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Update project stats (including per-track counts)
-    const projectRef = db.collection("lzecher_projects").doc(projectId);
     const projectSnap = await projectRef.get();
     let projectSlug: string | null = null;
     if (projectSnap.exists) {

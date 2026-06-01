@@ -53,6 +53,12 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getAdminDb();
+    if (projectId) {
+      const projectSnap = await db.collection("lzecher_projects").doc(projectId).get();
+      if (!projectSnap.exists) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      }
+    }
 
     // Build query for caller's active claims
     let q: FirebaseFirestore.Query = db.collection("lzecher_claims").where("status", "==", "active");
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
     if (projectId) q = q.where("projectId", "==", projectId);
 
     const snap = await q.get();
-    let matching = snap.docs;
+    let matching = snap.docs.filter((d) => d.data().isParent !== true);
 
     // Filter by scope
     if (scope === "masechta" && scopeId) {
@@ -79,7 +85,14 @@ export async function POST(request: NextRequest) {
         if (data.trackType !== "mishnayos") continue;
         if (data.portionId) {
           const portionSnap = await db.collection("lzecher_portions").doc(data.portionId).get();
-          if (portionSnap.exists && portionSnap.data()!.seder === scopeId) wanted.push(d.id);
+          const portionData = portionSnap.exists ? portionSnap.data()! : null;
+          if (
+            portionData &&
+            portionData.projectId === data.projectId &&
+            portionData.seder === scopeId
+          ) {
+            wanted.push(d.id);
+          }
         }
       }
       matching = matching.filter((d) => wanted.includes(d.id));
@@ -109,28 +122,45 @@ export async function POST(request: NextRequest) {
 
     const now = Date.now();
     const projectIncrements = new Map<string, number>();
+    let completedCount = 0;
 
     for (let i = 0; i < matching.length; i += WRITE_CHUNK) {
       const chunk = matching.slice(i, i + WRITE_CHUNK);
       const batch = db.batch();
-      const portionUpdates = new Map<string, FirebaseFirestore.DocumentReference>();
+      let batchWrites = 0;
 
       for (const d of chunk) {
+        const data = d.data();
+        const pid = data.projectId as string;
+        let portionRef: FirebaseFirestore.DocumentReference | null = null;
+        if (data.portionId && pid) {
+          portionRef = db.collection("lzecher_portions").doc(data.portionId);
+          const portionSnap = await portionRef.get();
+          if (!portionSnap.exists || portionSnap.data()!.projectId !== pid) {
+            continue;
+          }
+        }
         batch.update(d.ref, {
           status: "completed",
           completedAt: now,
           completedByName: completerName || null,
           completedByUid: uid,
         });
-        const data = d.data();
-        if (data.portionId) portionUpdates.set(data.portionId, db.collection("lzecher_portions").doc(data.portionId));
-        const pid = data.projectId as string;
+        batchWrites++;
+        if (portionRef) {
+          batch.update(portionRef, { status: "completed", completedAt: now });
+          batchWrites++;
+        }
         projectIncrements.set(pid, (projectIncrements.get(pid) || 0) + 1);
+        completedCount++;
       }
-      for (const ref of portionUpdates.values()) {
-        batch.update(ref, { status: "completed", completedAt: now });
+      if (batchWrites > 0) {
+        await batch.commit();
       }
-      await batch.commit();
+    }
+
+    if (completedCount === 0) {
+      return NextResponse.json({ completedCount: 0, alreadyCompletedCount: 0 });
     }
 
     // Increment project completedPortions counters (one update per project)
@@ -162,13 +192,13 @@ export async function POST(request: NextRequest) {
       : "";
     const chizuk = getChizukMessage(chizukKey);
     return NextResponse.json({
-      completedCount: matching.length,
+      completedCount,
       alreadyCompletedCount: 0,
       chizuk: {
-        he: chizuk.he.replace("{name}", honoreeName).replace("{count}", String(matching.length)),
-        en: chizuk.en.replace("{name}", honoreeName).replace("{count}", String(matching.length)),
-        es: chizuk.es.replace("{name}", honoreeName).replace("{count}", String(matching.length)),
-        fr: chizuk.fr.replace("{name}", honoreeName).replace("{count}", String(matching.length)),
+        he: chizuk.he.replace("{name}", honoreeName).replace("{count}", String(completedCount)),
+        en: chizuk.en.replace("{name}", honoreeName).replace("{count}", String(completedCount)),
+        es: chizuk.es.replace("{name}", honoreeName).replace("{count}", String(completedCount)),
+        fr: chizuk.fr.replace("{name}", honoreeName).replace("{count}", String(completedCount)),
       },
     });
   } catch (err) {
