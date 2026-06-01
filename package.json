@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "check:encoding": "node scripts/check-encoding.js",
-    "smoke:static": "node scripts/audit/codex-static-smoke.mjs",
+    "smoke:static": "node scripts/audit/codex-static-smoke.mjs && node scripts/audit/full-site-static.mjs",
+    "audit:full-static": "node scripts/audit/full-site-static.mjs",
     "build": "node scripts/check-encoding.js && next build",
     "start": "next start",
     "lint": "eslint",

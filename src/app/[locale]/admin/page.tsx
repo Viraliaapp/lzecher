@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -360,9 +360,9 @@ export default function AdminPage() {
                     <Button variant="ghost" size="icon" title="Share" onClick={() => setShareProject(project)}>
                       <Share2 className="h-4 w-4 text-navy/60" />
                     </Button>
-                    <a href={`/admin/projects/${project.id}/edit`}>
+                    <Link href={`/admin/projects/${project.id}/edit` as never}>
                       <Button variant="ghost" size="icon" title="Edit"><Pencil className="h-4 w-4 text-navy/60" /></Button>
-                    </a>
+                    </Link>
                     {project.status === "active" ? (
                       <Button variant="ghost" size="icon" onClick={() => { setActionId(project.id); setHideDialogOpen(true); }}>
                         <EyeOff className="h-4 w-4" />

@@ -7,12 +7,33 @@
  *
  * Delete all portions where trackType === 'mussar'
  *
- * Run: node -e "require('dotenv').config({path:'.env.local'})" -e "" && node --require dotenv/config scripts/migrate-mussar-to-kabalos.js
- * Or:  node scripts/migrate-mussar-to-kabalos.js  (if env vars are already set)
+ * Defaults to dry-run. To execute:
+ *   node scripts/migrate-mussar-to-kabalos.js --execute --confirm=MIGRATE_LZECHER_MUSSAR_TO_KABALOS
  */
 
 require("dotenv").config({ path: ".env.local" });
 const admin = require("firebase-admin");
+
+const CONFIRMATION_PHRASE = "MIGRATE_LZECHER_MUSSAR_TO_KABALOS";
+const EXECUTE = process.argv.includes("--execute");
+const CONFIRMED = process.argv.includes(`--confirm=${CONFIRMATION_PHRASE}`);
+const LZECHER_COLLECTIONS = [
+  "lzecher_projects",
+  "lzecher_portions",
+  "lzecher_inclusive_claims",
+];
+
+for (const collection of LZECHER_COLLECTIONS) {
+  if (!collection.startsWith("lzecher_")) {
+    console.error(`FATAL: collection "${collection}" is not Lzecher-scoped.`);
+    process.exit(3);
+  }
+}
+
+if (EXECUTE && !CONFIRMED) {
+  console.error(`Refusing to write without --confirm=${CONFIRMATION_PHRASE}`);
+  process.exit(2);
+}
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -33,6 +54,8 @@ const db = admin.firestore();
 
 async function migrate() {
   console.log("=== Mussar → Kabalos Migration ===\n");
+  console.log(`Mode: ${EXECUTE ? "EXECUTE" : "DRY-RUN (no writes)"}`);
+  console.log("Collections: " + LZECHER_COLLECTIONS.join(", ") + "\n");
 
   // 1. Find projects with 'mussar' in tracks
   let projectsMigrated = 0;
@@ -48,8 +71,8 @@ async function migrate() {
         newTracks.push("kabalos");
       }
 
-      await doc.ref.update({ tracks: newTracks });
-      console.log(`  Project ${doc.id} (${data.nameHebrew}): removed 'mussar', tracks now: [${newTracks.join(", ")}]`);
+      if (EXECUTE) await doc.ref.update({ tracks: newTracks });
+      console.log(`  ${EXECUTE ? "Updated" : "[dry-run] Would update"} project ${doc.id} (${data.nameHebrew}): tracks -> [${newTracks.join(", ")}]`);
       projectsMigrated++;
     }
   }
@@ -65,14 +88,14 @@ async function migrate() {
 
   const batch = db.batch();
   for (const doc of portionsSnap.docs) {
-    batch.delete(doc.ref);
+    if (EXECUTE) batch.delete(doc.ref);
     portionsDeleted++;
   }
 
-  if (portionsDeleted > 0) {
+  if (EXECUTE && portionsDeleted > 0) {
     await batch.commit();
   }
-  console.log(`${portionsDeleted} mussar portions deleted.\n`);
+  console.log(`${portionsDeleted} mussar portions ${EXECUTE ? "deleted" : "would be deleted"}.\n`);
 
   // 3. Delete mussar inclusive claims
   let claimsDeleted = 0;
@@ -84,12 +107,12 @@ async function migrate() {
   if (!claimsSnap.empty) {
     const claimsBatch = db.batch();
     for (const doc of claimsSnap.docs) {
-      claimsBatch.delete(doc.ref);
+      if (EXECUTE) claimsBatch.delete(doc.ref);
       claimsDeleted++;
     }
-    await claimsBatch.commit();
+    if (EXECUTE) await claimsBatch.commit();
   }
-  console.log(`${claimsDeleted} mussar inclusive claims deleted.\n`);
+  console.log(`${claimsDeleted} mussar inclusive claims ${EXECUTE ? "deleted" : "would be deleted"}.\n`);
 
   // 4. Verify
   const verifyProjects = await db.collection("lzecher_projects").get();

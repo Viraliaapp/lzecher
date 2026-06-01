@@ -170,6 +170,11 @@ assert(
   "Admin project list must use the sanitized admin API instead of direct client Firestore reads"
 );
 assert(
+  adminPage.includes('import { Link, useRouter } from "@/i18n/navigation"') &&
+    !adminPage.includes('<a href={`/admin/projects/'),
+  "Admin project edit links must use the localized i18n Link so Hebrew users stay under /he"
+);
+assert(
   adminPage.includes("adminRole") &&
     adminPage.includes("profile?.isSuperAdmin || adminRole?.isSuperAdmin"),
   "Admin page should use the server-verified admin role to show the super-admin portal"
