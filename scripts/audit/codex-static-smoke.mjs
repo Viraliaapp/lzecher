@@ -164,6 +164,13 @@ assert(
     cronReminderRoute.includes("/api/claims/mark-complete-via-link"),
   "Reminder emails must include a signed one-click mark-learned link"
 );
+assert(
+  cronReminderRoute.includes("lzecherEmailFrom()") &&
+    cronReminderRoute.includes("RESEND_CHUNK_SIZE") &&
+    cronReminderRoute.includes("RESEND_CHUNK_PAUSE_MS") &&
+    !cronReminderRoute.includes("onboarding@resend.dev"),
+  "Reminder emails must use the verified Lzecher sender and throttle Resend calls"
+);
 
 const signedTokens = read("src/lib/signed-tokens.ts");
 assert(
@@ -606,8 +613,18 @@ assert(
 assert(
   adminPage.includes("feedbackTypeLabel") &&
     adminPage.includes("supportText") &&
+    adminPage.includes("friendlyEmailError") &&
     adminPage.includes("formatTimestamp(ts?: number | null, locale = \"en\")"),
   "Super-admin support UI should localize feedback/report labels, known error details, and Hebrew timestamps"
+);
+
+const contactRoute = read("src/app/api/memorials/[slug]/contact/route.ts");
+assert(
+  contactRoute.includes('lzecherEmailFrom("לזכרו")') &&
+    contactRoute.includes("if (error)") &&
+    contactRoute.includes('reason: "resend_error"') &&
+    contactRoute.includes("delivered: false"),
+  "Family contact relay must use the verified Lzecher sender and never mark rejected emails as delivered"
 );
 
 const shareTemplates = read("src/components/memorial/ShareTemplates.tsx");

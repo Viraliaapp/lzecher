@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { TRACK_CONFIGS } from "@/lib/track-config";
 import { toHebrewCalendarDate } from "@/lib/hebrew-date";
 import { learningLabel } from "@/lib/learning-label";
+import { friendlyEmailError } from "@/lib/email-config";
 
 type Filter = "all" | "active" | "hidden" | "reported";
 
@@ -3051,7 +3052,9 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                             <span>{label(locale, "שפה", "Locale")}: {email.locale}</span>
                           </div>
                           {email.lastError && (
-                            <p className="mt-2 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700">{email.lastError}</p>
+                            <p className="mt-2 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700" dir={locale === "he" ? "rtl" : "ltr"}>
+                              {friendlyEmailError(locale, email.lastError)}
+                            </p>
                           )}
                         </div>
                       ))}

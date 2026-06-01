@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { Resend } from "resend";
+import { lzecherEmailFrom } from "@/lib/email-config";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -92,12 +93,26 @@ export async function POST(
 </body>
 </html>`;
 
-    await resend.emails.send({
-      from: "לזכרו <noreply@lzecher.com>",
+    const { error } = await resend.emails.send({
+      from: lzecherEmailFrom("לזכרו"),
       to: creatorEmail,
       subject,
       html,
     });
+
+    if (error) {
+      await db.collection("lzecher_contact_messages").add({
+        slug,
+        projectId: projectsSnap.docs[0].id,
+        message: message.trim(),
+        senderEmail: senderEmail?.trim() || null,
+        sentAt: Date.now(),
+        delivered: false,
+        reason: "resend_error",
+        lastError: error.message,
+      });
+      return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
+    }
 
     // Log the contact
     await db.collection("lzecher_contact_messages").add({

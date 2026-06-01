@@ -3,6 +3,7 @@ import { getAdminAuth } from "@/lib/firebase/admin";
 import { Resend } from "resend";
 import { checkRateLimit as checkRL, getClientIp } from "@/lib/rate-limit";
 import { signToken, TTL } from "@/lib/signed-tokens";
+import { lzecherEmailFrom } from "@/lib/email-config";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     const dir = locale === "he" ? "rtl" : "ltr";
 
     const { error } = await resend.emails.send({
-      from: "Lzecher <noreply@lzecher.com>",
+      from: lzecherEmailFrom(),
       to: email,
       subject,
       html: `

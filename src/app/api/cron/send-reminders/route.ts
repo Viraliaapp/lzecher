@@ -7,10 +7,13 @@ import {
   type ReminderLocale,
 } from "@/lib/reminder-templates";
 import { signToken, TTL } from "@/lib/signed-tokens";
+import { lzecherEmailFrom } from "@/lib/email-config";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const BATCH_LIMIT = 50; // max emails per invocation
+const BATCH_LIMIT = 25; // max emails per invocation
+const RESEND_CHUNK_SIZE = 4; // stay under Resend's 5 requests/sec rate limit
+const RESEND_CHUNK_PAUSE_MS = 1100;
 
 export async function GET(request: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -41,18 +44,25 @@ export async function GET(request: NextRequest) {
   let sent = 0;
   let failed = 0;
 
-  const results = await Promise.allSettled(
-    readyDocs.map((doc) => processEmail(db, doc, now))
-  );
+  for (let i = 0; i < readyDocs.length; i += RESEND_CHUNK_SIZE) {
+    const chunk = readyDocs.slice(i, i + RESEND_CHUNK_SIZE);
+    const results = await Promise.allSettled(
+      chunk.map((doc) => processEmail(db, doc, now))
+    );
 
-  results.forEach((result) => {
-    if (result.status === "fulfilled") {
-      sent++;
-    } else {
-      failed++;
-      console.error("[send-reminders] Email processing error:", result.reason);
+    results.forEach((result) => {
+      if (result.status === "fulfilled") {
+        sent++;
+      } else {
+        failed++;
+        console.error("[send-reminders] Email processing error:", result.reason);
+      }
+    });
+
+    if (i + RESEND_CHUNK_SIZE < readyDocs.length) {
+      await new Promise((resolve) => setTimeout(resolve, RESEND_CHUNK_PAUSE_MS));
     }
-  });
+  }
 
   return NextResponse.json({ processed: readyDocs.length, sent, failed });
 }
@@ -76,10 +86,8 @@ async function processEmail(
     const reminderType = data.reminderType as ReminderType;
     const email = getReminderEmail(reminderType, locale, templateArgs);
 
-    // Send via Resend — RESEND_FROM_EMAIL must be a verified domain (or use onboarding@resend.dev for testing)
-    const fromAddress = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
     const { error } = await resend.emails.send({
-      from: `Lzecher <${fromAddress}>`,
+      from: lzecherEmailFrom(),
       to: data.toEmail,
       subject: email.subject,
       html: email.body,

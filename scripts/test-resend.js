@@ -9,6 +9,7 @@ if (!apiKey) {
 console.log("RESEND_API_KEY present:", apiKey.slice(0, 8) + "...");
 
 const resend = new Resend(apiKey);
+const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@lzecher.com";
 
 async function main() {
   try {
@@ -24,7 +25,7 @@ async function main() {
     // Send test email
     console.log("\n--- Sending test email ---");
     const { data, error } = await resend.emails.send({
-      from: "Lzecher <onboarding@resend.dev>",
+      from: `Lzecher <${fromEmail}>`,
       to: "solomon2145tag@gmail.com",
       subject: "Lzecher Test Email",
       html: "<h1>Test</h1><p>If you see this, Resend is working!</p>",
