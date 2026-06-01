@@ -214,9 +214,11 @@ export async function POST(
             return {
               id: doc.id,
               status: data.status || null,
-              type: data.type || null,
-              scheduledFor: data.scheduledFor || null,
-              recipientEmail: data.recipientEmail || null,
+              type: data.reminderType || data.type || null,
+              scheduledFor: data.sendAt || null,
+              recipientEmail: data.toEmail || data.userEmail || null,
+              attempts: Number(data.attempts || 0),
+              lastError: typeof data.lastError === "string" ? data.lastError.slice(0, 300) : null,
             };
           })
         : [],

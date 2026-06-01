@@ -107,6 +107,26 @@ function publicContactMessage(data: FirebaseFirestore.DocumentData, id: string) 
   };
 }
 
+function publicScheduledEmail(data: FirebaseFirestore.DocumentData, id: string) {
+  return {
+    id,
+    projectId: data.projectId || null,
+    projectSlug: data.projectSlug || null,
+    claimId: data.claimId || null,
+    toEmail: data.toEmail || data.userEmail || null,
+    userId: data.userId || null,
+    reminderType: data.reminderType || data.type || null,
+    locale: data.locale || "en",
+    status: data.status || "pending",
+    sendAt: data.sendAt || null,
+    createdAt: data.createdAt || null,
+    sentAt: data.sentAt || null,
+    failedAt: data.failedAt || null,
+    attempts: Number(data.attempts || 0),
+    lastError: typeof data.lastError === "string" ? data.lastError.slice(0, 300) : null,
+  };
+}
+
 function publicAudit(data: FirebaseFirestore.DocumentData, id: string) {
   const at = data.at || data.updatedAt || data.deletedAt || data.createdAt || data.timestamp || data.completedAt || 0;
   return {
@@ -225,6 +245,7 @@ export async function POST(request: NextRequest) {
       superSnap,
       reportsSnap,
       contactsSnap,
+      scheduledEmailsSnap,
       settingsSnap,
       auditAtSnap,
       auditTimestampSnap,
@@ -261,6 +282,7 @@ export async function POST(request: NextRequest) {
       usersRef.where("isSuperAdmin", "==", true).get(),
       reportsRef.orderBy("reportedAt", "desc").limit(RECENT_LIMIT).get().catch(() => null),
       contactsRef.orderBy("sentAt", "desc").limit(RECENT_LIMIT).get().catch(() => null),
+      scheduledEmailsRef.orderBy("sendAt", "desc").limit(RECENT_LIMIT).get().catch(() => null),
       settingsRef.get().catch(() => null),
       auditRef.orderBy("at", "desc").limit(RECENT_LIMIT).get().catch(() => null),
       auditRef.orderBy("timestamp", "desc").limit(RECENT_LIMIT).get().catch(() => null),
@@ -461,6 +483,9 @@ export async function POST(request: NextRequest) {
         : [],
       recentContacts: contactsSnap
         ? contactsSnap.docs.map((doc) => publicContactMessage(doc.data(), doc.id))
+        : [],
+      recentScheduledEmails: scheduledEmailsSnap
+        ? scheduledEmailsSnap.docs.map((doc) => publicScheduledEmail(doc.data(), doc.id))
         : [],
       recentAudit: Array.from(auditById.values())
         .sort((a, b) => b.at - a.at)

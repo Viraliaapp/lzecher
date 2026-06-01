@@ -169,6 +169,11 @@ async function main() {
     assert(res.status === 200, `overview failed: ${res.status} ${res.text}`);
     assert(typeof res.json?.stats?.pendingReminderEmails === "number", "overview did not expose pending reminder emails");
     assert(res.json.healthChecks?.some((check) => check.key === "reminder_queue"), "overview did not expose reminder queue health");
+    const scheduledEmail = res.json.recentScheduledEmails?.find((email) => email.id === scheduledEmailId);
+    assert(scheduledEmail, "overview did not expose recent scheduled reminder emails");
+    assert(scheduledEmail.toEmail === `codex-overview-${suffix}@example.com`, "scheduled email did not expose sanitized recipient");
+    assert(scheduledEmail.reminderType === "confirmation", "scheduled email reminder type mismatch");
+    assert(typeof scheduledEmail.sendAt === "number", "scheduled email sendAt missing");
     assert(!res.json.recentClaims?.some((claim) => claim.id === parentClaimId), "overview recent claims exposed a parent summary claim");
     assert(res.json.recentClaims?.some((claim) => claim.id === childClaimId), "overview recent claims did not include the real child claim");
     const tempUser = res.json.userSummaries?.find((user) => user.uid === tempUid);

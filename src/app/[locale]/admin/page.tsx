@@ -176,6 +176,24 @@ type SuperContactMessage = {
   sentAt: number;
 };
 
+type SuperScheduledEmail = {
+  id: string;
+  projectId: string | null;
+  projectSlug: string | null;
+  claimId: string | null;
+  toEmail: string | null;
+  userId: string | null;
+  reminderType: string | null;
+  locale: string;
+  status: string;
+  sendAt: number | null;
+  createdAt: number | null;
+  sentAt: number | null;
+  failedAt: number | null;
+  attempts: number;
+  lastError: string | null;
+};
+
 type SuperAuditEntry = {
   id: string;
   action: string;
@@ -197,6 +215,7 @@ type SuperOverview = {
   userSummaries: UserSummary[];
   recentReports: SuperReport[];
   recentContacts: SuperContactMessage[];
+  recentScheduledEmails: SuperScheduledEmail[];
   recentAudit: SuperAuditEntry[];
 };
 
@@ -209,7 +228,7 @@ type SuperProjectDetail = {
   reports: SuperReport[];
   contactMessages: SuperContactMessage[];
   feedback: SuperFeedback[];
-  scheduledEmails: { id: string; status: string | null; type: string | null; scheduledFor: number | null; recipientEmail: string | null }[];
+  scheduledEmails: { id: string; status: string | null; type: string | null; scheduledFor: number | null; recipientEmail: string | null; attempts?: number; lastError?: string | null }[];
 };
 
 type AdminRole = {
@@ -680,6 +699,45 @@ function priorityLabel(locale: string, priority: string) {
   return locale === "he" ? he[priority] || priority : en[priority] || priority;
 }
 
+function reminderStatusLabel(locale: string, status: string) {
+  const he: Record<string, string> = {
+    pending: "ממתין",
+    sent: "נשלח",
+    failed: "נכשל",
+    cancelled: "בוטל",
+  };
+  const en: Record<string, string> = {
+    pending: "Pending",
+    sent: "Sent",
+    failed: "Failed",
+    cancelled: "Cancelled",
+  };
+  return locale === "he" ? he[status] || status : en[status] || status;
+}
+
+function reminderTypeLabel(locale: string, type?: string | null) {
+  const key = type || "unknown";
+  const he: Record<string, string> = {
+    confirmation: "אישור הצטרפות",
+    halfway: "אמצע הדרך",
+    sevenDaysBefore: "שבוע לפני",
+    threeDaysBefore: "שלושה ימים לפני",
+    oneDayBefore: "יום לפני",
+    dailyReminder: "תזכורת יומית",
+    weeklyDigest: "סיכום שבועי",
+  };
+  const en: Record<string, string> = {
+    confirmation: "Confirmation",
+    halfway: "Halfway",
+    sevenDaysBefore: "Seven days before",
+    threeDaysBefore: "Three days before",
+    oneDayBefore: "One day before",
+    dailyReminder: "Daily reminder",
+    weeklyDigest: "Weekly digest",
+  };
+  return locale === "he" ? he[key] || key : en[key] || key;
+}
+
 function csvValue(value: unknown) {
   if (value === null || value === undefined) return "";
   const text = typeof value === "object" ? JSON.stringify(value) : String(value);
@@ -837,6 +895,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
   const [translationAudit, setTranslationAudit] = useState<TranslationAudit | null>(null);
   const [supportSearch, setSupportSearch] = useState("");
+  const [communicationsSearch, setCommunicationsSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [supportDrafts, setSupportDrafts] = useState<Record<string, SupportDraft>>({});
   const [savingSupportItem, setSavingSupportItem] = useState<string | null>(null);
@@ -1412,6 +1471,31 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     return [item.message, item.senderEmail || "", item.slug || "", item.projectId || "", item.reason || "", item.delivered ? "delivered" : "undelivered", item.supportStatus || "", item.priority || "", item.tag || "", item.assignedTo || "", item.internalNote || ""]
       .some((value) => value.toLowerCase().includes(supportQuery));
   });
+  const communicationsQuery = communicationsSearch.trim().toLowerCase();
+  const scheduledEmails = overview?.recentScheduledEmails || [];
+  const filteredScheduledEmails = scheduledEmails.filter((item) => {
+    if (!communicationsQuery) return true;
+    return [
+      item.status,
+      item.reminderType || "",
+      item.toEmail || "",
+      item.projectId || "",
+      item.projectSlug || "",
+      item.claimId || "",
+      item.locale,
+      item.lastError || "",
+    ].some((value) => String(value || "").toLowerCase().includes(communicationsQuery));
+  });
+  const reminderStatusCounts = scheduledEmails.reduce<Record<string, number>>((acc, item) => {
+    const key = item.status || "unknown";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const reminderTypeCounts = scheduledEmails.reduce<Record<string, number>>((acc, item) => {
+    const key = item.reminderType || "unknown";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
   const filteredAuditEntries = auditEntries.filter((entry) => {
     const query = auditSearch.trim().toLowerCase();
     if (!query) return true;
@@ -1556,6 +1640,26 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     finishExport(downloadCsv(`lzecher-support-${exportStamp}.csv`, rows));
   }
 
+  function exportScheduledEmailsCsv() {
+    finishExport(downloadCsv(`lzecher-reminders-${exportStamp}.csv`, filteredScheduledEmails.map((item) => ({
+      id: item.id,
+      status: item.status,
+      reminderType: item.reminderType,
+      toEmail: item.toEmail,
+      userId: item.userId,
+      projectId: item.projectId,
+      projectSlug: item.projectSlug,
+      claimId: item.claimId,
+      locale: item.locale,
+      sendAt: item.sendAt,
+      createdAt: item.createdAt,
+      sentAt: item.sentAt,
+      failedAt: item.failedAt,
+      attempts: item.attempts,
+      lastError: item.lastError,
+    }))));
+  }
+
   function exportAuditCsv() {
     finishExport(downloadCsv(`lzecher-audit-${exportStamp}.csv`, auditEntries.map((entry) => ({
       id: entry.id,
@@ -1612,6 +1716,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
               <TabsTrigger value="projects"><ClipboardList className="h-4 w-4" /> {label(locale, "פרויקטים", "Projects")}</TabsTrigger>
               <TabsTrigger value="users"><Users className="h-4 w-4" /> {label(locale, "משתמשים", "Users")}</TabsTrigger>
               <TabsTrigger value="support"><Inbox className="h-4 w-4" /> {label(locale, "תמיכה", "Support")}</TabsTrigger>
+              <TabsTrigger value="communications"><Mail className="h-4 w-4" /> {label(locale, "תזכורות", "Reminders")}</TabsTrigger>
               <TabsTrigger value="integrity"><ShieldCheck className="h-4 w-4" /> {label(locale, "תקינות", "Integrity")}</TabsTrigger>
               <TabsTrigger value="language"><Languages className="h-4 w-4" /> {label(locale, "שפה", "Language")}</TabsTrigger>
               <TabsTrigger value="health"><Wrench className="h-4 w-4" /> {label(locale, "בדיקות", "Health")}</TabsTrigger>
@@ -1790,6 +1895,12 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                       title: label(locale, "תור תמיכה", "Support queue"),
                       detail: label(locale, `${filteredFeedbackItems.length + filteredReportItems.length + filteredContactItems.length} פריטי משוב, דיווחים והודעות מהתצוגה הנוכחית.`, `${filteredFeedbackItems.length + filteredReportItems.length + filteredContactItems.length} feedback, report, and contact items from the current view.`),
                       action: exportSupportCsv,
+                    },
+                    {
+                      key: "reminders",
+                      title: label(locale, "תזכורות אימייל", "Reminder emails"),
+                      detail: label(locale, `${filteredScheduledEmails.length} תזכורות מהתצוגה הנוכחית, כולל סטטוס, ניסיון שליחה ושגיאה אחרונה.`, `${filteredScheduledEmails.length} reminders from the current view, including status, attempt count, and last error.`),
+                      action: exportScheduledEmailsCsv,
                     },
                     {
                       key: "audit",
@@ -2275,6 +2386,118 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                       {renderSupportControls("contact", message)}
                     </div>
                   )) : <p className="py-6 text-center text-sm text-muted">{label(locale, "אין הודעות", "No messages")}</p>}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="communications">
+              <div className="space-y-4">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                    <Input
+                      value={communicationsSearch}
+                      onChange={(event) => setCommunicationsSearch(event.target.value)}
+                      placeholder={label(locale, "חיפוש לפי אימייל, פרויקט, סוג תזכורת או שגיאה", "Search by email, project, reminder type, or error")}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Button variant="ghost" onClick={() => setCommunicationsSearch("")} disabled={!communicationsSearch.trim()}>
+                    {label(locale, "נקה", "Clear")}
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                  {[
+                    [label(locale, "ממתינות", "Pending"), stats.pendingReminderEmails],
+                    [label(locale, "נכשלו", "Failed"), stats.failedReminderEmails],
+                    [label(locale, "נשלחו", "Sent"), stats.sentReminderEmails],
+                    [label(locale, "בתצוגה", "Loaded"), scheduledEmails.length],
+                    [label(locale, "מסוננות", "Filtered"), filteredScheduledEmails.length],
+                  ].map(([name, value]) => (
+                    <div key={String(name)} className="rounded-lg border border-navy/10 bg-white p-3">
+                      <p className="text-xs text-muted">{name}</p>
+                      <p className="font-heading text-2xl font-bold text-navy">{Number(value || 0).toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)]">
+                  <div className="space-y-3">
+                    <div className="rounded-lg border border-navy/10 bg-white p-3">
+                      <h3 className="mb-2 font-heading font-bold text-navy">{label(locale, "סטטוס התור", "Queue status")}</h3>
+                      <div className="space-y-2">
+                        {Object.entries(reminderStatusCounts).sort((a, b) => b[1] - a[1]).map(([status, count]) => (
+                          <div key={status} className="flex items-center justify-between rounded-md bg-cream/40 px-2 py-1.5 text-sm">
+                            <span>{reminderStatusLabel(locale, status)}</span>
+                            <span className="font-medium text-navy">{count}</span>
+                          </div>
+                        ))}
+                        {!Object.keys(reminderStatusCounts).length && (
+                          <p className="py-4 text-center text-sm text-muted">{label(locale, "אין תזכורות להצגה", "No reminders to show")}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-navy/10 bg-white p-3">
+                      <h3 className="mb-2 font-heading font-bold text-navy">{label(locale, "סוגי תזכורות", "Reminder types")}</h3>
+                      <div className="space-y-2">
+                        {Object.entries(reminderTypeCounts).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
+                          <div key={type} className="flex items-center justify-between rounded-md bg-cream/40 px-2 py-1.5 text-sm">
+                            <span>{reminderTypeLabel(locale, type)}</span>
+                            <span className="font-medium text-navy">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h3 className="font-heading font-bold text-navy">{label(locale, "תזכורות אחרונות", "Recent reminders")}</h3>
+                        <p className="text-xs text-muted">
+                          {label(locale, "תצוגה לקריאה בלבד מתוך lzecher_scheduled_emails.", "Read-only view from lzecher_scheduled_emails.")}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={exportScheduledEmailsCsv}>
+                        <Download className="h-4 w-4" />
+                        {label(locale, "ייצוא", "Export")}
+                      </Button>
+                    </div>
+                    <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">
+                      {filteredScheduledEmails.map((email) => (
+                        <div key={email.id} className="rounded-lg border border-navy/10 bg-cream/30 p-3 text-sm">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant={email.status === "failed" ? "destructive" : email.status === "sent" ? "secondary" : "default"}>
+                                  {reminderStatusLabel(locale, email.status)}
+                                </Badge>
+                                <span className="font-medium text-navy">{reminderTypeLabel(locale, email.reminderType)}</span>
+                              </div>
+                              <p className="mt-1 truncate text-xs text-muted">{email.toEmail || label(locale, "ללא אימייל", "No email")}</p>
+                            </div>
+                            <div className="text-end text-xs text-muted">
+                              <p>{label(locale, "שליחה", "Send")}: {email.sendAt ? formatTimestamp(email.sendAt) : label(locale, "לא ידוע", "Unknown")}</p>
+                              <p>{label(locale, "ניסיונות", "Attempts")}: {email.attempts}</p>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+                            {email.projectId && <span>{label(locale, "פרויקט", "Project")}: {email.projectId}</span>}
+                            {email.projectSlug && <span>{label(locale, "קישור", "Slug")}: {email.projectSlug}</span>}
+                            {email.claimId && <span>{label(locale, "בחירה", "Claim")}: {email.claimId}</span>}
+                            <span>{label(locale, "שפה", "Locale")}: {email.locale}</span>
+                          </div>
+                          {email.lastError && (
+                            <p className="mt-2 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700">{email.lastError}</p>
+                          )}
+                        </div>
+                      ))}
+                      {!filteredScheduledEmails.length && (
+                        <p className="py-8 text-center text-sm text-muted">{label(locale, "אין תזכורות שמתאימות לחיפוש", "No reminders match this search")}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </TabsContent>
