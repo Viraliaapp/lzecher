@@ -107,6 +107,17 @@ assert(
   !feedbackWidget.includes('"praise"'),
   "Feedback widget should not show a praise/שבח category"
 );
+assert(
+  feedbackWidget.includes("bottom-6 right-6") && !feedbackWidget.includes("bottom-6 end-6"),
+  "Feedback bubble must stay on the visual right so it does not overlap Hebrew activity bubbles"
+);
+
+const activityBubbles = read("src/components/activity/ActivityBubbles.tsx");
+assert(
+  activityBubbles.includes("left: \"1rem\"") &&
+    activityBubbles.includes("max-w-[calc(100vw-6.5rem)]"),
+  "Activity bubbles must stay left-aligned with reserved mobile space for the feedback bubble"
+);
 
 const dashboardRoute = read("src/app/api/dashboard/route.ts");
 assert(

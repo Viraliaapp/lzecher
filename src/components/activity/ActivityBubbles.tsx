@@ -91,7 +91,7 @@ export function ActivityBubbles() {
 
   return (
     <div
-      className="fixed bottom-4 z-40 flex flex-col gap-2 pointer-events-none max-w-[88vw] sm:max-w-xs"
+      className="fixed bottom-4 z-40 flex flex-col gap-2 pointer-events-none max-w-[calc(100vw-6.5rem)] sm:max-w-xs"
       style={{ left: "1rem" }}
       aria-live="polite"
     >

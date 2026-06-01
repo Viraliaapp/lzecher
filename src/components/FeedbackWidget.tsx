@@ -74,7 +74,7 @@ export function FeedbackWidget() {
           "fixed z-40 flex h-11 w-11 items-center justify-center rounded-full",
           "bg-gold text-navy shadow-lg hover:shadow-xl hover:-translate-y-0.5",
           "transition-all duration-200",
-          "bottom-6 end-6"
+          "bottom-6 right-6"
         )}
         aria-label={t("title")}
       >
