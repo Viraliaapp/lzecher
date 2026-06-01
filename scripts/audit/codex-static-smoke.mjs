@@ -265,8 +265,26 @@ assert(
   creatorDeleteRoute.includes("deletedProjectSummary") &&
     !creatorDeleteRoute.includes("projectData: projectData") &&
     creatorDeleteRoute.includes('collection("lzecher_contact_messages").where("projectId", "==", id)') &&
+    creatorDeleteRoute.includes('collection("lzecher_project_photos").doc(id)') &&
     creatorDeleteRoute.includes('prefix: `lzecher/photos/${creatorUid}/${id}`'),
-  "Creator delete must sanitize audit data, delete contact messages, and only clean Lzecher-scoped photos"
+  "Creator delete must sanitize audit data, delete contact messages, and clean only Lzecher-scoped photos"
+);
+
+const photoRoute = read("src/app/api/projects/photo/route.ts");
+assert(
+  photoRoute.includes('collection("lzecher_project_photos").doc(projectId)') &&
+    photoRoute.includes('photoURL: nextPhotoUrl') &&
+    photoRoute.includes('`/api/projects/${projectId}/photo-image?v=${Date.now()}`') &&
+    photoRoute.includes("MAX_PHOTO_BYTES"),
+  "Project photo API must store uploaded photos in Lzecher-scoped Firestore docs and update photoURL to the local image route"
+);
+
+const photoImageRoute = read("src/app/api/projects/[id]/photo-image/route.ts");
+assert(
+  photoImageRoute.includes('collection("lzecher_project_photos")') &&
+    photoImageRoute.includes("Content-Type") &&
+    photoImageRoute.includes("Cache-Control"),
+  "Project photo image route must serve only the Lzecher-scoped photo document"
 );
 
 const adminProjectUpdateRoute = read("src/app/api/admin/projects/[id]/update/route.ts");

@@ -15,8 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Upload, Camera, AlertCircle } from "lucide-react";
-import { storage, auth } from "@/lib/firebase/config";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { auth } from "@/lib/firebase/config";
 
 interface Props {
   open: boolean;
@@ -54,6 +53,18 @@ async function getCroppedImg(imageSrc: string, crop: Area): Promise<Blob> {
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.85);
+  });
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read photo"));
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      resolve(result.includes(",") ? result.split(",")[1] : result);
+    };
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -109,27 +120,28 @@ export function PhotoUploadModal({
         return;
       }
 
-      const storageRef = ref(storage, `lzecher/photos/${uid}/${projectId}.jpg`);
-      await uploadBytes(storageRef, croppedBlob, {
-        contentType: "image/jpeg",
-      });
-      const downloadUrl = await getDownloadURL(storageRef);
+      const photoData = await blobToBase64(croppedBlob);
 
       // Update project doc with photo URL via API
       const idToken = await auth.currentUser?.getIdToken(true);
       const res = await fetch("/api/projects/photo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, photoUrl: downloadUrl, idToken }),
+        body: JSON.stringify({
+          projectId,
+          photoData,
+          contentType: croppedBlob.type || "image/jpeg",
+          idToken,
+        }),
       });
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        const data = await res.json();
         setError(data.error || t("uploadError"));
         return;
       }
 
-      onUploadComplete(downloadUrl);
+      onUploadComplete(data.photoUrl);
       handleClose();
     } catch (err) {
       console.error("Upload error:", err);

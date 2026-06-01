@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { verifyToken } from "@/lib/auth-roles";
 
+const MAX_PHOTO_BYTES = 750 * 1024;
+const VALID_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 export async function POST(request: NextRequest) {
   try {
-    const { idToken, projectId, photoUrl } = await request.json();
+    const { idToken, projectId, photoUrl, photoData, contentType } = await request.json();
 
-    if (!idToken || !projectId || !photoUrl) {
+    if (!idToken || !projectId || (!photoUrl && !photoData)) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -33,12 +36,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
+    let nextPhotoUrl: string;
+
+    if (typeof photoData === "string" && photoData.trim()) {
+      const type = typeof contentType === "string" && VALID_CONTENT_TYPES.has(contentType)
+        ? contentType
+        : "image/jpeg";
+      let bytes: Buffer;
+      try {
+        bytes = Buffer.from(photoData, "base64");
+      } catch {
+        return NextResponse.json({ error: "Invalid photo data" }, { status: 400 });
+      }
+      if (bytes.length === 0 || bytes.length > MAX_PHOTO_BYTES) {
+        return NextResponse.json({ error: "Photo is too large" }, { status: 400 });
+      }
+
+      await db.collection("lzecher_project_photos").doc(projectId).set({
+        projectId,
+        contentType: type,
+        data: photoData,
+        size: bytes.length,
+        updatedAt: Date.now(),
+        updatedBy: decoded.uid,
+      });
+      nextPhotoUrl = `/api/projects/${projectId}/photo-image?v=${Date.now()}`;
+    } else if (typeof photoUrl === "string" && photoUrl.trim()) {
+      nextPhotoUrl = photoUrl.trim();
+    } else {
+      return NextResponse.json({ error: "Missing photo" }, { status: 400 });
+    }
+
     await db.collection("lzecher_projects").doc(projectId).update({
-      photoURL: photoUrl,
+      photoURL: nextPhotoUrl,
       updatedAt: Date.now(),
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, photoUrl: nextPhotoUrl });
   } catch (err) {
     console.error("Photo upload error:", err);
     return NextResponse.json({ error: "Failed to save photo" }, { status: 500 });

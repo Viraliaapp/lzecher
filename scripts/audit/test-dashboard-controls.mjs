@@ -31,14 +31,12 @@ function initAdmin() {
   const projectIdEnv = process.env.FIREBASE_ADMIN_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
   if (!projectIdEnv || !clientEmail || !privateKey) {
     throw new Error("Missing Firebase Admin env for Lzecher dashboard controls test");
   }
   admin.initializeApp({
     credential: admin.credential.cert({ projectId: projectIdEnv, clientEmail, privateKey }),
     projectId: projectIdEnv,
-    storageBucket,
   });
 }
 
@@ -272,20 +270,7 @@ async function seed(db, uid) {
   });
 }
 
-async function maybeUploadPhoto(uid) {
-  const bucketName = process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-  if (!bucketName) return { uploaded: false, file: null };
-  try {
-    const file = admin.storage().bucket(bucketName).file(`lzecher/photos/${uid}/${projectId}.jpg`);
-    await file.save(Buffer.from("codex-dashboard-photo"), { contentType: "image/jpeg" });
-    return { uploaded: true, file };
-  } catch (err) {
-    console.warn("Photo fixture upload skipped:", err?.message || err);
-    return { uploaded: false, file: null };
-  }
-}
-
-async function cleanup(db, photoFile) {
+async function cleanup(db) {
   for (const id of [projectId, forbiddenProjectId]) {
     const batch = db.batch();
     for (const collection of [
@@ -294,6 +279,7 @@ async function cleanup(db, photoFile) {
       "lzecher_reports",
       "lzecher_contact_messages",
       "lzecher_scheduled_emails",
+      "lzecher_project_photos",
       "lzecher_admin_audit",
     ]) {
       const snap = await db.collection(collection).where("projectId", "==", id).get();
@@ -301,9 +287,6 @@ async function cleanup(db, photoFile) {
     }
     batch.delete(db.collection("lzecher_projects").doc(id));
     await batch.commit();
-  }
-  if (photoFile) {
-    await photoFile.delete({ ignoreNotFound: true }).catch(() => {});
   }
 }
 
@@ -322,13 +305,31 @@ async function main() {
   console.log(`Dashboard controls target: ${origin}`);
   console.log(`Creator test user: ${creatorEmail}`);
 
-  let photoFile = null;
   await seed(db, uid);
-  const photo = await maybeUploadPhoto(uid);
-  photoFile = photo.file;
 
   try {
-    let res = await requestJson("POST", `/api/projects/${projectId}/claims`, { idToken });
+    let res = await requestJson("POST", "/api/projects/photo", {
+      idToken,
+      projectId,
+      contentType: "image/png",
+      photoData: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+    });
+    assert(res.status === 200 && res.json?.success, `Photo API upload failed: ${res.status} ${res.text}`);
+    assert(
+      typeof res.json.photoUrl === "string" && res.json.photoUrl.startsWith(`/api/projects/${projectId}/photo-image?v=`),
+      "Photo API did not return the local Lzecher photo route"
+    );
+    let projectSnap = await db.collection("lzecher_projects").doc(projectId).get();
+    assert(projectSnap.data()?.photoURL === res.json.photoUrl, "Project photoURL was not updated to the Lzecher photo route");
+    let photoSnap = await db.collection("lzecher_project_photos").doc(projectId).get();
+    assert(photoSnap.exists && photoSnap.data()?.projectId === projectId, "Photo API did not store the Lzecher-scoped photo doc");
+    const imageRes = await fetch(`${origin}/api/projects/${projectId}/photo-image`);
+    const imageBytes = Buffer.from(await imageRes.arrayBuffer());
+    assert(imageRes.status === 200, `Photo image route failed: ${imageRes.status}`);
+    assert((imageRes.headers.get("content-type") || "").includes("image/png"), "Photo image route returned wrong content type");
+    assert(imageBytes.length > 20, "Photo image route returned an empty image");
+
+    res = await requestJson("POST", `/api/projects/${projectId}/claims`, { idToken });
     assert(res.status === 200, `Claim list failed: ${res.status} ${res.text}`);
     assert(res.json?.claims?.length === 3, `Claim list expected 3, got ${res.json?.claims?.length}`);
 
@@ -394,11 +395,7 @@ async function main() {
     assert((await db.collection("lzecher_reports").where("projectId", "==", projectId).get()).empty, "Delete left reports behind");
     assert((await db.collection("lzecher_contact_messages").where("projectId", "==", projectId).get()).empty, "Delete left contact messages behind");
     assert((await db.collection("lzecher_scheduled_emails").where("projectId", "==", projectId).get()).empty, "Delete left scheduled emails behind");
-    if (photo.uploaded && photo.file) {
-      const [exists] = await photo.file.exists();
-      assert(!exists, "Delete left the Lzecher-scoped project photo behind");
-      photoFile = null;
-    }
+    assert(!(await db.collection("lzecher_project_photos").doc(projectId).get()).exists, "Delete left Firestore photo behind");
 
     const auditSnap = await db.collection("lzecher_admin_audit").where("projectId", "==", projectId).get();
     const deleteAudit = auditSnap.docs.map((doc) => doc.data()).find((item) => item.action === "creator_delete_project");
@@ -407,10 +404,11 @@ async function main() {
     assert(!auditJson.includes("passwordHash"), "Delete audit leaked passwordHash key");
     assert(!auditJson.includes("passwordSalt"), "Delete audit leaked passwordSalt key");
     assert(deleteAudit.counts?.contactsDeleted === 1, "Delete audit did not count deleted contact messages");
+    assert(deleteAudit.counts?.firestorePhotoDeleted === true, "Delete audit did not record Firestore photo cleanup");
 
     console.log("Dashboard controls checks passed.");
   } finally {
-    await cleanup(db, photoFile);
+    await cleanup(db);
     await admin.auth().deleteUser(nonAdminUid).catch(() => {});
   }
 }

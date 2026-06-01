@@ -4,7 +4,7 @@
  * Creator or super-admin can permanently delete a project.
  * Requires typed confirmation (the honoree's Hebrew name).
  * Deletes: project doc, all portions, all claims, all reports,
- * all contact messages, all scheduled emails, and the Lzecher-scoped photo.
+ * all contact messages, all scheduled emails, and Lzecher-scoped photos.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminStorageBucket } from "@/lib/firebase/admin";
@@ -79,6 +79,11 @@ export async function POST(
     const emailsSnap = await db.collection("lzecher_scheduled_emails").where("projectId", "==", id).get();
     await deleteDocsInChunks(db, emailsSnap.docs);
 
+    const firestorePhotoSnap = await db.collection("lzecher_project_photos").doc(id).get();
+    if (firestorePhotoSnap.exists) {
+      await firestorePhotoSnap.ref.delete();
+    }
+
     // Delete the project photo if it was uploaded through Lzecher's scoped storage path.
     let photoDeleted = false;
     try {
@@ -107,6 +112,7 @@ export async function POST(
         reportsDeleted: reportsSnap.size,
         contactsDeleted: contactsSnap.size,
         emailsDeleted: emailsSnap.size,
+        firestorePhotoDeleted: firestorePhotoSnap.exists,
         photoDeleted,
       },
     });
