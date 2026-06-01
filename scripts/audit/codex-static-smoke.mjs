@@ -187,6 +187,8 @@ assert(
     adminPage.includes("recomputeSelectedProject") &&
     adminPage.includes("Data Integrity Center") &&
     adminPage.includes("projectIssueSeverity") &&
+    adminPage.includes("auditSearch") &&
+    adminPage.includes("expandedAuditId") &&
     adminPage.includes("updateProjectControls") &&
     adminPage.includes("updateReportStatus") &&
     adminPage.includes("saveSiteSettings") &&

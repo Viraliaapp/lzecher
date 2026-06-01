@@ -705,6 +705,8 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [savingUser, setSavingUser] = useState(false);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(EMPTY_SITE_SETTINGS);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [auditSearch, setAuditSearch] = useState("");
+  const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
 
   async function loadOverview() {
     setRefreshing(true);
@@ -1022,6 +1024,20 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     (count, project) => count + project.issues.filter((issue) => projectIssueSeverity(issue) === "warn").length,
     0
   );
+  const auditEntries = overview?.recentAudit || [];
+  const auditActions = Array.from(new Set(auditEntries.map((entry) => entry.action))).sort();
+  const filteredAuditEntries = auditEntries.filter((entry) => {
+    const query = auditSearch.trim().toLowerCase();
+    if (!query) return true;
+    return [
+      entry.action,
+      entry.adminUid || "",
+      entry.projectId || "",
+      entry.targetUid || "",
+      entry.feedbackId || "",
+      typeof entry.details === "string" ? entry.details : JSON.stringify(entry.details || {}),
+    ].some((value) => value.toLowerCase().includes(query));
+  });
   const filteredProjects = projectSummaries.filter((project) => {
     const query = projectSearch.trim().toLowerCase();
     if (!query) return true;
@@ -1569,20 +1585,82 @@ function SuperAdminPortal({ locale }: { locale: string }) {
             </TabsContent>
 
             <TabsContent value="audit">
-              <div className="space-y-2">
-                {(overview?.recentAudit || []).length ? overview?.recentAudit.map((entry) => (
-                  <div key={entry.id} className="rounded-lg border border-navy/10 bg-white p-3 text-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-medium text-navy">{entry.action}</p>
-                      <span className="text-xs text-muted">{formatTimestamp(entry.at)}</span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted">
-                      {entry.adminUid || label(locale, "ללא מנהל", "No admin")} {entry.projectId ? `· ${entry.projectId}` : ""} {entry.targetUid ? `· ${entry.targetUid}` : ""}
-                    </p>
+              <div className="space-y-3">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                    <Input
+                      value={auditSearch}
+                      onChange={(event) => setAuditSearch(event.target.value)}
+                      placeholder={label(locale, "חיפוש ביומן לפי פעולה, פרויקט או מנהל", "Search audit by action, project, or admin")}
+                      className="pl-9"
+                    />
                   </div>
-                )) : (
-                  <p className="py-6 text-center text-sm text-muted">{label(locale, "אין עדיין יומן ביקורת", "No audit entries yet")}</p>
-                )}
+                  <Button variant="ghost" onClick={() => setAuditSearch("")} disabled={!auditSearch.trim()}>
+                    {label(locale, "נקה", "Clear")}
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <p className="text-xs text-muted">{label(locale, "רשומות נטענו", "Loaded entries")}</p>
+                    <p className="font-heading text-2xl font-bold text-navy">{auditEntries.length}</p>
+                  </div>
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <p className="text-xs text-muted">{label(locale, "סוגי פעולות", "Action types")}</p>
+                    <p className="font-heading text-2xl font-bold text-navy">{auditActions.length}</p>
+                  </div>
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <p className="text-xs text-muted">{label(locale, "בתצוגה", "Shown")}</p>
+                    <p className="font-heading text-2xl font-bold text-navy">{filteredAuditEntries.length}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {auditActions.slice(0, 12).map((action) => (
+                    <button
+                      key={action}
+                      type="button"
+                      onClick={() => setAuditSearch(action)}
+                      className="rounded-full border border-navy/10 bg-white px-2.5 py-1 text-xs text-navy transition hover:border-gold/40 hover:bg-gold/10"
+                    >
+                      {action}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  {filteredAuditEntries.length ? filteredAuditEntries.map((entry) => {
+                    const expanded = expandedAuditId === entry.id;
+                    return (
+                      <div key={entry.id} className="rounded-lg border border-navy/10 bg-white p-3 text-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <button type="button" onClick={() => setExpandedAuditId(expanded ? null : entry.id)} className="text-start font-medium text-navy">
+                            {entry.action}
+                          </button>
+                          <span className="text-xs text-muted">{formatTimestamp(entry.at)}</span>
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                          <span>{entry.adminUid || label(locale, "ללא מנהל", "No admin")}</span>
+                          {entry.projectId && (
+                            <button type="button" onClick={() => inspectProject(entry.projectId!)} className="rounded-full bg-cream px-2 py-0.5 text-navy">
+                              {entry.projectId}
+                            </button>
+                          )}
+                          {entry.targetUid && <span>· {entry.targetUid}</span>}
+                          {entry.feedbackId && <span>· {entry.feedbackId}</span>}
+                        </div>
+                        {expanded && (
+                          <pre className="mt-3 max-h-48 overflow-auto rounded-md bg-navy p-3 text-xs text-cream" dir="ltr">
+                            {JSON.stringify(entry.details || {}, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    );
+                  }) : (
+                    <p className="py-6 text-center text-sm text-muted">{label(locale, "אין רשומות שמתאימות לחיפוש", "No audit entries match this search")}</p>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
