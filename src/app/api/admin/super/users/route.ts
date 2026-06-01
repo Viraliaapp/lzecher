@@ -61,6 +61,12 @@ export async function POST(request: NextRequest) {
 
     const db = getAdminDb();
     const now = Date.now();
+    await auth.setCustomUserClaims(userRecord.uid, {
+      ...(userRecord.customClaims || {}),
+      isAdmin: nextAdmin,
+      isSuperAdmin: nextSuper,
+      lzecherPermissions: safePermissions,
+    });
     await db.collection("lzecher_users").doc(userRecord.uid).set({
       id: userRecord.uid,
       uid: userRecord.uid,

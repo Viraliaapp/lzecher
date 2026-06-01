@@ -45,7 +45,6 @@ export function Leaderboard({ projectId, initial }: { projectId: string; initial
       <div className="rounded-xl p-4" style={{ background: "#FFFDF8", border: "1px solid rgba(201,162,75,0.24)" }}>
         <div className="mb-3">
           <h3 className="font-heading font-bold text-navy text-base">{t("title")}</h3>
-          <p className="text-xs text-muted mt-0.5">{t("subtitle")}</p>
         </div>
         <ol className="space-y-1">
           {matmidim.map((m, i) => (

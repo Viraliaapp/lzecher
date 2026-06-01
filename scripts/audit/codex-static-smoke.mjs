@@ -98,6 +98,10 @@ assert(
   "Hebrew leaderboard title must be יישר כוח"
 );
 assert(
+  heMessages.leaderboard?.subtitle === "",
+  "Hebrew leaderboard subtitle should stay empty"
+);
+assert(
   heMessages.feedback?.type_praise !== "שבח",
   "Feedback wording must not show שבח"
 );
@@ -117,6 +121,12 @@ assert(
   activityBubbles.includes("left: \"1rem\"") &&
     activityBubbles.includes("max-w-[calc(100vw-6.5rem)]"),
   "Activity bubbles must stay left-aligned with reserved mobile space for the feedback bubble"
+);
+
+const leaderboard = read("src/components/activity/Leaderboard.tsx");
+assert(
+  !leaderboard.includes('t("subtitle")') && !leaderboard.includes("subtitle"),
+  "Leaderboard should not render the old explanatory subtitle"
 );
 
 const dashboardRoute = read("src/app/api/dashboard/route.ts");

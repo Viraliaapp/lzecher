@@ -4,19 +4,19 @@ import { readFileSync, writeFileSync } from "fs";
 const T = {
   en: {
     globalCounter: { heading: "Klal Yisrael learning together", mishnayos: "Mishnayos", tehillim: "Tehillim chapters", kabalos: "Kabbalos" },
-    leaderboard: { title: "Yasher Koach", subtitle: "Learners who have taken the most portions" },
+    leaderboard: { title: "Yasher Koach", subtitle: "" },
   },
   he: {
     globalCounter: { heading: "כלל ישראל לומד יחד", mishnayos: "משניות", tehillim: "פרקי תהילים", kabalos: "קבלות" },
-    leaderboard: { title: "יישר כוח", subtitle: "לומדים שלקחו על עצמם הכי הרבה חלקים" },
+    leaderboard: { title: "יישר כוח", subtitle: "" },
   },
   es: {
     globalCounter: { heading: "El pueblo de Israel aprende junto", mishnayos: "Mishnayot", tehillim: "capítulos de Tehilim", kabalos: "Kabalot" },
-    leaderboard: { title: "Yasher Koach", subtitle: "Participantes que tomaron más porciones" },
+    leaderboard: { title: "Yasher Koach", subtitle: "" },
   },
   fr: {
     globalCounter: { heading: "Le peuple d'Israël étudie ensemble", mishnayos: "Mishnayot", tehillim: "chapitres de Tehilim", kabalos: "Kabbalot" },
-    leaderboard: { title: "Yasher Koach", subtitle: "Participants ayant pris le plus de portions" },
+    leaderboard: { title: "Yasher Koach", subtitle: "" },
   },
 };
 
