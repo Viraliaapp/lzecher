@@ -248,8 +248,9 @@ assert(
     creatorProjectUpdateRoute.includes("track === \"mishnayos\" || track === \"tehillim\"") &&
     creatorProjectUpdateRoute.includes("track === \"shnayim_mikra\"") &&
     creatorProjectUpdateRoute.includes("PARSHIYOT") &&
-    creatorProjectUpdateRoute.includes("displayNameHebrew: `פרשת ${p.nameHebrew}`"),
-  "Creator project update must seed real portions when adding Mishnayos, Tehillim, or Shnayim Mikra tracks"
+    creatorProjectUpdateRoute.includes("displayNameHebrew: `פרשת ${p.nameHebrew}`") &&
+    creatorProjectUpdateRoute.includes("At least one learning track is required"),
+  "Creator project update must seed real portions and prevent removing every track"
 );
 
 const creatorResetRoute = read("src/app/api/projects/[id]/reset-claims/route.ts");
@@ -293,8 +294,9 @@ assert(
     adminProjectUpdateRoute.includes("track === \"mishnayos\" || track === \"tehillim\"") &&
     adminProjectUpdateRoute.includes("track === \"shnayim_mikra\"") &&
     adminProjectUpdateRoute.includes("PARSHIYOT") &&
-    adminProjectUpdateRoute.includes("displayNameHebrew: `פרשת ${p.nameHebrew}`"),
-  "Admin project update must seed real portions when adding Mishnayos, Tehillim, or Shnayim Mikra tracks"
+    adminProjectUpdateRoute.includes("displayNameHebrew: `פרשת ${p.nameHebrew}`") &&
+    adminProjectUpdateRoute.includes("At least one learning track is required"),
+  "Admin project update must seed real portions and prevent removing every track"
 );
 
 const adminPage = read("src/app/[locale]/admin/page.tsx");

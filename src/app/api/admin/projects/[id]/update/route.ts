@@ -121,6 +121,21 @@ export async function POST(
     let newTracks: TrackType[] = Array.isArray(currentData.tracks) ? [...currentData.tracks] : [];
     let totalPortionsDelta = 0;
     const trackOps: string[] = [];
+    if (trackChanges?.add || trackChanges?.remove) {
+      const prospectiveTracks = new Set(newTracks);
+      for (const track of trackChanges.add || []) {
+        if (!VALID_TRACKS.includes(track)) {
+          return NextResponse.json({ error: `Invalid track: ${track}` }, { status: 400 });
+        }
+        prospectiveTracks.add(track);
+      }
+      for (const track of trackChanges.remove || []) {
+        prospectiveTracks.delete(track);
+      }
+      if (prospectiveTracks.size === 0) {
+        return NextResponse.json({ error: "At least one learning track is required" }, { status: 400 });
+      }
+    }
 
     if (trackChanges?.add) {
       for (const track of trackChanges.add) {

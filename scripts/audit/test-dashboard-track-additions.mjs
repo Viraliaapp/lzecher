@@ -143,6 +143,14 @@ async function main() {
     assert(await countTrack(db, creatorProjectId, "shnayim_mikra") === 54, "Creator Shnayim Mikra add did not create 54 portions");
     await assertProjectTotals(db, creatorProjectId, ["mishnayos", "tehillim", "shnayim_mikra"], 729);
 
+    res = await post(`/api/projects/${creatorProjectId}/update`, {
+      idToken,
+      updates: {},
+      trackChanges: { remove: ["mishnayos", "tehillim", "shnayim_mikra"] },
+    });
+    assert(res.status === 400, `Creator should not be able to remove every track: ${res.status} ${res.text}`);
+    await assertProjectTotals(db, creatorProjectId, ["mishnayos", "tehillim", "shnayim_mikra"], 729);
+
     res = await post(`/api/admin/projects/${adminProjectId}/update`, {
       idToken,
       updates: {},
@@ -152,6 +160,14 @@ async function main() {
     assert(await countTrack(db, adminProjectId, "mishnayos") === 525, "Admin Mishnayos add did not create 525 portions");
     assert(await countTrack(db, adminProjectId, "tehillim") === 150, "Admin Tehillim add did not create 150 portions");
     assert(await countTrack(db, adminProjectId, "shnayim_mikra") === 54, "Admin Shnayim Mikra add did not create 54 portions");
+    await assertProjectTotals(db, adminProjectId, ["mishnayos", "tehillim", "shnayim_mikra"], 729);
+
+    res = await post(`/api/admin/projects/${adminProjectId}/update`, {
+      idToken,
+      updates: {},
+      trackChanges: { remove: ["mishnayos", "tehillim", "shnayim_mikra"] },
+    });
+    assert(res.status === 400, `Admin should not be able to remove every track: ${res.status} ${res.text}`);
     await assertProjectTotals(db, adminProjectId, ["mishnayos", "tehillim", "shnayim_mikra"], 729);
 
     console.log("Dashboard/admin track-addition checks passed.");
