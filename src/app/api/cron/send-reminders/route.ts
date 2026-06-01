@@ -101,6 +101,8 @@ async function processEmail(
     await docRef.update({
       status: "sent",
       sentAt: now,
+      lastError: null,
+      failedAt: null,
     });
   } catch (err) {
     const attempts = (data.attempts ?? 0) + 1;
