@@ -637,10 +637,59 @@ function healthCheckCopy(locale: string, check: SuperHealthCheck, stats: Record<
   return { title: check.label, detail: check.detail };
 }
 
+function projectIssueCopy(locale: string, issue: string) {
+  const he: Record<string, string> = {
+    missing_slug: "חסר קישור",
+    missing_creator_uid: "חסר יוצר",
+    missing_creator: "חסר יוצר",
+    no_tracks: "אין מסלולי לימוד",
+    no_portions: "אין חלקים",
+    claimed_gt_total: "נלקחו יותר מהסך",
+    completed_gt_claimed: "נלמדו יותר ממה שנלקח",
+    password_hash_salt_mismatch: "הגדרת סיסמה לא תקינה",
+    password_mismatch: "הגדרת סיסמה לא תקינה",
+    total_portions_drift: "סך החלקים לא תואם",
+    claimed_portions_drift: "מספר הבחירות לא תואם",
+    completed_portions_drift: "מספר הנלמדים לא תואם",
+    participant_drift: "מספר המשתתפים לא תואם",
+    reports_count_drift: "מספר הדיווחים לא תואם",
+    open_reports: "דיווחים פתוחים",
+  };
+  const en: Record<string, string> = {
+    missing_slug: "Missing link",
+    missing_creator_uid: "Missing creator",
+    missing_creator: "Missing creator",
+    no_tracks: "No learning tracks",
+    no_portions: "No portions",
+    claimed_gt_total: "Taken exceeds total",
+    completed_gt_claimed: "Learned exceeds taken",
+    password_hash_salt_mismatch: "Password setup mismatch",
+    password_mismatch: "Password setup mismatch",
+    total_portions_drift: "Total portions drift",
+    claimed_portions_drift: "Taken count drift",
+    completed_portions_drift: "Learned count drift",
+    participant_drift: "Participant count drift",
+    reports_count_drift: "Report count drift",
+    open_reports: "Open reports",
+  };
+  return locale === "he" ? he[issue] || issue : en[issue] || issue;
+}
+
+function projectIssueSeverity(issue: string) {
+  if (["missing_slug", "no_tracks", "no_portions", "claimed_gt_total", "completed_gt_claimed", "password_hash_salt_mismatch", "password_mismatch"].includes(issue)) {
+    return "fail";
+  }
+  if (issue.endsWith("_drift") || issue === "open_reports" || issue === "missing_creator_uid" || issue === "missing_creator") {
+    return "warn";
+  }
+  return "info";
+}
+
 function SuperAdminPortal({ locale }: { locale: string }) {
   const [overview, setOverview] = useState<SuperOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [superTab, setSuperTab] = useState("stats");
   const [projectSearch, setProjectSearch] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [projectDetail, setProjectDetail] = useState<SuperProjectDetail | null>(null);
@@ -750,15 +799,24 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     }
   }
 
-  async function recomputeSelectedProject() {
-    if (!selectedProjectId) return;
+  function inspectProject(projectId: string) {
+    setSuperTab("projects");
+    if (projectId === selectedProjectId) {
+      void loadProjectDetail(projectId);
+      return;
+    }
+    setSelectedProjectId(projectId);
+  }
+
+  async function recomputeProject(projectId: string) {
+    setSelectedProjectId(projectId);
     setRecomputingProject(true);
     try {
       const idToken = await auth.currentUser?.getIdToken(true);
-      const res = await fetch(`/api/admin/super/projects/${selectedProjectId}/recompute`, {
+      const res = await fetch(`/api/admin/super/projects/${projectId}/recompute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken, confirmProjectId: selectedProjectId }),
+        body: JSON.stringify({ idToken, confirmProjectId: projectId }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -766,12 +824,18 @@ function SuperAdminPortal({ locale }: { locale: string }) {
         return;
       }
       toast.success(label(locale, "נתוני הפרויקט חושבו מחדש", "Project stats recomputed"));
-      await Promise.all([loadOverview(), loadProjectDetail(selectedProjectId)]);
+      await Promise.all([loadOverview(), loadProjectDetail(projectId)]);
+      setSuperTab("projects");
     } catch {
       toast.error(label(locale, "לא ניתן לחשב מחדש", "Could not recompute"));
     } finally {
       setRecomputingProject(false);
     }
+  }
+
+  async function recomputeSelectedProject() {
+    if (!selectedProjectId) return;
+    await recomputeProject(selectedProjectId);
   }
 
   async function updateProjectControls(updates: Record<string, unknown>) {
@@ -943,6 +1007,21 @@ function SuperAdminPortal({ locale }: { locale: string }) {
 
   const stats = overview?.stats || {};
   const projectSummaries = overview?.projectSummaries || [];
+  const projectsWithIssues = projectSummaries
+    .filter((project) => project.issues.length > 0)
+    .sort((a, b) => b.issues.length - a.issues.length || Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+  const issueCounts = projectsWithIssues.reduce<Record<string, number>>((acc, project) => {
+    for (const issue of project.issues) acc[issue] = (acc[issue] || 0) + 1;
+    return acc;
+  }, {});
+  const failIssueCount = projectsWithIssues.reduce(
+    (count, project) => count + project.issues.filter((issue) => projectIssueSeverity(issue) === "fail").length,
+    0
+  );
+  const warningIssueCount = projectsWithIssues.reduce(
+    (count, project) => count + project.issues.filter((issue) => projectIssueSeverity(issue) === "warn").length,
+    0
+  );
   const filteredProjects = projectSummaries.filter((project) => {
     const query = projectSearch.trim().toLowerCase();
     if (!query) return true;
@@ -993,11 +1072,12 @@ function SuperAdminPortal({ locale }: { locale: string }) {
             <Spinner className="h-6 w-6" />
           </div>
         ) : (
-          <Tabs defaultValue="stats" dir={locale === "he" ? "rtl" : "ltr"}>
+          <Tabs value={superTab} onValueChange={setSuperTab} dir={locale === "he" ? "rtl" : "ltr"}>
             <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
               <TabsTrigger value="stats"><BarChart3 className="h-4 w-4" /> {label(locale, "נתונים", "Stats")}</TabsTrigger>
               <TabsTrigger value="projects"><ClipboardList className="h-4 w-4" /> {label(locale, "פרויקטים", "Projects")}</TabsTrigger>
               <TabsTrigger value="support"><Inbox className="h-4 w-4" /> {label(locale, "תמיכה", "Support")}</TabsTrigger>
+              <TabsTrigger value="integrity"><ShieldCheck className="h-4 w-4" /> {label(locale, "תקינות", "Integrity")}</TabsTrigger>
               <TabsTrigger value="health"><Wrench className="h-4 w-4" /> {label(locale, "בדיקות", "Health")}</TabsTrigger>
               <TabsTrigger value="audit"><History className="h-4 w-4" /> {label(locale, "יומן", "Audit")}</TabsTrigger>
               <TabsTrigger value="control"><Settings className="h-4 w-4" /> {label(locale, "בקרה", "Control")}</TabsTrigger>
@@ -1368,6 +1448,102 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                       <p className="mt-2 line-clamp-4 text-navy">{message.message}</p>
                     </div>
                   )) : <p className="py-6 text-center text-sm text-muted">{label(locale, "אין הודעות", "No messages")}</p>}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="integrity">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-lg border border-navy/10 bg-white p-3">
+                      <p className="text-xs text-muted">{label(locale, "פרויקטים לבדיקה", "Projects to review")}</p>
+                      <p className="font-heading text-2xl font-bold text-navy">{projectsWithIssues.length}</p>
+                    </div>
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                      <p className="text-xs text-red-700">{label(locale, "חמור", "Critical")}</p>
+                      <p className="font-heading text-2xl font-bold text-red-800">{failIssueCount}</p>
+                    </div>
+                    <div className="rounded-lg border border-gold/30 bg-gold/10 p-3">
+                      <p className="text-xs text-navy/70">{label(locale, "דורש תשומת לב", "Warnings")}</p>
+                      <p className="font-heading text-2xl font-bold text-navy">{warningIssueCount}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <div className="mb-3 flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5 text-gold" />
+                      <div>
+                        <h3 className="font-heading font-bold text-navy">{label(locale, "מרכז תקינות נתונים", "Data Integrity Center")}</h3>
+                        <p className="text-xs text-muted">
+                          {label(locale, "הבדיקות כאן קוראות רק אוספי lzecher_ וכל תיקון נשאר ברמת פרויקט יחיד.", "These checks read only lzecher_ collections and every repair stays scoped to one project.")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {projectsWithIssues.slice(0, 20).map((project) => (
+                        <div key={project.id} className="rounded-lg border border-navy/10 bg-cream/30 p-3">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-navy" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</p>
+                              <p className="text-xs text-muted">{project.slug || project.id}</p>
+                            </div>
+                            <div className="flex shrink-0 flex-wrap gap-1">
+                              <Button size="sm" variant="ghost" onClick={() => inspectProject(project.id)}>
+                                <Eye className="h-4 w-4" />
+                                {label(locale, "בדוק", "Inspect")}
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => recomputeProject(project.id)} disabled={recomputingProject}>
+                                {recomputingProject && selectedProjectId === project.id ? <Spinner className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+                                {label(locale, "חשב מחדש", "Recompute")}
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {project.issues.map((issue) => (
+                              <Badge
+                                key={`${project.id}-${issue}`}
+                                variant={projectIssueSeverity(issue) === "fail" ? "destructive" : "secondary"}
+                              >
+                                {projectIssueCopy(locale, issue)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {!projectsWithIssues.length && (
+                        <div className="rounded-lg bg-green-50 p-4 text-sm text-green-800">
+                          {label(locale, "לא נמצאו בעיות תקינות בפרויקטים.", "No project integrity issues found.")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-navy/10 bg-white p-3">
+                    <h3 className="mb-2 font-heading font-bold text-navy">{label(locale, "סוגי בעיות", "Issue types")}</h3>
+                    <div className="space-y-1.5">
+                      {Object.entries(issueCounts)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([issue, count]) => (
+                          <div key={issue} className="flex items-center justify-between gap-3 rounded-md bg-cream/40 px-2 py-1.5 text-sm">
+                            <span className="text-navy">{projectIssueCopy(locale, issue)}</span>
+                            <Badge variant={projectIssueSeverity(issue) === "fail" ? "destructive" : "secondary"}>{count}</Badge>
+                          </div>
+                        ))}
+                      {!Object.keys(issueCounts).length && (
+                        <p className="py-4 text-center text-sm text-muted">{label(locale, "אין סוגי בעיות להצגה", "No issue types to show")}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-gold/20 bg-gold/5 p-4 text-sm text-navy">
+                    <p className="font-medium">{label(locale, "כללי בטיחות", "Safety rules")}</p>
+                    <p className="mt-1 text-xs text-muted">
+                      {label(locale, "אין כאן תיקון גורף. כל פעולה דורשת בחירת פרויקט אחד, אישור מזהה פרויקט, ורישום ביומן ביקורת.", "There is no bulk repair here. Every action requires one selected project, explicit project confirmation, and an audit entry.")}
+                    </p>
+                  </div>
                 </div>
               </div>
             </TabsContent>
