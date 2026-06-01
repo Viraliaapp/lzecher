@@ -204,6 +204,12 @@ assert(
   "Admin projects API should return the verified admin role"
 );
 
+const authRoles = read("src/lib/auth-roles.ts");
+assert(
+  authRoles.includes("(!Array.isArray(decoded.lzecherPermissions) || !decoded.lzecherPermissions.includes(permission))"),
+  "Admin permissions must deny scoped actions when a non-super admin has no explicit matching permission"
+);
+
 const superOverviewRoute = read("src/app/api/admin/super/overview/route.ts");
 assert(
   superOverviewRoute.includes("requireSuperAdmin(idToken)") &&

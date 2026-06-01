@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...profileData,
           isAdmin: Boolean(profileData.isAdmin || claims.isAdmin || claims.isSuperAdmin),
           isSuperAdmin: Boolean(profileData.isSuperAdmin || claims.isSuperAdmin),
-          permissions: profileData.permissions?.length ? profileData.permissions : claims.permissions,
+          permissions: Array.isArray(profileData.permissions) ? profileData.permissions : claims.permissions,
         });
         resolveLoading();
       },

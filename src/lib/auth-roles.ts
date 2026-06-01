@@ -41,8 +41,7 @@ export async function requireAdmin(idToken: string, permission?: string) {
   if (
     permission &&
     !decoded.isSuperAdmin &&
-    Array.isArray(decoded.lzecherPermissions) &&
-    !decoded.lzecherPermissions.includes(permission)
+    (!Array.isArray(decoded.lzecherPermissions) || !decoded.lzecherPermissions.includes(permission))
   ) {
     throw new Error("FORBIDDEN:Missing admin permission");
   }

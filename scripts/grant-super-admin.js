@@ -18,6 +18,8 @@ if (!uid) {
   process.exit(1);
 }
 
+const superPermissions = ["projects", "feedback", "users", "reports", "stats", "settings"];
+
 const appConfig = { projectId };
 if (clientEmail && privateKey) {
   appConfig.credential = admin.credential.cert({ projectId, clientEmail, privateKey });
@@ -27,11 +29,28 @@ admin.initializeApp(appConfig);
 
 async function main() {
   try {
-    await admin.auth().setCustomUserClaims(uid, { isAdmin: true, isSuperAdmin: true });
+    const user = await admin.auth().getUser(uid);
+    await admin.auth().setCustomUserClaims(uid, {
+      ...(user.customClaims || {}),
+      isAdmin: true,
+      isSuperAdmin: true,
+      lzecherPermissions: superPermissions,
+    });
+    await admin.firestore().collection("lzecher_users").doc(uid).set({
+      id: uid,
+      uid,
+      email: user.email || null,
+      displayName: user.displayName || null,
+      photoURL: user.photoURL || null,
+      isAdmin: true,
+      isSuperAdmin: true,
+      permissions: superPermissions,
+      updatedAt: Date.now(),
+    }, { merge: true });
     console.log(`\nSuccess! User ${uid} now has isAdmin: true, isSuperAdmin: true`);
+    console.log(`Permissions: ${superPermissions.join(", ")}`);
     console.log("They will need to log out and log back in for the claims to take effect.\n");
 
-    const user = await admin.auth().getUser(uid);
     console.log("User details:");
     console.log(`  Email: ${user.email || "(none)"}`);
     console.log(`  Display Name: ${user.displayName || "(none)"}`);
