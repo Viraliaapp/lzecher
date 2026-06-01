@@ -364,8 +364,13 @@ assert(
     adminPage.includes("loadProjectDetail") &&
     adminPage.includes("recomputeSelectedProject") &&
     adminPage.includes("analyticsRates") &&
+    adminPage.includes("analyticsRangeDays") &&
+    adminPage.includes("analyticsReport") &&
+    adminPage.includes("loadAnalytics") &&
+    adminPage.includes("/api/admin/super/analytics") &&
     adminPage.includes("trackAnalytics") &&
     adminPage.includes("downloadCsv") &&
+    adminPage.includes("exportAnalyticsCsv") &&
     adminPage.includes("exportProjectsCsv") &&
     adminPage.includes("exportAuditCsv") &&
     adminPage.includes("exportScheduledEmailsCsv") &&
@@ -435,6 +440,22 @@ assert(
     superOverviewRoute.includes("openContactMessages") &&
     superOverviewRoute.includes("supportStatus"),
   "Super-admin overview must stay Lzecher-scoped and return command-center sections"
+);
+
+const superAnalyticsRoute = read("src/app/api/admin/super/analytics/route.ts");
+assert(
+  superAnalyticsRoute.includes("requireSuperAdmin(idToken)") &&
+    superAnalyticsRoute.includes('collection("lzecher_projects")') &&
+    superAnalyticsRoute.includes('collection("lzecher_claims")') &&
+    superAnalyticsRoute.includes('collection("lzecher_feedback")') &&
+    superAnalyticsRoute.includes('collection("lzecher_reports")') &&
+    superAnalyticsRoute.includes('collection("lzecher_scheduled_emails")') &&
+    superAnalyticsRoute.includes("MAX_RANGE_DAYS") &&
+    superAnalyticsRoute.includes("DOC_LIMIT") &&
+    superAnalyticsRoute.includes("data.isParent === true") &&
+    superAnalyticsRoute.includes("daily: buckets") &&
+    superAnalyticsRoute.includes("truncated"),
+  "Super-admin date-range analytics must require super admin, stay Lzecher-scoped, ignore parent claim summaries, and expose truncation state"
 );
 
 const superProjectDetailRoute = read("src/app/api/admin/super/projects/[id]/route.ts");

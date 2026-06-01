@@ -253,6 +253,28 @@ type TranslationAudit = {
   hebrewEnglishSamples: { key: string; word: string; text: string }[];
 };
 
+type SuperAnalyticsDay = {
+  date: string;
+  projectsCreated: number;
+  claimsTaken: number;
+  claimsCompleted: number;
+  feedbackSubmitted: number;
+  reportsSubmitted: number;
+  remindersQueued: number;
+  remindersSent: number;
+  remindersFailed: number;
+};
+
+type SuperAnalyticsReport = {
+  generatedAt: number;
+  rangeDays: number;
+  startAt: number;
+  endAt: number;
+  totals: Omit<SuperAnalyticsDay, "date">;
+  daily: SuperAnalyticsDay[];
+  truncated: Record<keyof Omit<SuperAnalyticsDay, "date">, boolean>;
+};
+
 const PERMISSIONS = [
   { key: "projects", he: "פרויקטים", en: "Projects" },
   { key: "feedback", he: "משוב", en: "Feedback" },
@@ -894,6 +916,9 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [auditSearch, setAuditSearch] = useState("");
   const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
   const [translationAudit, setTranslationAudit] = useState<TranslationAudit | null>(null);
+  const [analyticsRangeDays, setAnalyticsRangeDays] = useState(30);
+  const [analyticsReport, setAnalyticsReport] = useState<SuperAnalyticsReport | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [supportSearch, setSupportSearch] = useState("");
   const [communicationsSearch, setCommunicationsSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
@@ -964,11 +989,35 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     }
   }
 
+  async function loadAnalytics(rangeDays = analyticsRangeDays) {
+    setLoadingAnalytics(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch("/api/admin/super/analytics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, rangeDays }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || label(locale, "לא ניתן לטעון מגמות לפי תאריך", "Could not load date-range analytics"));
+        return;
+      }
+      setAnalyticsReport(data);
+      if (typeof data.rangeDays === "number") setAnalyticsRangeDays(data.rangeDays);
+    } catch {
+      toast.error(label(locale, "לא ניתן לטעון מגמות לפי תאריך", "Could not load date-range analytics"));
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }
+
   useEffect(() => {
     const kickoff = setTimeout(() => {
       void loadOverview();
       void loadSiteSettings();
       void loadTranslationAudit();
+      void loadAnalytics(30);
     }, 0);
     return () => clearTimeout(kickoff);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1446,6 +1495,24 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     protected: projectSummaries.length ? Math.round((analyticsTotals.passwordProtected / projectSummaries.length) * 100) : 0,
     averageParticipants: projectSummaries.length ? Math.round(analyticsTotals.participants / projectSummaries.length) : 0,
   };
+  const analyticsDaily = analyticsReport?.daily || [];
+  const analyticsRangeTotals = analyticsReport?.totals;
+  const maxDailyRangeActivity = Math.max(
+    1,
+    ...analyticsDaily.map((day) =>
+      day.projectsCreated +
+      day.claimsTaken +
+      day.claimsCompleted +
+      day.feedbackSubmitted +
+      day.reportsSubmitted +
+      day.remindersQueued +
+      day.remindersSent +
+      day.remindersFailed
+    )
+  );
+  const truncatedAnalyticsMetrics = analyticsReport
+    ? Object.entries(analyticsReport.truncated).filter(([, truncated]) => truncated).map(([metric]) => metric)
+    : [];
   const topProgressProjects = [...projectSummaries]
     .filter((project) => project.totalPortions > 0)
     .sort((a, b) => b.completedProgressPct - a.completedProgressPct || b.progressPct - a.progressPct)
@@ -1542,6 +1609,20 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   function finishExport(success: boolean) {
     if (success) toast.success(exportSuccessMessage);
     else toast.error(exportEmptyMessage);
+  }
+
+  function exportAnalyticsCsv() {
+    finishExport(downloadCsv(`lzecher-analytics-${analyticsRangeDays}d-${exportStamp}.csv`, analyticsDaily.map((day) => ({
+      date: day.date,
+      projectsCreated: day.projectsCreated,
+      claimsTaken: day.claimsTaken,
+      claimsCompleted: day.claimsCompleted,
+      feedbackSubmitted: day.feedbackSubmitted,
+      reportsSubmitted: day.reportsSubmitted,
+      remindersQueued: day.remindersQueued,
+      remindersSent: day.remindersSent,
+      remindersFailed: day.remindersFailed,
+    }))));
   }
 
   function exportProjectsCsv() {
@@ -1695,7 +1776,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => { void loadOverview(); void loadSiteSettings(); }} disabled={refreshing} className="border-cream/25 bg-transparent text-cream hover:bg-cream/10">
+            <Button variant="outline" size="sm" onClick={() => { void loadOverview(); void loadSiteSettings(); void loadAnalytics(); }} disabled={refreshing || loadingAnalytics} className="border-cream/25 bg-transparent text-cream hover:bg-cream/10">
               {refreshing ? <Spinner className="h-4 w-4" /> : <RotateCw className="h-4 w-4" />}
               {label(locale, "רענן", "Refresh")}
             </Button>
@@ -1786,6 +1867,163 @@ function SuperAdminPortal({ locale }: { locale: string }) {
 
             <TabsContent value="analytics">
               <div className="space-y-4">
+                <div className="rounded-lg border border-navy/10 bg-white p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <h3 className="font-heading font-bold text-navy">{label(locale, "מגמות לפי תאריך", "Date-range trends")}</h3>
+                      <p className="mt-1 text-xs text-muted">
+                        {label(locale, "קריאה בלבד מתוך אוספי lzecher_ בלבד: פרויקטים, בחירות לימוד, משוב, דיווחים ותזכורות.", "Read-only from Lzecher-scoped collections only: projects, claims, feedback, reports, and reminders.")}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {[7, 30, 90].map((days) => (
+                        <Button
+                          key={days}
+                          size="sm"
+                          variant={analyticsRangeDays === days ? "default" : "outline"}
+                          onClick={() => {
+                            setAnalyticsRangeDays(days);
+                            void loadAnalytics(days);
+                          }}
+                          disabled={loadingAnalytics}
+                        >
+                          {label(locale, `${days} ימים`, `${days} days`)}
+                        </Button>
+                      ))}
+                      <Button size="sm" variant="ghost" onClick={() => void loadAnalytics()} disabled={loadingAnalytics}>
+                        {loadingAnalytics ? <Spinner className="h-4 w-4" /> : <RotateCw className="h-4 w-4" />}
+                        {label(locale, "רענן", "Refresh")}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={exportAnalyticsCsv} disabled={!analyticsDaily.length}>
+                        <Download className="h-4 w-4" />
+                        CSV
+                      </Button>
+                    </div>
+                  </div>
+
+                  {loadingAnalytics && !analyticsReport ? (
+                    <div className="flex justify-center py-8">
+                      <Spinner className="h-6 w-6" />
+                    </div>
+                  ) : analyticsReport ? (
+                    <div className="mt-4 space-y-4">
+                      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                        {[
+                          [label(locale, "פרויקטים חדשים", "New projects"), analyticsRangeTotals?.projectsCreated || 0, label(locale, "נוצרו בטווח", "created in range")],
+                          [label(locale, "בחירות לימוד", "Claims taken"), analyticsRangeTotals?.claimsTaken || 0, label(locale, "לא כולל שורות סיכום", "excluding parent summaries")],
+                          [label(locale, "סומנו כנלמדו", "Marked learned"), analyticsRangeTotals?.claimsCompleted || 0, label(locale, "הושלמו בטווח", "completed in range")],
+                          [label(locale, "פניות ותזכורות", "Support and reminders"), (analyticsRangeTotals?.feedbackSubmitted || 0) + (analyticsRangeTotals?.reportsSubmitted || 0) + (analyticsRangeTotals?.remindersFailed || 0), label(locale, "משוב, דיווחים וכשלי שליחה", "feedback, reports, and send failures")],
+                        ].map(([name, value, detail]) => (
+                          <div key={String(name)} className="rounded-lg border border-navy/10 bg-cream/30 p-3">
+                            <p className="text-xs text-muted">{name}</p>
+                            <p className="font-heading text-2xl font-bold text-navy">{Number(value || 0).toLocaleString()}</p>
+                            <p className="mt-1 text-xs text-muted">{detail}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.65fr)]">
+                        <div className="rounded-lg border border-navy/10 bg-cream/20 p-3">
+                          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                            <h4 className="font-heading font-bold text-navy">{label(locale, "תנועה יומית", "Daily movement")}</h4>
+                            <span className="text-xs text-muted">
+                              {new Date(analyticsReport.startAt).toLocaleDateString()} - {new Date(analyticsReport.endAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="max-h-[430px] space-y-2 overflow-y-auto pr-1">
+                            {analyticsDaily.map((day) => {
+                              const support = day.feedbackSubmitted + day.reportsSubmitted;
+                              const reminders = day.remindersQueued + day.remindersSent + day.remindersFailed;
+                              const total = day.projectsCreated + day.claimsTaken + day.claimsCompleted + support + reminders;
+                              const segments = [
+                                { key: "claimsTaken", value: day.claimsTaken, className: "bg-gold" },
+                                { key: "claimsCompleted", value: day.claimsCompleted, className: "bg-green-600" },
+                                { key: "projectsCreated", value: day.projectsCreated, className: "bg-navy" },
+                                { key: "support", value: support, className: "bg-red-500" },
+                                { key: "reminders", value: reminders, className: "bg-sky-500" },
+                              ];
+                              return (
+                                <div key={day.date} className="rounded-md bg-white px-2 py-2">
+                                  <div className="mb-1 flex items-center justify-between gap-3 text-xs">
+                                    <span className="font-medium text-navy">{day.date}</span>
+                                    <span className="text-muted">{total.toLocaleString()}</span>
+                                  </div>
+                                  <div className="h-3 overflow-hidden rounded-full bg-navy/10">
+                                    {total > 0 && (
+                                      <div className="flex h-full overflow-hidden rounded-full" style={{ width: `${Math.max(4, Math.round((total / maxDailyRangeActivity) * 100))}%` }}>
+                                        {segments.filter((segment) => segment.value > 0).map((segment) => (
+                                          <div
+                                            key={segment.key}
+                                            className={segment.className}
+                                            style={{ width: `${Math.max(6, Math.round((segment.value / total) * 100))}%` }}
+                                          />
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
+                                    <span>{label(locale, "נלקחו", "Taken")}: {day.claimsTaken}</span>
+                                    <span>{label(locale, "נלמדו", "Learned")}: {day.claimsCompleted}</span>
+                                    <span>{label(locale, "פרויקטים", "Projects")}: {day.projectsCreated}</span>
+                                    <span>{label(locale, "תמיכה", "Support")}: {support}</span>
+                                    <span>{label(locale, "תזכורות", "Reminders")}: {reminders}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="rounded-lg border border-navy/10 bg-cream/20 p-3">
+                            <h4 className="font-heading font-bold text-navy">{label(locale, "מקרא", "Legend")}</h4>
+                            <div className="mt-2 space-y-2 text-sm text-navy">
+                              {[
+                                ["bg-gold", label(locale, "בחירות לימוד חדשות", "New claims")],
+                                ["bg-green-600", label(locale, "סומנו כנלמדו", "Marked learned")],
+                                ["bg-navy", label(locale, "פרויקטים חדשים", "New projects")],
+                                ["bg-red-500", label(locale, "משוב ודיווחים", "Feedback and reports")],
+                                ["bg-sky-500", label(locale, "תזכורות אימייל", "Reminder emails")],
+                              ].map(([color, name]) => (
+                                <div key={String(name)} className="flex items-center gap-2">
+                                  <span className={cn("h-2.5 w-2.5 rounded-full", String(color))} />
+                                  <span>{name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="rounded-lg border border-navy/10 bg-cream/20 p-3">
+                            <h4 className="font-heading font-bold text-navy">{label(locale, "תור תזכורות בטווח", "Reminder queue in range")}</h4>
+                            <div className="mt-2 grid grid-cols-3 gap-2 text-center text-sm">
+                              <div className="rounded-md bg-white p-2">
+                                <p className="text-xs text-muted">{label(locale, "נוצרו", "Queued")}</p>
+                                <p className="font-heading text-lg font-bold text-navy">{analyticsRangeTotals?.remindersQueued || 0}</p>
+                              </div>
+                              <div className="rounded-md bg-white p-2">
+                                <p className="text-xs text-muted">{label(locale, "נשלחו", "Sent")}</p>
+                                <p className="font-heading text-lg font-bold text-green-700">{analyticsRangeTotals?.remindersSent || 0}</p>
+                              </div>
+                              <div className="rounded-md bg-white p-2">
+                                <p className="text-xs text-muted">{label(locale, "נכשלו", "Failed")}</p>
+                                <p className="font-heading text-lg font-bold text-red-700">{analyticsRangeTotals?.remindersFailed || 0}</p>
+                              </div>
+                            </div>
+                          </div>
+                          {truncatedAnalyticsMetrics.length > 0 && (
+                            <div className="rounded-lg border border-gold/30 bg-gold/10 p-3 text-xs text-navy">
+                              {label(locale, "חלק מהמדדים הגיעו למגבלת הקריאה ולכן מוצגים בזהירות:", "Some metrics hit the read limit and should be read cautiously:")} {truncatedAnalyticsMetrics.join(", ")}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-4 rounded-lg bg-cream/40 p-4 text-center text-sm text-muted">
+                      {label(locale, "עדיין לא נטענו מגמות לפי תאריך.", "Date-range trends have not loaded yet.")}
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                   {[
                     [label(locale, "אחוז שנלקח", "Taken rate"), `${analyticsRates.taken}%`, `${analyticsTotals.claimedPortions.toLocaleString()}/${analyticsTotals.totalPortions.toLocaleString()}`],
@@ -1878,6 +2116,12 @@ function SuperAdminPortal({ locale }: { locale: string }) {
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {[
+                    {
+                      key: "analytics",
+                      title: label(locale, "מגמות לפי תאריך", "Date-range analytics"),
+                      detail: label(locale, `${analyticsDaily.length} ימים מהטווח הנבחר, כולל פרויקטים, בחירות לימוד, השלמות, תמיכה ותזכורות.`, `${analyticsDaily.length} days from the selected range, including projects, claims, completions, support, and reminders.`),
+                      action: exportAnalyticsCsv,
+                    },
                     {
                       key: "projects",
                       title: label(locale, "פרויקטים", "Projects"),
