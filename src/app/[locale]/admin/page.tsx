@@ -33,6 +33,16 @@ import { TRACK_CONFIGS } from "@/lib/track-config";
 
 type Filter = "all" | "active" | "hidden" | "reported";
 
+type SupportPriority = "low" | "normal" | "high" | "urgent";
+type SupportDraft = {
+  status?: string;
+  supportStatus?: string;
+  priority: SupportPriority;
+  tag: string;
+  assignedTo: string;
+  internalNote: string;
+};
+
 type SuperFeedback = {
   id: string;
   type: string;
@@ -41,6 +51,11 @@ type SuperFeedback = {
   locale: string;
   currentPath: string | null;
   status: string;
+  priority?: SupportPriority;
+  tag?: string | null;
+  assignedTo?: string | null;
+  internalNote?: string | null;
+  supportUpdatedAt?: number | null;
   allowAsTestimonial: boolean;
   submittedAt: number;
 };
@@ -136,6 +151,11 @@ type SuperReport = {
   details: string | null;
   reporterEmail: string | null;
   status: string;
+  priority?: SupportPriority;
+  tag?: string | null;
+  assignedTo?: string | null;
+  internalNote?: string | null;
+  supportUpdatedAt?: number | null;
   reportedAt: number;
 };
 
@@ -146,6 +166,12 @@ type SuperContactMessage = {
   senderEmail: string | null;
   message: string;
   delivered: boolean;
+  supportStatus?: string;
+  priority?: SupportPriority;
+  tag?: string | null;
+  assignedTo?: string | null;
+  internalNote?: string | null;
+  supportUpdatedAt?: number | null;
   reason: string | null;
   sentAt: number;
 };
@@ -216,6 +242,8 @@ const PERMISSIONS = [
   { key: "users", he: "מנהלים", en: "Admins" },
   { key: "settings", he: "הגדרות", en: "Settings" },
 ] as const;
+
+const SUPPORT_PRIORITIES: SupportPriority[] = ["low", "normal", "high", "urgent"];
 
 const SITE_FEATURES: {
   key: keyof SiteSettings["featureFlags"];
@@ -608,14 +636,48 @@ function feedbackStatusLabel(locale: string, status: string) {
     read: "נקרא",
     open: "לטיפול",
     archived: "בארכיון",
+    resolved: "טופל",
   };
   const en: Record<string, string> = {
     new: "New",
     read: "Read",
     open: "Open",
     archived: "Archived",
+    resolved: "Resolved",
   };
   return locale === "he" ? he[status] || status : en[status] || status;
+}
+
+function contactSupportStatusLabel(locale: string, status: string) {
+  const he: Record<string, string> = {
+    new: "חדש",
+    open: "לטיפול",
+    resolved: "טופל",
+    archived: "בארכיון",
+  };
+  const en: Record<string, string> = {
+    new: "New",
+    open: "Open",
+    resolved: "Resolved",
+    archived: "Archived",
+  };
+  return locale === "he" ? he[status] || status : en[status] || status;
+}
+
+function priorityLabel(locale: string, priority: string) {
+  const he: Record<string, string> = {
+    low: "נמוך",
+    normal: "רגיל",
+    high: "גבוה",
+    urgent: "דחוף",
+  };
+  const en: Record<string, string> = {
+    low: "Low",
+    normal: "Normal",
+    high: "High",
+    urgent: "Urgent",
+  };
+  return locale === "he" ? he[priority] || priority : en[priority] || priority;
 }
 
 function learningLabel(locale: string, reference?: string | null, trackType?: string | null) {
@@ -745,6 +807,8 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [translationAudit, setTranslationAudit] = useState<TranslationAudit | null>(null);
   const [supportSearch, setSupportSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
+  const [supportDrafts, setSupportDrafts] = useState<Record<string, SupportDraft>>({});
+  const [savingSupportItem, setSavingSupportItem] = useState<string | null>(null);
 
   async function loadOverview() {
     setRefreshing(true);
@@ -927,67 +991,252 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   }
 
   async function updateFeedbackStatus(id: string, status: string) {
-    try {
-      const idToken = await auth.currentUser?.getIdToken(true);
-      const res = await fetch(`/api/admin/super/feedback/${id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken, status }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error || label(locale, "לא ניתן לעדכן משוב", "Could not update feedback"));
-        return;
-      }
-      setOverview((prev) => prev
-        ? {
-            ...prev,
-            recentFeedback: prev.recentFeedback.map((item) =>
-              item.id === id ? { ...item, status } : item
-            ),
-          }
-        : prev
-      );
-    } catch {
-      toast.error(label(locale, "לא ניתן לעדכן משוב", "Could not update feedback"));
-    }
+    await updateSupportItem("feedback", id, { status });
   }
 
   async function updateReportStatus(id: string, status: string) {
+    await updateSupportItem("report", id, { status });
+  }
+
+  function supportKey(kind: "feedback" | "report" | "contact", id: string) {
+    return `${kind}:${id}`;
+  }
+
+  function supportDraftFromItem(item: SuperFeedback | SuperReport | SuperContactMessage): SupportDraft {
+    const contact = item as SuperContactMessage;
+    const statusItem = item as SuperFeedback | SuperReport;
+    return {
+      status: "status" in item ? statusItem.status : undefined,
+      supportStatus: "supportStatus" in item ? contact.supportStatus || (contact.delivered ? "resolved" : "new") : undefined,
+      priority: item.priority || "normal",
+      tag: item.tag || "",
+      assignedTo: item.assignedTo || "",
+      internalNote: item.internalNote || "",
+    };
+  }
+
+  function supportDraft(kind: "feedback" | "report" | "contact", item: SuperFeedback | SuperReport | SuperContactMessage) {
+    return supportDrafts[supportKey(kind, item.id)] || supportDraftFromItem(item);
+  }
+
+  function updateSupportDraft(kind: "feedback" | "report" | "contact", id: string, updates: Partial<SupportDraft>) {
+    setSupportDrafts((prev) => {
+      const key = supportKey(kind, id);
+      return {
+        ...prev,
+        [key]: {
+          ...(prev[key] || { priority: "normal", tag: "", assignedTo: "", internalNote: "" }),
+          ...updates,
+        },
+      };
+    });
+  }
+
+  async function updateSupportItem(
+    kind: "feedback" | "report" | "contact",
+    id: string,
+    updates: Partial<SupportDraft>
+  ) {
+    const key = supportKey(kind, id);
+    setSavingSupportItem(key);
     try {
       const idToken = await auth.currentUser?.getIdToken(true);
-      const res = await fetch(`/api/admin/super/reports/${id}`, {
+      const path = kind === "feedback"
+        ? `/api/admin/super/feedback/${id}`
+        : kind === "report"
+          ? `/api/admin/super/reports/${id}`
+          : `/api/admin/super/contacts/${id}`;
+      const res = await fetch(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken, status }),
+        body: JSON.stringify({ idToken, ...updates }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error || label(locale, "לא ניתן לעדכן דיווח", "Could not update report"));
+        toast.error(data.error || label(locale, "לא ניתן לעדכן טיפול", "Could not update support item"));
         return;
       }
+      const item = data.item || { id, ...updates };
       setOverview((prev) => prev
         ? {
             ...prev,
-            recentReports: prev.recentReports.map((item) =>
-              item.id === id ? { ...item, status } : item
-            ),
+            recentFeedback: kind === "feedback"
+              ? prev.recentFeedback.map((entry) => entry.id === id ? { ...entry, ...item } : entry)
+              : prev.recentFeedback,
+            recentReports: kind === "report"
+              ? prev.recentReports.map((entry) => entry.id === id ? { ...entry, ...item } : entry)
+              : prev.recentReports,
+            recentContacts: kind === "contact"
+              ? prev.recentContacts.map((entry) => entry.id === id ? { ...entry, ...item } : entry)
+              : prev.recentContacts,
           }
         : prev
       );
       setProjectDetail((prev) => prev
         ? {
             ...prev,
-            reports: prev.reports.map((item) =>
-              item.id === id ? { ...item, status } : item
-            ),
+            feedback: kind === "feedback"
+              ? prev.feedback.map((entry) => entry.id === id ? { ...entry, ...item } : entry)
+              : prev.feedback,
+            reports: kind === "report"
+              ? prev.reports.map((entry) => entry.id === id ? { ...entry, ...item } : entry)
+              : prev.reports,
+            contactMessages: kind === "contact"
+              ? prev.contactMessages.map((entry) => entry.id === id ? { ...entry, ...item } : entry)
+              : prev.contactMessages,
           }
         : prev
       );
-      toast.success(label(locale, "הדיווח עודכן", "Report updated"));
+      setSupportDrafts((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      toast.success(label(locale, "פריט התמיכה עודכן", "Support item updated"));
     } catch {
-      toast.error(label(locale, "לא ניתן לעדכן דיווח", "Could not update report"));
+      toast.error(label(locale, "לא ניתן לעדכן טיפול", "Could not update support item"));
+    } finally {
+      setSavingSupportItem(null);
     }
+  }
+
+  async function saveSupportDraft(kind: "feedback" | "report" | "contact", item: SuperFeedback | SuperReport | SuperContactMessage) {
+    const draft = supportDraft(kind, item);
+    const updates = kind === "contact"
+      ? {
+          supportStatus: draft.supportStatus,
+          priority: draft.priority,
+          tag: draft.tag,
+          assignedTo: draft.assignedTo,
+          internalNote: draft.internalNote,
+        }
+      : {
+          status: draft.status,
+          priority: draft.priority,
+          tag: draft.tag,
+          assignedTo: draft.assignedTo,
+          internalNote: draft.internalNote,
+        };
+    await updateSupportItem(kind, item.id, updates);
+  }
+
+  function renderSupportControls(
+    kind: "feedback" | "report" | "contact",
+    item: SuperFeedback | SuperReport | SuperContactMessage
+  ) {
+    const draft = supportDraft(kind, item);
+    const key = supportKey(kind, item.id);
+    const statusOptions = kind === "report"
+      ? ["open", "reviewing", "resolved", "dismissed"]
+      : kind === "feedback"
+        ? ["new", "read", "open", "archived"]
+        : ["new", "open", "resolved", "archived"];
+    const statusValue = kind === "contact" ? draft.supportStatus || "new" : draft.status || "open";
+    return (
+      <div className="mt-3 rounded-md border border-navy/10 bg-cream/30 p-2">
+        <div className="grid gap-2">
+          <Select
+            value={statusValue}
+            onValueChange={(value) => updateSupportDraft(kind, item.id, kind === "contact" ? { supportStatus: value } : { status: value })}
+          >
+            <SelectTrigger className="bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {kind === "report"
+                    ? reportStatusLabel(locale, status)
+                    : kind === "feedback"
+                      ? feedbackStatusLabel(locale, status)
+                      : contactSupportStatusLabel(locale, status)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={draft.priority}
+            onValueChange={(value) => updateSupportDraft(kind, item.id, { priority: value as SupportPriority })}
+          >
+            <SelectTrigger className="bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SUPPORT_PRIORITIES.map((priority) => (
+                <SelectItem key={priority} value={priority}>
+                  {priorityLabel(locale, priority)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            value={draft.tag}
+            onChange={(event) => updateSupportDraft(kind, item.id, { tag: event.target.value })}
+            placeholder={label(locale, "תג", "Tag")}
+            className="bg-white"
+          />
+        </div>
+        <div className="mt-2 grid gap-2">
+          <Input
+            value={draft.assignedTo}
+            onChange={(event) => updateSupportDraft(kind, item.id, { assignedTo: event.target.value })}
+            placeholder={label(locale, "אחראי", "Assigned to")}
+            className="bg-white"
+          />
+          <Textarea
+            value={draft.internalNote}
+            onChange={(event) => updateSupportDraft(kind, item.id, { internalNote: event.target.value })}
+            placeholder={label(locale, "הערה פנימית לצוות", "Internal team note")}
+            rows={2}
+            className="bg-white"
+            dir={locale === "he" ? "rtl" : "ltr"}
+          />
+        </div>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted">
+            {label(locale, "נשמר רק בצד מנהלים ונרשם ביומן ביקורת.", "Saved for admins only and written to the audit log.")}
+          </p>
+          <Button size="sm" variant="ghost" onClick={() => saveSupportDraft(kind, item)} disabled={savingSupportItem === key}>
+            {savingSupportItem === key ? <Spinner className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+            {label(locale, "שמור טיפול", "Save triage")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  function renderSupportMeta(kind: "feedback" | "report" | "contact", item: SuperFeedback | SuperReport | SuperContactMessage) {
+    const priority = item.priority || "normal";
+    const status = kind === "contact"
+      ? contactSupportStatusLabel(locale, (item as SuperContactMessage).supportStatus || ((item as SuperContactMessage).delivered ? "resolved" : "new"))
+      : kind === "report"
+        ? reportStatusLabel(locale, (item as SuperReport).status)
+        : feedbackStatusLabel(locale, (item as SuperFeedback).status);
+    const priorityVariant = priority === "urgent" || priority === "high" ? "destructive" : priority === "low" ? "outline" : "secondary";
+    return (
+      <>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <Badge variant="outline">{status}</Badge>
+          <Badge variant={priorityVariant}>{priorityLabel(locale, priority)}</Badge>
+          {item.tag && <Badge variant="secondary">{item.tag}</Badge>}
+          {item.assignedTo && (
+            <Badge variant="outline">
+              {label(locale, "אחראי", "Owner")}: {item.assignedTo}
+            </Badge>
+          )}
+          {item.supportUpdatedAt && (
+            <span className="text-xs text-muted">
+              {label(locale, "עודכן", "Updated")}: {formatTimestamp(item.supportUpdatedAt)}
+            </span>
+          )}
+        </div>
+        {item.internalNote && (
+          <p className="mt-2 rounded-md bg-gold/10 p-2 text-xs text-navy" dir={locale === "he" ? "rtl" : "ltr"}>
+            <span className="font-medium">{label(locale, "הערה פנימית", "Internal note")}:</span> {item.internalNote}
+          </p>
+        )}
+      </>
+    );
   }
 
   async function saveAdminUser() {
@@ -1119,17 +1368,17 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const supportQuery = supportSearch.trim().toLowerCase();
   const filteredFeedbackItems = (overview?.recentFeedback || []).filter((item) => {
     if (!supportQuery) return true;
-    return [item.type, item.message, item.email || "", item.currentPath || "", item.status]
+    return [item.type, item.message, item.email || "", item.currentPath || "", item.status, item.priority || "", item.tag || "", item.assignedTo || "", item.internalNote || ""]
       .some((value) => value.toLowerCase().includes(supportQuery));
   });
   const filteredReportItems = (overview?.recentReports || []).filter((item) => {
     if (!supportQuery) return true;
-    return [item.reason, item.details || "", item.reporterEmail || "", item.projectSlug || "", item.projectId || "", item.status]
+    return [item.reason, item.details || "", item.reporterEmail || "", item.projectSlug || "", item.projectId || "", item.status, item.priority || "", item.tag || "", item.assignedTo || "", item.internalNote || ""]
       .some((value) => value.toLowerCase().includes(supportQuery));
   });
   const filteredContactItems = (overview?.recentContacts || []).filter((item) => {
     if (!supportQuery) return true;
-    return [item.message, item.senderEmail || "", item.slug || "", item.projectId || "", item.reason || "", item.delivered ? "delivered" : "undelivered"]
+    return [item.message, item.senderEmail || "", item.slug || "", item.projectId || "", item.reason || "", item.delivered ? "delivered" : "undelivered", item.supportStatus || "", item.priority || "", item.tag || "", item.assignedTo || "", item.internalNote || ""]
       .some((value) => value.toLowerCase().includes(supportQuery));
   });
   const filteredAuditEntries = auditEntries.filter((entry) => {
@@ -1580,19 +1829,30 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                         </div>
                         <div className="rounded-lg border border-navy/10 p-3">
                           <h4 className="mb-2 font-medium text-navy">{label(locale, "דיווחים והודעות", "Reports and messages")}</h4>
-                          <div className="space-y-1.5 text-xs">
+                          <div className="space-y-2 text-xs">
                             {(projectDetail?.reports || []).slice(0, 4).map((report) => (
                               <div key={report.id} className="rounded-md bg-red-50 px-2 py-1.5 text-red-800">
-                                {report.reason} · {reportStatusLabel(locale, report.status)} · {report.details || ""}
+                                <p className="font-medium">{report.reason}</p>
+                                {report.details && <p className="mt-1">{report.details}</p>}
+                                {renderSupportMeta("report", report)}
                                 <div className="mt-1 flex flex-wrap gap-1">
-                                  <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "reviewing")}>{label(locale, "בטיפול", "Review")}</Button>
-                                  <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "resolved")}>{label(locale, "טופל", "Resolve")}</Button>
-                                  <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "dismissed")}>{label(locale, "סגור", "Dismiss")}</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "reviewing")} disabled={savingSupportItem === supportKey("report", report.id)}>{label(locale, "בטיפול", "Review")}</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "resolved")} disabled={savingSupportItem === supportKey("report", report.id)}>{label(locale, "טופל", "Resolve")}</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "dismissed")} disabled={savingSupportItem === supportKey("report", report.id)}>{label(locale, "סגור", "Dismiss")}</Button>
                                 </div>
+                                {renderSupportControls("report", report)}
                               </div>
                             ))}
                             {(projectDetail?.contactMessages || []).slice(0, 4).map((message) => (
-                              <div key={message.id} className="rounded-md bg-cream/40 px-2 py-1.5 text-navy">{message.delivered ? label(locale, "נשלח", "sent") : label(locale, "לא נשלח", "not sent")} · {message.senderEmail || label(locale, "ללא אימייל", "No email")}</div>
+                              <div key={message.id} className="rounded-md bg-cream/40 px-2 py-1.5 text-navy">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span>{message.senderEmail || label(locale, "ללא אימייל", "No email")}</span>
+                                  <Badge variant={message.delivered ? "secondary" : "destructive"}>{message.delivered ? label(locale, "נשלח", "Sent") : label(locale, "לא נשלח", "Not sent")}</Badge>
+                                </div>
+                                <p className="mt-1 line-clamp-3">{message.message}</p>
+                                {renderSupportMeta("contact", message)}
+                                {renderSupportControls("contact", message)}
+                              </div>
                             ))}
                             {!projectDetail?.reports.length && !projectDetail?.contactMessages.length && <p className="py-2 text-muted">{label(locale, "אין דיווחים או הודעות.", "No reports or messages.")}</p>}
                           </div>
@@ -1734,8 +1994,8 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     <p className="font-heading text-2xl font-bold text-navy">{stats.openReports || 0}</p>
                   </div>
                   <div className="rounded-lg border border-navy/10 bg-white p-3">
-                    <p className="text-xs text-muted">{label(locale, "הודעות שלא נשלחו", "Undelivered")}</p>
-                    <p className="font-heading text-2xl font-bold text-navy">{stats.undeliveredContacts || 0}</p>
+                    <p className="text-xs text-muted">{label(locale, "הודעות פתוחות", "Open messages")}</p>
+                    <p className="font-heading text-2xl font-bold text-navy">{stats.openContactMessages ?? stats.undeliveredContacts ?? 0}</p>
                   </div>
                 </div>
               </div>
@@ -1748,19 +2008,25 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                         <div className="flex items-center gap-2">
                           <Badge variant={item.status === "new" ? "default" : "secondary"}>{feedbackStatusLabel(locale, item.status)}</Badge>
                           <span className="text-xs text-muted">{item.type} · {formatTimestamp(item.submittedAt)}</span>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => updateFeedbackStatus(item.id, "read")} disabled={savingSupportItem === supportKey("feedback", item.id)}>{label(locale, "נקרא", "Read")}</Button>
+                          <Button size="sm" variant="ghost" onClick={() => updateFeedbackStatus(item.id, "open")} disabled={savingSupportItem === supportKey("feedback", item.id)}>{label(locale, "לטיפול", "Open")}</Button>
+                          <Button size="sm" variant="ghost" onClick={() => updateFeedbackStatus(item.id, "archived")} disabled={savingSupportItem === supportKey("feedback", item.id)}>{label(locale, "ארכיון", "Archive")}</Button>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => updateFeedbackStatus(item.id, "read")}>{label(locale, "נקרא", "Read")}</Button>
-                        <Button size="sm" variant="ghost" onClick={() => updateFeedbackStatus(item.id, "open")}>{label(locale, "לטיפול", "Open")}</Button>
-                        <Button size="sm" variant="ghost" onClick={() => updateFeedbackStatus(item.id, "archived")}>{label(locale, "ארכיון", "Archive")}</Button>
+                      <p className="text-sm text-navy" dir={item.locale === "he" ? "rtl" : "ltr"}>{item.message}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+                        <span>{item.email || label(locale, "ללא אימייל", "No email")}</span>
+                        {item.currentPath && (
+                          <a className="text-gold-deep underline-offset-2 hover:underline" href={item.currentPath} target="_blank" rel="noopener">
+                            {item.currentPath}
+                          </a>
+                        )}
                       </div>
+                      {renderSupportMeta("feedback", item)}
+                      {renderSupportControls("feedback", item)}
                     </div>
-                    <p className="text-sm text-navy" dir={item.locale === "he" ? "rtl" : "ltr"}>{item.message}</p>
-                    <p className="mt-2 text-xs text-muted">
-                      {item.email || label(locale, "ללא אימייל", "No email")}
-                      {item.currentPath ? ` · ${item.currentPath}` : ""}
-                    </p>
-                  </div>
                 )) : (
                   <p className="py-6 text-center text-sm text-muted">{label(locale, "אין משוב עדיין", "No feedback yet")}</p>
                 )}
@@ -1776,11 +2042,13 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                       <p className="font-medium text-navy">{report.reason}</p>
                       <p className="text-xs text-muted">{report.projectSlug || report.projectId}</p>
                       {report.details && <p className="mt-2 text-navy">{report.details}</p>}
+                      {renderSupportMeta("report", report)}
                       <div className="mt-2 flex flex-wrap gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "reviewing")}>{label(locale, "בטיפול", "Review")}</Button>
-                        <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "resolved")}>{label(locale, "טופל", "Resolve")}</Button>
-                        <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "dismissed")}>{label(locale, "סגור", "Dismiss")}</Button>
+                        <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "reviewing")} disabled={savingSupportItem === supportKey("report", report.id)}>{label(locale, "בטיפול", "Review")}</Button>
+                        <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "resolved")} disabled={savingSupportItem === supportKey("report", report.id)}>{label(locale, "טופל", "Resolve")}</Button>
+                        <Button size="sm" variant="ghost" onClick={() => updateReportStatus(report.id, "dismissed")} disabled={savingSupportItem === supportKey("report", report.id)}>{label(locale, "סגור", "Dismiss")}</Button>
                       </div>
+                      {renderSupportControls("report", report)}
                     </div>
                   )) : <p className="py-6 text-center text-sm text-muted">{label(locale, "אין דיווחים", "No reports")}</p>}
                 </div>
@@ -1794,6 +2062,8 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                       </div>
                       <p className="text-xs text-muted">{message.senderEmail || label(locale, "ללא אימייל", "No email")} · {message.slug || message.projectId}</p>
                       <p className="mt-2 line-clamp-4 text-navy">{message.message}</p>
+                      {renderSupportMeta("contact", message)}
+                      {renderSupportControls("contact", message)}
                     </div>
                   )) : <p className="py-6 text-center text-sm text-muted">{label(locale, "אין הודעות", "No messages")}</p>}
                 </div>

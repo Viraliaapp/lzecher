@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireSuperAdmin } from "@/lib/auth-roles";
 
-const VALID_STATUS = new Set(["open", "reviewing", "resolved", "dismissed"]);
+const VALID_STATUS = new Set(["new", "open", "resolved", "archived"]);
 const VALID_PRIORITY = new Set(["low", "normal", "high", "urgent"]);
 
 function optionalText(value: unknown, max: number): string | null | undefined {
@@ -20,26 +20,25 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { idToken, status, priority, tag, assignedTo, internalNote } = await request.json();
+    const { idToken, supportStatus, priority, tag, assignedTo, internalNote } = await request.json();
     if (!idToken) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    if (status !== undefined && (typeof status !== "string" || !VALID_STATUS.has(status))) {
-      return NextResponse.json({ error: "Invalid report status" }, { status: 400 });
+    if (supportStatus !== undefined && (typeof supportStatus !== "string" || !VALID_STATUS.has(supportStatus))) {
+      return NextResponse.json({ error: "Invalid contact support status" }, { status: 400 });
     }
     if (priority !== undefined && (typeof priority !== "string" || !VALID_PRIORITY.has(priority))) {
-      return NextResponse.json({ error: "Invalid report priority" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid contact priority" }, { status: 400 });
     }
 
     const decoded = await requireSuperAdmin(idToken);
     const db = getAdminDb();
-    const ref = db.collection("lzecher_reports").doc(id);
+    const ref = db.collection("lzecher_contact_messages").doc(id);
     const snap = await ref.get();
     if (!snap.exists) {
-      return NextResponse.json({ error: "Report not found" }, { status: 404 });
+      return NextResponse.json({ error: "Contact message not found" }, { status: 404 });
     }
 
-    const now = Date.now();
     let textUpdates: {
       tag?: string | null;
       assignedTo?: string | null;
@@ -54,15 +53,13 @@ export async function POST(
     } catch {
       return NextResponse.json({ error: "Invalid support text field" }, { status: 400 });
     }
+
+    const now = Date.now();
     const updates: Record<string, unknown> = {
       supportUpdatedAt: now,
       supportUpdatedBy: decoded.uid,
     };
-    if (status !== undefined) {
-      updates.status = status;
-      updates.reviewedAt = now;
-      updates.reviewedBy = decoded.uid;
-    }
+    if (supportStatus !== undefined) updates.supportStatus = supportStatus;
     if (priority !== undefined) updates.priority = priority;
     for (const [key, value] of Object.entries(textUpdates)) {
       if (value !== undefined) updates[key] = value;
@@ -70,10 +67,11 @@ export async function POST(
     if (Object.keys(updates).length <= 2) {
       return NextResponse.json({ error: "No support updates provided" }, { status: 400 });
     }
+
     await ref.update(updates);
     await db.collection("lzecher_admin_audit").add({
-      action: "super_admin_update_report",
-      reportId: id,
+      action: "super_admin_update_contact_message",
+      contactMessageId: id,
       projectId: snap.data()?.projectId || null,
       adminUid: decoded.uid,
       at: now,
@@ -88,7 +86,7 @@ export async function POST(
     if (message.startsWith("FORBIDDEN:")) {
       return NextResponse.json({ error: message.replace("FORBIDDEN:", "") }, { status: 403 });
     }
-    console.error("[admin/super/reports]", err);
+    console.error("[admin/super/contacts]", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

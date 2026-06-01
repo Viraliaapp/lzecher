@@ -248,6 +248,10 @@ assert(
     adminPage.includes("userSearch") &&
     adminPage.includes("filteredUserSummaries") &&
     adminPage.includes("filteredFeedbackItems") &&
+    adminPage.includes("renderSupportControls") &&
+    adminPage.includes("savingSupportItem") &&
+    adminPage.includes("/api/admin/super/contacts/") &&
+    adminPage.includes("openContactMessages") &&
     adminPage.includes("Data Integrity Center") &&
     adminPage.includes("projectIssueSeverity") &&
     adminPage.includes("loadTranslationAudit") &&
@@ -283,7 +287,9 @@ assert(
     superOverviewRoute.includes("healthChecks") &&
     superOverviewRoute.includes("projectSummaries") &&
     superOverviewRoute.includes("recentAudit") &&
-    superOverviewRoute.includes("recentContacts"),
+    superOverviewRoute.includes("recentContacts") &&
+    superOverviewRoute.includes("openContactMessages") &&
+    superOverviewRoute.includes("supportStatus"),
   "Super-admin overview must stay Lzecher-scoped and return command-center sections"
 );
 
@@ -295,7 +301,8 @@ assert(
     superProjectDetailRoute.includes("passwordHash") &&
     superProjectDetailRoute.includes("diagnostics(") &&
     superProjectDetailRoute.includes("trackStats") &&
-    superProjectDetailRoute.includes('collection("lzecher_contact_messages")'),
+    superProjectDetailRoute.includes('collection("lzecher_contact_messages")') &&
+    superProjectDetailRoute.includes("supportStatus"),
   "Super-admin project inspector must require super admin, stay project-scoped, strip passwords, and return diagnostics"
 );
 
@@ -343,8 +350,33 @@ assert(
   superReportRoute.includes("requireSuperAdmin(idToken)") &&
     superReportRoute.includes('collection("lzecher_reports").doc(id)') &&
     superReportRoute.includes('collection("lzecher_admin_audit")') &&
-    superReportRoute.includes('action: "super_admin_update_report"'),
-  "Super-admin report updates must require super admin, touch one Lzecher report, and write an audit entry"
+    superReportRoute.includes('action: "super_admin_update_report"') &&
+    superReportRoute.includes("internalNote") &&
+    superReportRoute.includes("VALID_PRIORITY"),
+  "Super-admin report updates must require super admin, touch one Lzecher report, write support fields, and write an audit entry"
+);
+
+const superFeedbackRoute = read("src/app/api/admin/super/feedback/[id]/route.ts");
+assert(
+  superFeedbackRoute.includes("requireSuperAdmin(idToken)") &&
+    superFeedbackRoute.includes('collection("lzecher_feedback").doc(id)') &&
+    superFeedbackRoute.includes('collection("lzecher_admin_audit")') &&
+    superFeedbackRoute.includes('action: "super_admin_update_feedback"') &&
+    superFeedbackRoute.includes("internalNote") &&
+    superFeedbackRoute.includes("VALID_PRIORITY"),
+  "Super-admin feedback updates must require super admin, touch one Lzecher feedback item, write support fields, and write an audit entry"
+);
+
+const superContactRoute = read("src/app/api/admin/super/contacts/[id]/route.ts");
+assert(
+  superContactRoute.includes("requireSuperAdmin(idToken)") &&
+    superContactRoute.includes('collection("lzecher_contact_messages").doc(id)') &&
+    superContactRoute.includes('collection("lzecher_admin_audit")') &&
+    superContactRoute.includes('action: "super_admin_update_contact_message"') &&
+    superContactRoute.includes("supportStatus") &&
+    superContactRoute.includes("internalNote") &&
+    superContactRoute.includes("VALID_PRIORITY"),
+  "Super-admin contact message updates must require super admin, touch one Lzecher contact message, write support fields, and write an audit entry"
 );
 
 const superSettingsRoute = read("src/app/api/admin/super/settings/route.ts");

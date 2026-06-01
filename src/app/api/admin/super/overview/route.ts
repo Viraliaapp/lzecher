@@ -19,6 +19,11 @@ function publicFeedback(data: FirebaseFirestore.DocumentData, id: string) {
     locale: data.locale || "en",
     currentPath: data.currentPath || null,
     status: data.status || "new",
+    priority: data.priority || "normal",
+    tag: data.tag || null,
+    assignedTo: data.assignedTo || null,
+    internalNote: data.internalNote || null,
+    supportUpdatedAt: data.supportUpdatedAt || null,
     allowAsTestimonial: data.allowAsTestimonial === true,
     submittedAt: data.submittedAt || data.createdAt || 0,
   };
@@ -74,6 +79,11 @@ function publicReport(data: FirebaseFirestore.DocumentData, id: string) {
     details: data.details || null,
     reporterEmail: data.reporterEmail || null,
     status: data.status || "open",
+    priority: data.priority || "normal",
+    tag: data.tag || null,
+    assignedTo: data.assignedTo || null,
+    internalNote: data.internalNote || null,
+    supportUpdatedAt: data.supportUpdatedAt || null,
     reportedAt: data.reportedAt || 0,
   };
 }
@@ -86,6 +96,12 @@ function publicContactMessage(data: FirebaseFirestore.DocumentData, id: string) 
     senderEmail: data.senderEmail || null,
     message: data.message || "",
     delivered: data.delivered === true,
+    supportStatus: data.supportStatus || (data.delivered === true ? "resolved" : "new"),
+    priority: data.priority || "normal",
+    tag: data.tag || null,
+    assignedTo: data.assignedTo || null,
+    internalNote: data.internalNote || null,
+    supportUpdatedAt: data.supportUpdatedAt || null,
     reason: data.reason || null,
     sentAt: data.sentAt || 0,
   };
@@ -307,6 +323,13 @@ export async function POST(request: NextRequest) {
     const protectedProjects = projectSummaries.filter((project) => project.isPasswordProtected).length;
     const issueProjects = projectSummaries.filter((project) => project.issues.length > 0);
     const undeliveredContacts = contactsSnap ? contactsSnap.docs.filter((doc) => doc.data().delivered !== true) : [];
+    const openContactMessages = contactsSnap
+      ? contactsSnap.docs.filter((doc) => {
+          const data = doc.data();
+          const status = data.supportStatus || (data.delivered === true ? "resolved" : "new");
+          return status === "new" || status === "open";
+        })
+      : [];
     const auditById = new Map<string, ReturnType<typeof publicAudit>>();
     for (const snap of [auditAtSnap, auditTimestampSnap, auditUpdatedAtSnap, auditDeletedAtSnap]) {
       if (!snap) continue;
@@ -355,6 +378,7 @@ export async function POST(request: NextRequest) {
         enabledFeatureFlags,
         projectsWithIssues: issueProjects.length,
         undeliveredContacts: undeliveredContacts.length,
+        openContactMessages: openContactMessages.length,
       },
       healthChecks: [
         {
@@ -379,10 +403,10 @@ export async function POST(request: NextRequest) {
         },
         {
           key: "support_queue",
-          status: newFeedback + openReports + undeliveredContacts.length ? "warn" : "pass",
+          status: newFeedback + openReports + openContactMessages.length ? "warn" : "pass",
           label: "Support queue",
-          detail: `${newFeedback} new feedback, ${openReports} open reports, ${undeliveredContacts.length} undelivered contact messages.`,
-          count: newFeedback + openReports + undeliveredContacts.length,
+          detail: `${newFeedback} new feedback, ${openReports} open reports, ${openContactMessages.length} open contact messages.`,
+          count: newFeedback + openReports + openContactMessages.length,
         },
       ],
       projectSummaries,
