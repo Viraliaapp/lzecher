@@ -74,7 +74,7 @@ export function computeTopMatmidim(portions: { claimMode?: string; status?: stri
   return [...counts.entries()]
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+    .slice(0, 5);
 }
 
 export async function recomputeProjectProgress(

@@ -346,7 +346,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
               { label: "הנצחה ציבורית", value: isPublic, onChange: setIsPublic },
               { label: "אפשר השתתפות ללא חשבון", value: allowAnonymous, onChange: setAllowAnonymous },
               { label: "אפשר מחזורים חוזרים (משניות / תהלים)", value: repeatingSetEnabled, onChange: setRepeatingSetEnabled },
-              { label: "הצג יישר כוח בעמוד", value: showLeaderboard, onChange: setShowLeaderboard },
+              { label: "הצג יישר כח בעמוד", value: showLeaderboard, onChange: setShowLeaderboard },
             ].map(({ label, value, onChange }) => (
               <div key={label} className="flex items-center justify-between">
                 <div>
@@ -354,7 +354,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
                   {label.includes("מחזורים") && (
                     <p className="text-xs text-muted">כשהמחזור מתמלא, ייפתח מחזור חדש אוטומטית</p>
                   )}
-                  {label.includes("יישר כוח") && (
+                  {label.includes("יישר כח") && (
                     <p className="text-xs text-muted">מומלץ להשאיר פעיל כדי לעודד משתתפים לקחת עוד לימוד.</p>
                   )}
                 </div>

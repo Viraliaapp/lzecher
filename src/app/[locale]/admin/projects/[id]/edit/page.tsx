@@ -297,7 +297,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-sm font-medium text-navy">{locale === "he" ? "הצג יישר כוח בעמוד" : "Show Yasher Koach on the page"}</span>
+              <span className="text-sm font-medium text-navy">{locale === "he" ? "הצג יישר כח בעמוד" : "Show Yasher Koach on the page"}</span>
               <p className="text-xs text-muted" dir={locale === "he" ? "rtl" : "ltr"}>
                 {locale === "he"
                   ? "מומלץ להשאיר פעיל כדי לעודד משתתפים לקחת עוד לימוד."

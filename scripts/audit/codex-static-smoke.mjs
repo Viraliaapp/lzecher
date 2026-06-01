@@ -94,8 +94,8 @@ assert(
 
 const heMessages = JSON.parse(read("messages/he.json"));
 assert(
-  heMessages.leaderboard?.title === "יישר כוח",
-  "Hebrew leaderboard title must be יישר כוח"
+  heMessages.leaderboard?.title === "יישר כח",
+  "Hebrew leaderboard title must be יישר כח"
 );
 assert(
   heMessages.leaderboard?.subtitle === "",
@@ -127,6 +127,25 @@ const leaderboard = read("src/components/activity/Leaderboard.tsx");
 assert(
   !leaderboard.includes('t("subtitle")') && !leaderboard.includes("subtitle"),
   "Leaderboard should not render the old explanatory subtitle"
+);
+assert(
+  leaderboard.includes("MAX_VISIBLE_MATMIDIM = 5") &&
+    leaderboard.includes("aria-expanded") &&
+    leaderboard.includes("Award"),
+  "Leaderboard should be a collapsible medal-style top-5 panel"
+);
+
+const leaderboardRoute = read("src/app/api/projects/[id]/leaderboard/route.ts");
+assert(
+  leaderboardRoute.includes("LEADERBOARD_LIMIT = 5") &&
+    leaderboardRoute.includes("matmidim.slice(0, LEADERBOARD_LIMIT)"),
+  "Leaderboard API should only return the top 5"
+);
+
+const recomputeProgress = read("src/lib/recompute-progress.ts");
+assert(
+  recomputeProgress.includes(".slice(0, 5)"),
+  "Stored topMatmidim should be limited to top 5"
 );
 
 const dashboardRoute = read("src/app/api/dashboard/route.ts");

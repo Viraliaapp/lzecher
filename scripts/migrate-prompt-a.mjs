@@ -46,7 +46,7 @@ function computeTopMatmidim(portions) {
     if (p.claimMode === "inclusive") for (const n of p.claimerNames || []) bump(n);
     else if (p.status !== "available") bump(p.claimedByName);
   }
-  return [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 10);
+  return [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 5);
 }
 
 // ── EXACT port of src/lib/progress.ts computeProgress() ──────────────────────
@@ -160,7 +160,7 @@ async function run() {
 
     console.log(`• ${name} [${p.slug}]`);
     console.log(`    progressPct: ${p.progressPct ?? "—"} → ${prog.pct}   cycles: ${p.completedCycles ?? "—"} → ${prog.cycles}   completedPct: ${prog.completedPct}   sets: ${totalSets}`);
-    if (topMatmidim.length) console.log(`    יישר כוח: ${topMatmidim.slice(0, 3).map((m) => `${m.name}(${m.count})`).join(", ")}${topMatmidim.length > 3 ? " …" : ""}`);
+    if (topMatmidim.length) console.log(`    יישר כח: ${topMatmidim.slice(0, 3).map((m) => `${m.name}(${m.count})`).join(", ")}${topMatmidim.length > 3 ? " …" : ""}`);
 
     if (APPLY) {
       await doc.ref.update({ ...update, updatedAt: Date.now() });

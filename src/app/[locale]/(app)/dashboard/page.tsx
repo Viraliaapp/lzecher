@@ -254,7 +254,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
         toast.error(data.error || (locale === "he" ? "לא ניתן לעדכן את ההגדרה" : "Could not update setting"));
         return;
       }
-      toast.success(locale === "he" ? "הגדרת יישר כוח עודכנה" : "Yasher Koach setting updated");
+      toast.success(locale === "he" ? "הגדרת יישר כח עודכנה" : "Yasher Koach setting updated");
     } catch {
       setLeaderboardVisible(previous);
       toast.error(locale === "he" ? "לא ניתן לעדכן את ההגדרה" : "Could not update setting");
@@ -365,7 +365,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
             >
               <div style={{ minWidth: 0 }}>
                 <p style={{ fontSize: "12px", fontWeight: 700, color: "#0F1B2D" }}>
-                  {locale === "he" ? "הצג יישר כוח בעמוד" : "Show Yasher Koach on the page"}
+                  {locale === "he" ? "הצג יישר כח בעמוד" : "Show Yasher Koach on the page"}
                 </p>
                 <p style={{ fontSize: "11px", color: "#8B7355", lineHeight: 1.35 }}>
                   {locale === "he"

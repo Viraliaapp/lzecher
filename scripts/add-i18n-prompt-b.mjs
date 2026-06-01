@@ -8,7 +8,7 @@ const T = {
   },
   he: {
     globalCounter: { heading: "כלל ישראל לומד יחד", mishnayos: "משניות", tehillim: "פרקי תהילים", kabalos: "קבלות" },
-    leaderboard: { title: "יישר כוח", subtitle: "" },
+    leaderboard: { title: "יישר כח", subtitle: "" },
   },
   es: {
     globalCounter: { heading: "El pueblo de Israel aprende junto", mishnayos: "Mishnayot", tehillim: "capítulos de Tehilim", kabalos: "Kabalot" },

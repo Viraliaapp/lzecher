@@ -1,7 +1,7 @@
 /**
  * GET /api/projects/[id]/leaderboard
  *
- * Top "Yasher Koach" learners for one project, by portions taken, named,
+ * Top 5 "Yasher Koach" learners for one project, by portions taken, named,
  * anonymous skipped. Reads the denormalized `topMatmidim` on the project doc (1 read,
  * maintained by recomputeProjectProgress). Falls back to computing from portions for
  * not-yet-backfilled projects. CDN-cached so polling collapses to ~1 read / 20s.
@@ -12,6 +12,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { computeTopMatmidim } from "@/lib/recompute-progress";
+
+const LEADERBOARD_LIMIT = 5;
 
 export async function GET(
   _request: NextRequest,
@@ -34,7 +36,7 @@ export async function GET(
     }
 
     return NextResponse.json(
-      { matmidim },
+      { matmidim: matmidim.slice(0, LEADERBOARD_LIMIT) },
       { headers: { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30" } }
     );
   } catch (err) {

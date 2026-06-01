@@ -78,7 +78,7 @@ try {
 results.heroPct = heroPct;
 results.dualBars_taken = /נלקחו/.test(memText);
 results.dualBars_completed = /הושלמו/.test(memText);
-results.leaderboard_present = /יישר כוח/.test(memText);
+results.leaderboard_present = /יישר כח/.test(memText);
 results.leaderboard_hasName = /יהודה שלנג/.test(memText);
 results.kabalos_bliNeder = /בלי נדר/.test(memText);
 await page.screenshot({ path: `${OUT}/memorial-he.png`, fullPage: true });
