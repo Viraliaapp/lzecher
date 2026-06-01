@@ -437,7 +437,7 @@
     "type_suggestion": "Suggestion",
     "type_bug": "Rapport de bug",
     "type_question": "Question",
-    "type_praise": "Eloge",
+    "type_praise": "Merci",
     "type_other": "Autre",
     "messageLabel": "Votre avis",
     "messagePlaceholder": "Qu'avez-vous en tete ?",
@@ -607,7 +607,7 @@
     "kabalos": "Kabbalot"
   },
   "leaderboard": {
-    "title": "Les Assidus · המתמידים",
-    "subtitle": "Par portions prises"
+    "title": "Yasher Koach",
+    "subtitle": "Participants ayant pris le plus de portions"
   }
 }

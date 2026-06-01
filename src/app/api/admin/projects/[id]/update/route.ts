@@ -35,6 +35,7 @@ const EDITABLE_FIELDS = new Set([
   "completionTargetDate",
   "completionTargetType",
   "repeatingSetEnabled",
+  "showLeaderboard",
   "startedByText",
   "startedByVisible",
   "announcement",
@@ -67,7 +68,7 @@ export async function POST(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const decoded = await requireAdmin(idToken);
+    const decoded = await requireAdmin(idToken, "projects");
     const db = getAdminDb();
     const projectRef = db.collection("lzecher_projects").doc(id);
     const projectSnap = await projectRef.get();

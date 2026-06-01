@@ -18,7 +18,7 @@ import { MessageCircle, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const TYPES = ["suggestion", "bug", "question", "praise", "other"] as const;
+const TYPES = ["suggestion", "bug", "question", "other"] as const;
 
 export function FeedbackWidget() {
   const t = useTranslations("feedback");

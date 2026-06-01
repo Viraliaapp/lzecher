@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import {
@@ -80,6 +80,16 @@ function hdateToDisplay(day: number, monthNum: number, year: number): string {
   }
 }
 
+function hdateFromGregorian(value: string): HDate | null {
+  if (!value) return null;
+  try {
+    const [y, m, d] = value.split("-").map(Number);
+    return new HDate(new Date(y, m - 1, d));
+  } catch {
+    return null;
+  }
+}
+
 export function HebrewDatePicker({
   label,
   gregorianValue,
@@ -92,10 +102,11 @@ export function HebrewDatePicker({
   const t = useTranslations("create");
 
   // Hebrew date state as individual components
-  const currentHDate = new HDate();
-  const [hYear, setHYear] = useState(currentHDate.getFullYear());
-  const [hMonth, setHMonth] = useState(currentHDate.getMonth());
-  const [hDay, setHDay] = useState(0); // 0 = not selected
+  const parsedInitialHDate = hdateFromGregorian(gregorianValue);
+  const initialHDate = parsedInitialHDate ?? new HDate();
+  const [hYear, setHYear] = useState(() => initialHDate.getFullYear());
+  const [hMonth, setHMonth] = useState(() => initialHDate.getMonth());
+  const [hDay, setHDay] = useState(() => (parsedInitialHDate ? initialHDate.getDate() : 0)); // 0 = not selected
 
   const isLeap = useMemo(() => HDate.isLeapYear(hYear), [hYear]);
 
@@ -194,22 +205,6 @@ export function HebrewDatePicker({
     onGregorianChange(todayISO());
     onHebrewChange(now.renderGematriya());
   }
-
-  // Initialize from gregorianValue prop on mount
-  useEffect(() => {
-    if (gregorianValue) {
-      try {
-        const [y, m, d] = gregorianValue.split("-").map(Number);
-        const hd = new HDate(new Date(y, m - 1, d));
-        setHYear(hd.getFullYear());
-        setHMonth(hd.getMonth());
-        setHDay(hd.getDate());
-      } catch {
-        // ignore
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="space-y-3">

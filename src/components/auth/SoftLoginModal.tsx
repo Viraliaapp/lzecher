@@ -17,7 +17,6 @@ import { CheckCircle, Mail, ShieldCheck } from "lucide-react";
 interface SoftLoginModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAuthenticated: () => void;
   onAnonymousClaim: () => void;
   locale?: string;
 }
@@ -27,7 +26,6 @@ type ModalState = "idle" | "loading" | "sent";
 export function SoftLoginModal({
   open,
   onOpenChange,
-  onAuthenticated,
   onAnonymousClaim,
   locale = "en",
 }: SoftLoginModalProps) {
@@ -43,14 +41,14 @@ export function SoftLoginModal({
     }
   }, [open]);
 
-  // Reset state when modal closes
-  React.useEffect(() => {
-    if (!open) {
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
       setState("idle");
       setEmail("");
       setError(null);
     }
-  }, [open]);
+    onOpenChange(nextOpen);
+  }
 
   async function handleSendLink(e: React.FormEvent) {
     e.preventDefault();
@@ -79,7 +77,7 @@ export function SoftLoginModal({
   }
 
   function handleAnonymous() {
-    onOpenChange(false);
+    handleOpenChange(false);
     onAnonymousClaim();
   }
 
@@ -90,7 +88,7 @@ export function SoftLoginModal({
   ] as const;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         {state === "sent" ? (
           <SentState email={email} t={t} />

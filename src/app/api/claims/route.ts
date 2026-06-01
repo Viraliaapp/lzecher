@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         // Invalid token — treat as anonymous
       }
     }
-    email = email || body.claimerEmail || null;
+    email = email || claimerEmail || null;
 
     const db = getAdminDb();
 
@@ -144,13 +144,16 @@ export async function POST(request: NextRequest) {
           isNewParticipant = priorSnap.size <= 1;
         } else {
           // Anonymous user identified by name+email — check if combo appeared before
-          const anonKey = `${claimerName.trim()}__${email || ""}`;
           const priorAnonSnap = await db.collection("lzecher_claims")
             .where("projectId", "==", projectId)
             .where("userName", "==", claimerName.trim())
             .limit(2)
             .get();
-          isNewParticipant = priorAnonSnap.size <= 1;
+          const samePersonCount = priorAnonSnap.docs.filter((doc) => {
+            const claim = doc.data();
+            return (claim.userEmail || "") === (email || "");
+          }).length;
+          isNewParticipant = samePersonCount <= 1;
         }
 
         await projectRef.update({

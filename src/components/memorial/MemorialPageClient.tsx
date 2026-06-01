@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -31,11 +32,9 @@ import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Portion, TrackType } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { heClaimButton, getClaimVerbForm } from "@/lib/track-config";
 import { computeProgress, cyclesLabel } from "@/lib/progress";
 import { Leaderboard } from "@/components/activity/Leaderboard";
 import { ActivityBubbles } from "@/components/activity/ActivityBubbles";
-import { toHebrewCalendarDate } from "@/lib/hebrew-date";
 
 const TRACK_EMOJI: Record<TrackType, string> = {
   mishnayos: "📖",
@@ -44,6 +43,26 @@ const TRACK_EMOJI: Record<TrackType, string> = {
   kabalos: "🕯️",
   daf_yomi: "⌛",
 };
+
+const HEBREW_SET_LABELS: Record<number, string> = {
+  1: "א׳",
+  2: "ב׳",
+  3: "ג׳",
+  4: "ד׳",
+  5: "ה׳",
+  6: "ו׳",
+  7: "ז׳",
+  8: "ח׳",
+  9: "ט׳",
+  10: "י׳",
+};
+
+function setLabel(setNumber: number, locale: string): string {
+  if (locale === "he") return `מחזור ${HEBREW_SET_LABELS[setNumber] || setNumber}`;
+  if (locale === "es") return `ciclo ${setNumber}`;
+  if (locale === "fr") return `cycle ${setNumber}`;
+  return `set ${setNumber}`;
+}
 
 function formatGregorianDate(dateStr: string, locale: string): string {
   if (!dateStr) return "";
@@ -246,7 +265,6 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
 
   const totalPortions = portions.length;
   const claimed = portions.filter((p) => p.status !== "available").length;
-  const completed = portions.filter((p) => p.status === "completed").length;
 
   // Canonical progress — SAME definition as the homepage card (src/lib/progress.ts),
   // computed live from portions so it can't drift. Current-set % (0–100) + cycles.
@@ -254,6 +272,25 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const pct = heroProgress.pct;
   const completedPct = heroProgress.completedPct;
   const cyclesText = cyclesLabel(heroProgress.cycles, locale);
+  const activeSetNumber = useMemo(() => {
+    const tmPortions = portions.filter((p) => p.trackType === "mishnayos" || p.trackType === "tehillim");
+    const setNumbers = Array.from(new Set(tmPortions.map((p) => p.setNumber || 1))).sort((a, b) => a - b);
+    for (const setNumber of setNumbers) {
+      if (tmPortions.some((p) => (p.setNumber || 1) === setNumber && p.status === "available")) {
+        return setNumber;
+      }
+    }
+    return setNumbers[setNumbers.length - 1] || 1;
+  }, [portions]);
+  const bonusRoundText = heroProgress.cycles > 0
+    ? locale === "he"
+      ? `${setLabel(heroProgress.cycles, locale)} הושלם במלואו · עכשיו ${setLabel(activeSetNumber, locale)} (תוספת זכות)`
+      : locale === "es"
+        ? `${setLabel(heroProgress.cycles, locale)} completed · now ${setLabel(activeSetNumber, locale)}`
+        : locale === "fr"
+          ? `${setLabel(heroProgress.cycles, locale)} terminé · maintenant ${setLabel(activeSetNumber, locale)}`
+          : `${setLabel(heroProgress.cycles, locale)} complete · now ${setLabel(activeSetNumber, locale)}`
+    : null;
 
   const trackGroups = useMemo(() => {
     const groups: Record<string, Portion[]> = {};
@@ -606,9 +643,11 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                     boxShadow: "0 0 44px rgba(201,162,75,.35), inset 0 1px 1px rgba(255,255,255,0.15)",
                   }}
                 >
-                  <img
+                  <Image
                     src={photoUrl}
                     alt={project.nameHebrew}
+                    width={120}
+                    height={150}
                     style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(20%) sepia(8%)" }}
                   />
                 </div>
@@ -650,7 +689,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
               <div className="h-px flex-1" style={{ background: "rgba(201,162,75,0.25)" }} />
             </div>
 
-            {/* Single stat: % taken + progress bar + sub-count */}
+            {/* Current set progress */}
             <div className="max-w-xs mx-auto">
               <p className="font-heading font-black text-5xl sm:text-6xl" style={{ color: "#C9A961" }}>
                 {pct}%
@@ -658,20 +697,39 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
               <p className="text-sm mt-1 mb-1" style={{ color: "rgba(250,246,236,0.55)" }}>
                 {t("taken")}
               </p>
-              {cyclesText && (
+              {bonusRoundText ? (
+                <div
+                  className="mx-auto mb-3 mt-2 rounded-full px-3 py-1 text-xs font-bold"
+                  style={{ color: "#DDE9D7", background: "rgba(91,122,82,0.20)", border: "1px solid rgba(143,176,127,0.28)" }}
+                  dir={locale === "he" ? "rtl" : "ltr"}
+                >
+                  {bonusRoundText}
+                </div>
+              ) : cyclesText ? (
                 <p className="text-xs font-bold mb-2" style={{ color: "#8FB07F" }} dir={locale === "he" ? "rtl" : "ltr"}>
                   {cyclesText}
                 </p>
-              )}
-              <Progress value={pct} className="h-2 mb-3" style={{ background: "rgba(250,246,236,0.10)" }} indicatorClassName="bg-gold" />
-              {completedPct > 0 && (
-                <div className="mt-2">
-                  <p className="text-xs mb-1" style={{ color: "rgba(250,246,236,0.45)" }}>
-                    {locale === "he" ? `${completedPct}% נלמדו` : locale === "es" ? `${completedPct}% completados` : locale === "fr" ? `${completedPct}% complétés` : `${completedPct}% learned`}
-                  </p>
-                  <Progress value={completedPct} className="h-1.5 mb-1" style={{ background: "rgba(250,246,236,0.10)" }} indicatorClassName="bg-[#5B7A52]" />
+              ) : null}
+              <div className="mb-3" dir={locale === "he" ? "rtl" : "ltr"}>
+                <div className="mb-1 flex items-center justify-between text-[11px]" style={{ color: "rgba(250,246,236,0.54)" }}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-gold" />
+                    {locale === "he" ? "נלקחו ללימוד" : locale === "es" ? "Tomadas para estudiar" : locale === "fr" ? "Prises pour étude" : "Taken for learning"}
+                  </span>
+                  <strong>{pct}%</strong>
                 </div>
-              )}
+                <Progress value={pct} className="h-2" style={{ background: "rgba(250,246,236,0.10)" }} indicatorClassName="bg-gold" />
+              </div>
+              <div className="mb-2" dir={locale === "he" ? "rtl" : "ltr"}>
+                <div className="mb-1 flex items-center justify-between text-[11px]" style={{ color: "rgba(250,246,236,0.45)" }}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-[#5B7A52]" />
+                    {locale === "he" ? "נלמדו בפועל" : locale === "es" ? "Ya completadas" : locale === "fr" ? "Déjà terminées" : "Already learned"}
+                  </span>
+                  <strong>{completedPct}%</strong>
+                </div>
+                <Progress value={completedPct} className="h-1.5" style={{ background: "rgba(250,246,236,0.10)" }} indicatorClassName="bg-[#5B7A52]" />
+              </div>
               {(() => {
                 const parts: string[] = [];
                 const mClaimed = portions.filter(p => p.trackType === "mishnayos" && p.status !== "available").length;
@@ -850,11 +908,17 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         </div>
       )}
 
-      {/* המתמידים — leaderboard of top takers in this project */}
-      <Leaderboard
-        projectId={project.id}
-        initial={(project as MemorialProject & { topMatmidim?: { name: string; count: number }[] }).topMatmidim}
-      />
+      {/* Yasher Koach — small side recognition panel for top takers */}
+      {project.showLeaderboard !== false && (
+        <div className="mx-auto max-w-5xl px-4 sm:px-6" dir="ltr">
+          <div className={cn("flex", locale === "he" ? "justify-start" : "justify-end")}>
+            <Leaderboard
+              projectId={project.id}
+              initial={(project as MemorialProject & { topMatmidim?: { name: string; count: number }[] }).topMatmidim}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Live activity bubbles */}
       <ActivityBubbles />

@@ -437,7 +437,7 @@
     "type_suggestion": "Suggestion",
     "type_bug": "Bug report",
     "type_question": "Question",
-    "type_praise": "Praise",
+    "type_praise": "Thanks",
     "type_other": "Other",
     "messageLabel": "Your feedback",
     "messagePlaceholder": "What's on your mind?",
@@ -607,7 +607,7 @@
     "kabalos": "Kabalos"
   },
   "leaderboard": {
-    "title": "The Dedicated · המתמידים",
-    "subtitle": "By portions taken"
+    "title": "Yasher Koach",
+    "subtitle": "Learners who have taken the most portions"
   }
 }

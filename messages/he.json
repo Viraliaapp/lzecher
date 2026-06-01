@@ -437,7 +437,7 @@
     "type_suggestion": "הצעה",
     "type_bug": "דיווח באג",
     "type_question": "שאלה",
-    "type_praise": "שבח",
+    "type_praise": "תודה",
     "type_other": "אחר",
     "messageLabel": "המשוב שלך",
     "messagePlaceholder": "מה על דעתך?",
@@ -607,7 +607,7 @@
     "kabalos": "קבלות"
   },
   "leaderboard": {
-    "title": "המתמידים",
-    "subtitle": "לפי מספר החלקים שנבחרו ללימוד"
+    "title": "יישר כוח",
+    "subtitle": "לומדים שלקחו על עצמם הכי הרבה חלקים"
   }
 }

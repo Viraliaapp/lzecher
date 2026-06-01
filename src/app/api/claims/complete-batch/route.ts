@@ -54,7 +54,9 @@ export async function POST(request: NextRequest) {
       allSnaps.push(...chunkSnaps);
     }
 
-    // Batch-write completions in WRITE_CHUNK-sized Firestore batches
+    const completedPortionIds = new Set<string>();
+
+    // Batch-write portion completions in WRITE_CHUNK-sized Firestore batches.
     let count = 0;
     for (let i = 0; i < allSnaps.length; i += WRITE_CHUNK) {
       const chunk = allSnaps.slice(i, i + WRITE_CHUNK);
@@ -71,9 +73,36 @@ export async function POST(request: NextRequest) {
           completedByName: completerName || data.claimedByName || null,
           completedByUid: uid,
         });
+        completedPortionIds.add(snap.id);
         count++;
       }
       await batch.commit();
+    }
+
+    // Keep creator dashboard participant rows in sync with the public memorial.
+    // Dashboard reads lzecher_claims.status, so matching active claims must move
+    // to completed whenever their portions are marked learned here.
+    if (completedPortionIds.size > 0) {
+      const claimsSnap = await db
+        .collection("lzecher_claims")
+        .where("projectId", "==", projectId)
+        .get();
+      const claimDocs = claimsSnap.docs.filter((doc) => {
+        const claim = doc.data();
+        return claim.status === "active" && completedPortionIds.has(claim.portionId);
+      });
+      for (let i = 0; i < claimDocs.length; i += WRITE_CHUNK) {
+        const batch = db.batch();
+        for (const doc of claimDocs.slice(i, i + WRITE_CHUNK)) {
+          batch.update(doc.ref, {
+            status: "completed",
+            completedAt: now,
+            completedByName: completerName || null,
+            completedByUid: uid,
+          });
+        }
+        await batch.commit();
+      }
     }
 
     // Update project completedPortions counter ONCE for the whole batch

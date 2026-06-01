@@ -1,14 +1,50 @@
-import { getAdminAuth } from "./firebase/admin";
+import type { DecodedIdToken } from "firebase-admin/auth";
+import { getAdminAuth, getAdminDb } from "./firebase/admin";
 
-export async function verifyToken(idToken: string) {
+export type LzecherDecodedToken = DecodedIdToken & {
+  isAdmin?: boolean;
+  isSuperAdmin?: boolean;
+  lzecherPermissions?: string[];
+};
+
+export async function verifyToken(idToken: string): Promise<LzecherDecodedToken> {
   const auth = getAdminAuth();
-  return auth.verifyIdToken(idToken);
+  const decoded = await auth.verifyIdToken(idToken);
+
+  try {
+    const profile = await getAdminDb().collection("lzecher_users").doc(decoded.uid).get();
+    if (!profile.exists) return decoded as LzecherDecodedToken;
+
+    const data = profile.data() || {};
+    const hasProfileAdmin = typeof data.isAdmin === "boolean";
+    const hasProfileSuperAdmin = typeof data.isSuperAdmin === "boolean";
+    const permissions = Array.isArray(data.permissions)
+      ? data.permissions.filter((permission): permission is string => typeof permission === "string")
+      : undefined;
+
+    return {
+      ...decoded,
+      isAdmin: hasProfileAdmin ? data.isAdmin : Boolean(decoded.isAdmin),
+      isSuperAdmin: hasProfileSuperAdmin ? data.isSuperAdmin : Boolean(decoded.isSuperAdmin),
+      ...(permissions ? { lzecherPermissions: permissions } : {}),
+    } as LzecherDecodedToken;
+  } catch {
+    return decoded as LzecherDecodedToken;
+  }
 }
 
-export async function requireAdmin(idToken: string) {
+export async function requireAdmin(idToken: string, permission?: string) {
   const decoded = await verifyToken(idToken);
   if (!decoded.isAdmin && !decoded.isSuperAdmin) {
     throw new Error("FORBIDDEN:Admin access required");
+  }
+  if (
+    permission &&
+    !decoded.isSuperAdmin &&
+    Array.isArray(decoded.lzecherPermissions) &&
+    !decoded.lzecherPermissions.includes(permission)
+  ) {
+    throw new Error("FORBIDDEN:Missing admin permission");
   }
   return decoded;
 }

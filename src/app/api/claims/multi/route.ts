@@ -158,7 +158,6 @@ export async function POST(request: NextRequest) {
     // Queue reminders once for the whole multi-claim batch
     if (email && reminderPreferences && reminderPreferences.length > 0) {
       try {
-        const firstPortion = validPortions[0];
         await queueRemindersForClaim({
           claimId: `multi-${now}`,
           projectId,

@@ -160,7 +160,7 @@ async function run() {
 
     console.log(`• ${name} [${p.slug}]`);
     console.log(`    progressPct: ${p.progressPct ?? "—"} → ${prog.pct}   cycles: ${p.completedCycles ?? "—"} → ${prog.cycles}   completedPct: ${prog.completedPct}   sets: ${totalSets}`);
-    if (topMatmidim.length) console.log(`    המתמידים: ${topMatmidim.slice(0, 3).map((m) => `${m.name}(${m.count})`).join(", ")}${topMatmidim.length > 3 ? " …" : ""}`);
+    if (topMatmidim.length) console.log(`    יישר כוח: ${topMatmidim.slice(0, 3).map((m) => `${m.name}(${m.count})`).join(", ")}${topMatmidim.length > 3 ? " …" : ""}`);
 
     if (APPLY) {
       await doc.ref.update({ ...update, updatedAt: Date.now() });

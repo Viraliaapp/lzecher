@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
       startedByText: typeof startedByText === "string" && startedByText.trim() ? startedByText.trim() : null,
       startedByVisible: Boolean(startedByVisible),
       allowAnonymous: allowAnonymous !== false,
+      showLeaderboard: true,
       status: "active",
       reportsCount: 0,
       projectType: projectType || "permanent",

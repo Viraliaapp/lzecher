@@ -437,7 +437,7 @@
     "type_suggestion": "Sugerencia",
     "type_bug": "Reporte de error",
     "type_question": "Pregunta",
-    "type_praise": "Elogio",
+    "type_praise": "Gracias",
     "type_other": "Otro",
     "messageLabel": "Tu opinion",
     "messagePlaceholder": "Que tienes en mente?",
@@ -607,7 +607,7 @@
     "kabalos": "Kabalot"
   },
   "leaderboard": {
-    "title": "Los Constantes · המתמידים",
-    "subtitle": "Por porciones tomadas"
+    "title": "Yasher Koach",
+    "subtitle": "Participantes que tomaron más porciones"
   }
 }

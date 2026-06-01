@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * "המתמידים" — the dedicated learners. Top takers by portions taken in THIS project.
+ * "Yasher Koach" — a small recognition panel for top takers in THIS project.
  * Seeded from SSR (project.topMatmidim) and refreshed by polling every ~20s. Warm,
  * not gamified: a small candle marker, no trophies.
  */
@@ -41,17 +41,17 @@ export function Leaderboard({ projectId, initial }: { projectId: string; initial
   const isRtl = locale === "he";
 
   return (
-    <div className="mx-auto max-w-md px-4 sm:px-6 py-8" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="rounded-2xl p-6" style={{ background: "#FFFDF8", border: "1px solid rgba(201,162,75,0.3)" }}>
-        <div className="text-center mb-4">
-          <h3 className="font-heading font-bold text-navy text-lg">{t("title")}</h3>
+    <div className="w-full max-w-[320px] px-4 sm:px-0 py-5" dir={isRtl ? "rtl" : "ltr"}>
+      <div className="rounded-xl p-4" style={{ background: "#FFFDF8", border: "1px solid rgba(201,162,75,0.24)" }}>
+        <div className="mb-3">
+          <h3 className="font-heading font-bold text-navy text-base">{t("title")}</h3>
           <p className="text-xs text-muted mt-0.5">{t("subtitle")}</p>
         </div>
-        <ol className="space-y-1.5">
+        <ol className="space-y-1">
           {matmidim.map((m, i) => (
             <li
               key={`${m.name}-${i}`}
-              className="flex items-center justify-between rounded-lg px-3 py-2"
+              className="flex items-center justify-between rounded-lg px-2.5 py-1.5"
               style={{ background: i % 2 === 0 ? "rgba(201,162,75,0.06)" : "transparent" }}
             >
               <span className="flex items-center gap-2.5 min-w-0">

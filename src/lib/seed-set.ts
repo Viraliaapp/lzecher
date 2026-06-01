@@ -3,8 +3,6 @@
  * Used both at project creation (set 1) and when a set completes (set N+1).
  * Returns number of portions created.
  */
-import type { TrackType } from "./types";
-
 const BATCH_CHUNK = 400; // stay under Firestore 500-op limit
 
 export async function seedSetForTrack(

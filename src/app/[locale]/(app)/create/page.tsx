@@ -103,7 +103,7 @@ export default function CreateMemorialPage() {
   ]);
 
   // Step 5: Sharing
-  const [isPublic, setIsPublic] = useState(true);
+  const isPublic = true;
   const [allowAnonymous, setAllowAnonymous] = useState(true);
   const [familyMessage, setFamilyMessage] = useState("");
   const [password, setPassword] = useState("");

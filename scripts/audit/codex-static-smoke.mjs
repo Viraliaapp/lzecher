@@ -84,4 +84,50 @@ assert(
   "Bulk completion route should stay under the Firestore batch limit"
 );
 
+const completeBatchRoute = read("src/app/api/claims/complete-batch/route.ts");
+assert(
+  completeBatchRoute.includes('collection("lzecher_claims")') &&
+    completeBatchRoute.includes('status: "completed"') &&
+    completeBatchRoute.includes("completedPortionIds"),
+  "Complete-batch route must update matching claim docs for dashboard sync"
+);
+
+const heMessages = JSON.parse(read("messages/he.json"));
+assert(
+  heMessages.leaderboard?.title === "יישר כוח",
+  "Hebrew leaderboard title must be יישר כוח"
+);
+assert(
+  heMessages.feedback?.type_praise !== "שבח",
+  "Feedback wording must not show שבח"
+);
+
+const feedbackWidget = read("src/components/FeedbackWidget.tsx");
+assert(
+  !feedbackWidget.includes('"praise"'),
+  "Feedback widget should not show a praise/שבח category"
+);
+
+const dashboardRoute = read("src/app/api/dashboard/route.ts");
+assert(
+  dashboardRoute.includes("isPasswordProtected") &&
+    dashboardRoute.includes("passwordHash") &&
+    dashboardRoute.includes("passwordSalt"),
+  "Dashboard API must strip password hashes and return only isPasswordProtected"
+);
+
+const memorialPage = read("src/app/[locale]/memorial/[slug]/page.tsx");
+assert(
+  memorialPage.includes("safeProject") &&
+    memorialPage.includes("isPasswordProtected: isProtected(project)"),
+  "Memorial page must not serialize password hash/salt into the client component"
+);
+
+const adminPage = read("src/app/[locale]/admin/page.tsx");
+assert(
+  adminPage.includes('fetch("/api/admin/projects"') &&
+    !adminPage.includes('collection(db, "lzecher_projects")'),
+  "Admin project list must use the sanitized admin API instead of direct client Firestore reads"
+);
+
 console.log("Codex static smoke checks passed.");

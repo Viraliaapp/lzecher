@@ -75,10 +75,13 @@ export function ActivityBubbles() {
   }, [enqueue]);
 
   useEffect(() => {
-    poll();
+    const kickoff = setTimeout(() => {
+      void poll();
+    }, 0);
     const iv = setInterval(poll, POLL_MS);
     const t = timers.current;
     return () => {
+      clearTimeout(kickoff);
       clearInterval(iv);
       Object.values(t).forEach(clearTimeout);
     };
@@ -89,7 +92,7 @@ export function ActivityBubbles() {
   return (
     <div
       className="fixed bottom-4 z-40 flex flex-col gap-2 pointer-events-none max-w-[88vw] sm:max-w-xs"
-      style={isRtl ? { right: "1rem" } : { left: "1rem" }}
+      style={{ left: "1rem" }}
       aria-live="polite"
     >
       <AnimatePresence initial={false}>

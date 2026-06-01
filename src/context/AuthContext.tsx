@@ -19,6 +19,7 @@ export interface UserProfile {
   photoURL: string | null;
   isAdmin?: boolean;
   isSuperAdmin?: boolean;
+  permissions?: string[];
   createdAt?: number;
   language?: string;
 }
@@ -75,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeout);
       unsub();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!user) return;

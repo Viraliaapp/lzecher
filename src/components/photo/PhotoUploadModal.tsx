@@ -15,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Upload, Camera, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { storage, auth } from "@/lib/firebase/config";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -71,7 +70,6 @@ export function PhotoUploadModal({
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [faceStatus, setFaceStatus] = useState<"pending" | "valid" | "invalid">("pending");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
@@ -92,7 +90,6 @@ export function PhotoUploadModal({
     }
 
     setError(null);
-    setFaceStatus("valid"); // Skip face detection for now - will rely on server-side SafeSearch
     const reader = new FileReader();
     reader.onload = () => setFile(reader.result as string);
     reader.readAsDataURL(selected);
@@ -148,7 +145,6 @@ export function PhotoUploadModal({
     setZoom(1);
     setCroppedArea(null);
     setError(null);
-    setFaceStatus("pending");
     onOpenChange(false);
   }
 

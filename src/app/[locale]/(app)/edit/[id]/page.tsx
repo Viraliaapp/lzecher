@@ -50,6 +50,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
   const [isPublic, setIsPublic] = useState(true);
   const [allowAnonymous, setAllowAnonymous] = useState(true);
   const [repeatingSetEnabled, setRepeatingSetEnabled] = useState(true);
+  const [showLeaderboard, setShowLeaderboard] = useState(true);
   // Protection + attribution + admin display
   const [passwordCurrentlySet, setPasswordCurrentlySet] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -70,7 +71,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { router.push("/login" as "/login"); return; }
+    if (!user) { router.push("/login" as const); return; }
     (async () => {
       try {
         const idToken = await auth.currentUser?.getIdToken(true);
@@ -82,8 +83,8 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          if (res.status === 403) { toast.error("Not authorized"); router.push("/dashboard" as "/dashboard"); return; }
-          if (res.status === 404) { toast.error("Project not found"); router.push("/dashboard" as "/dashboard"); return; }
+          if (res.status === 403) { toast.error("Not authorized"); router.push("/dashboard" as const); return; }
+          if (res.status === 404) { toast.error("Project not found"); router.push("/dashboard" as const); return; }
           throw new Error(errData.error || "Load failed");
         }
         const data = await res.json();
@@ -101,6 +102,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         setIsPublic(data.isPublic !== false);
         setAllowAnonymous(data.allowAnonymous !== false);
         setRepeatingSetEnabled(data.repeatingSetEnabled !== false);
+        setShowLeaderboard(data.showLeaderboard !== false);
         setPasswordCurrentlySet(Boolean(data.isPasswordProtected));
         setStartedByText(data.startedByText || "");
         setStartedByVisible(Boolean(data.startedByVisible));
@@ -117,7 +119,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         setLoading(false);
       }
     })();
-  }, [authLoading, user, profile, id, router]);
+  }, [authLoading, user, profile, id, router, locale]);
 
   function toggleTrack(track: TrackType) {
     setSelectedTracks(prev => prev.includes(track) ? prev.filter(t => t !== track) : [...prev, track]);
@@ -142,7 +144,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         honorific, gender,
         biography: biography || null,
         familyMessage: familyMessage || null,
-        isPublic, allowAnonymous, repeatingSetEnabled,
+        isPublic, allowAnonymous, repeatingSetEnabled, showLeaderboard,
         startedByText: startedByText.trim() || null,
         startedByVisible,
         announcement: announcement.trim() || null,
@@ -242,7 +244,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { toast.error(data.error || "Delete failed"); return; }
       toast.success(locale === "he" ? "ההנצחה נמחקה" : "Memorial deleted");
-      router.push("/dashboard" as "/dashboard");
+      router.push("/dashboard" as const);
     } catch (err) {
       console.error("[edit] delete failed", err);
       toast.error("Delete failed");
@@ -344,12 +346,16 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
               { label: "הנצחה ציבורית", value: isPublic, onChange: setIsPublic },
               { label: "אפשר השתתפות ללא חשבון", value: allowAnonymous, onChange: setAllowAnonymous },
               { label: "אפשר מחזורים חוזרים (משניות / תהלים)", value: repeatingSetEnabled, onChange: setRepeatingSetEnabled },
+              { label: "הצג יישר כוח בעמוד", value: showLeaderboard, onChange: setShowLeaderboard },
             ].map(({ label, value, onChange }) => (
               <div key={label} className="flex items-center justify-between">
                 <div>
                   <span className="text-sm font-medium text-navy">{label}</span>
                   {label.includes("מחזורים") && (
                     <p className="text-xs text-muted">כשהמחזור מתמלא, ייפתח מחזור חדש אוטומטית</p>
+                  )}
+                  {label.includes("יישר כוח") && (
+                    <p className="text-xs text-muted">מומלץ להשאיר פעיל כדי לעודד משתתפים לקחת עוד לימוד.</p>
                   )}
                 </div>
                 <Switch checked={value} onCheckedChange={onChange} />
@@ -358,7 +364,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="ghost" onClick={() => router.push("/dashboard" as "/dashboard")} disabled={saving}>ביטול</Button>
+            <Button variant="ghost" onClick={() => router.push("/dashboard" as const)} disabled={saving}>ביטול</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? <Spinner className="h-4 w-4" /> : "שמור שינויים"}
             </Button>
@@ -453,7 +459,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
               <strong>⚠️ אזהרה:</strong> פעולה זו תמחק את כל {claimedCount} החלקים שנבחרו ללימוד ותתחיל מחדש. לא ניתן לבטל.
             </div>
             <div>
-              <label className="text-sm text-navy mb-1 block" dir="rtl">להמשיך, הזן <strong>"אפס"</strong> (או "reset")</label>
+              <label className="text-sm text-navy mb-1 block" dir="rtl">להמשיך, הזן <strong>&quot;אפס&quot;</strong> (או &quot;reset&quot;)</label>
               <Input dir="rtl" value={resetConfirm} onChange={e => setResetConfirm(e.target.value)} placeholder='אפס' className="max-w-[200px]" />
             </div>
             <Button

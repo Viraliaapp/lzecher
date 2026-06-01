@@ -19,19 +19,16 @@ export default function AutoSigninPage() {
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [state, setState] = useState<State>("loading");
-  const [errorMsg, setErrorMsg] = useState<string>("");
+  const token = searchParams.get("token");
+  const [state, setState] = useState<State>(() => (token ? "loading" : "error"));
+  const [errorMsg, setErrorMsg] = useState<string>(() =>
+    token ? "" : t("autoSigninNoToken") || "No sign-in token provided"
+  );
   const triedRef = useRef(false);
 
   useEffect(() => {
-    if (triedRef.current) return;
+    if (triedRef.current || !token) return;
     triedRef.current = true;
-    const token = searchParams.get("token");
-    if (!token) {
-      setState("error");
-      setErrorMsg(t("autoSigninNoToken") || "No sign-in token provided");
-      return;
-    }
     (async () => {
       try {
         const r = await fetch("/api/auth/custom-token", {
@@ -63,8 +60,7 @@ export default function AutoSigninPage() {
         setErrorMsg(err instanceof Error ? err.message : "sign-in failed");
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [locale, router, token]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-cream px-4 py-16">
@@ -89,7 +85,7 @@ export default function AutoSigninPage() {
             <>
               <h1 className="font-heading text-xl text-navy">{t("autoSigninFailed") || "Could not sign you in"}</h1>
               <p className="text-sm text-muted">{errorMsg}</p>
-              <Link href={"/login" as "/login"}>
+              <Link href="/login">
                 <Button>{t("signInTitle")}</Button>
               </Link>
             </>

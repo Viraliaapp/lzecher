@@ -20,7 +20,12 @@ export async function POST(request: NextRequest) {
       .get();
 
     const projects = projSnap.docs
-      .map((d) => ({ id: d.id, ...d.data() }))
+      .map((d) => {
+        const data = d.data();
+        const { passwordHash, passwordSalt, ...safe } = data;
+        void passwordSalt;
+        return { id: d.id, ...safe, isPasswordProtected: Boolean(passwordHash) };
+      })
       .sort((a: Record<string, unknown>, b: Record<string, unknown>) =>
         ((b.createdAt as number) || 0) - ((a.createdAt as number) || 0)
       );

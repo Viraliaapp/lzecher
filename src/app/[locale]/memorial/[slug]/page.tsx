@@ -104,6 +104,9 @@ export default async function MemorialPage({ params }: Props) {
     description: `Torah learning dedicated l'iluy nishmas ${project.nameHebrew}`,
     url: `https://lzecher.com/en/memorial/${project.slug}`,
   };
+  const { passwordHash, passwordSalt, ...safeProject } = project;
+  void passwordHash;
+  void passwordSalt;
 
   return (
     <>
@@ -112,7 +115,10 @@ export default async function MemorialPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar />
-      <MemorialPageClient project={project} portions={portions} />
+      <MemorialPageClient
+        project={{ ...safeProject, isPasswordProtected: isProtected(project) } as MemorialProject}
+        portions={portions}
+      />
       <Footer />
     </>
   );

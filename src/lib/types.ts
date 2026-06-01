@@ -30,6 +30,7 @@ export interface MemorialProject {
   // directory; `passwordHash` gates opening the full memorial page.
   isPublic: boolean;
   allowAnonymous: boolean;
+  showLeaderboard?: boolean; // default true; creator can hide the Yasher Koach section
 
   // ── Optional password protection (replaces public/private) ──
   // A project is "protected" iff passwordHash is set. Card-level info (name, candle,
@@ -72,7 +73,7 @@ export interface MemorialProject {
   completedProgressPct?: number; // 0–100 completed % of current active set (TM only)
   completedCycles?: number; // number of fully-taken TM sets ("מחזורים")
 
-  // Leaderboard "המתמידים" — top takers by portions taken (denormalized, see recompute-progress).
+  // Leaderboard "Yasher Koach" — top takers by portions taken (denormalized, see recompute-progress).
   topMatmidim?: { name: string; count: number }[];
 }
 
@@ -146,6 +147,8 @@ export interface LzecherUser {
   displayName: string | null;
   photoURL: string | null;
   isAdmin?: boolean;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
   createdAt: number;
   language: string;
 

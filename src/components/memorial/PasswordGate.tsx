@@ -32,7 +32,7 @@ export function PasswordGate({ slug, hebrewName, englishName, hebrewDate }: Pass
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: password.trim() }),
       });
-      const data = await res.json().catch(() => ({}));
+      await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(res.status === 429 ? t("tooMany") : t("wrong"));
         setSubmitting(false);

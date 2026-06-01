@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 import { Spinner } from "@/components/ui/spinner";
@@ -14,6 +15,7 @@ import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Claim } from "@/lib/types";
 import { toHebrewNumeral } from "@/lib/hebrew-numerals";
 import { cyclesLabel, progressFromProject } from "@/lib/progress";
+import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -124,6 +126,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(project.showLeaderboard !== false);
 
   const progress = progressFromProject(project);
   const fallbackPct = project.totalPortions > 0
@@ -234,6 +237,32 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
     window.location.href = `mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(hebrewName)}`;
   }
 
+  async function updateLeaderboardVisibility(next: boolean) {
+    const previous = leaderboardVisible;
+    setLeaderboardVisible(next);
+    setSaving(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch(`/api/projects/${project.id}/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, updates: { showLeaderboard: next } }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setLeaderboardVisible(previous);
+        toast.error(data.error || (locale === "he" ? "לא ניתן לעדכן את ההגדרה" : "Could not update setting"));
+        return;
+      }
+      toast.success(locale === "he" ? "הגדרת יישר כוח עודכנה" : "Yasher Koach setting updated");
+    } catch {
+      setLeaderboardVisible(previous);
+      toast.error(locale === "he" ? "לא ניתן לעדכן את ההגדרה" : "Could not update setting");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div
       style={{ borderRadius: "16px", overflow: "hidden", boxShadow: "0 4px 16px rgba(15,27,45,0.08)", border: "1px solid rgba(232,223,200,0.6)", transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
@@ -263,8 +292,16 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
           <span className="font-heading font-black" style={{ fontSize: "28px", color: "#C9A961", lineHeight: 1 }}>{pct}%</span>
           <span style={{ fontSize: "11px", color: "#8B7355" }}>{t("takenLabel")}</span>
         </div>
-        <div style={{ height: "4px", borderRadius: "2px", background: "rgba(15,27,45,0.07)", overflow: "hidden", marginBottom: "10px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "10px", color: "#8B7355", marginBottom: "3px" }}>
+          <span>{locale === "he" ? "נלקחו ללימוד" : "Taken for learning"}</span>
+          <strong>{pct}%</strong>
+        </div>
+        <div style={{ height: "4px", borderRadius: "2px", background: "rgba(15,27,45,0.07)", overflow: "hidden", marginBottom: "8px" }}>
           <div style={{ height: "100%", width: `${pct}%`, background: "#C9A961", borderRadius: "2px", transition: "width 0.4s ease" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "10px", color: "#5B7A52", marginBottom: "3px" }}>
+          <span>{locale === "he" ? "נלמדו בפועל" : "Already learned"}</span>
+          <strong>{completedPct}%</strong>
         </div>
         <div style={{ height: "3px", borderRadius: "2px", background: "rgba(91,122,82,0.10)", overflow: "hidden", marginBottom: "10px" }}>
           <div style={{ height: "100%", width: `${completedPct}%`, background: "#5B7A52", borderRadius: "2px", transition: "width 0.4s ease" }} />
@@ -293,7 +330,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
         </div>
         {cycleText && (
           <div style={{ marginTop: "10px", textAlign: "center", fontSize: "11px", color: "#5B7A52", fontWeight: 700 }}>
-            {cycleText}
+            {locale === "he" ? `${cycleText} · עכשיו במחזור הבא` : cycleText}
           </div>
         )}
       </div>
@@ -322,6 +359,22 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
         </button>
         {manageOpen && (
           <div style={{ padding: "0 12px 12px", maxHeight: "300px", overflowY: "auto" }}>
+            <div
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "10px", margin: "4px 0 10px", borderRadius: "10px", background: "#FFFDF8", border: "1px solid rgba(232,223,200,0.8)" }}
+              dir={locale === "he" ? "rtl" : "ltr"}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: "12px", fontWeight: 700, color: "#0F1B2D" }}>
+                  {locale === "he" ? "הצג יישר כוח בעמוד" : "Show Yasher Koach on the page"}
+                </p>
+                <p style={{ fontSize: "11px", color: "#8B7355", lineHeight: 1.35 }}>
+                  {locale === "he"
+                    ? "מומלץ להשאיר פעיל כדי לעודד משתתפים לקחת עוד לימוד."
+                    : "Recommended: keep it on to encourage people to take more learning."}
+                </p>
+              </div>
+              <Switch checked={leaderboardVisible} onCheckedChange={updateLeaderboardVisibility} disabled={saving} />
+            </div>
             {loadingClaims && <p style={{ fontSize: "12px", color: "#8B7355", textAlign: "center", padding: "8px" }}>Loading...</p>}
             {!loadingClaims && claims.length > 0 && (
               <div style={{ margin: "4px 0 10px" }}>
@@ -679,10 +732,19 @@ export default function DashboardPage() {
             <DialogTitle dir="rtl">{shareProject?.nameHebrew}</DialogTitle>
           </DialogHeader>
           {shareProject && (
-            <ShareTemplates
-              honoree={`${shareProject.nameHebrew} ${shareProject.familyNameHebrew || ""}`.trim()}
-              url={`${typeof window !== "undefined" ? window.location.origin : ""}/memorial/${shareProject.slug}`}
-            />
+            <>
+              {shareProject.isPasswordProtected && (
+                <p className="rounded-lg bg-gold/10 px-3 py-2 text-sm text-navy" dir={locale === "he" ? "rtl" : "ltr"}>
+                  {locale === "he"
+                    ? "הקישור תקין, אבל מי שפותח אותו יצטרך את הסיסמה שהגדרת."
+                    : "The link works, but visitors will need the password you set."}
+                </p>
+              )}
+              <ShareTemplates
+                honoree={`${shareProject.nameHebrew} ${shareProject.familyNameHebrew || ""}`.trim()}
+                url={`${typeof window !== "undefined" ? window.location.origin : ""}/${locale}/memorial/${shareProject.slug}`}
+              />
+            </>
           )}
         </DialogContent>
       </Dialog>

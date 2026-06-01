@@ -12,8 +12,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
 import type { TrackType } from "@/lib/types";
 
 const ALL_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
@@ -42,25 +40,36 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
   const [familyMessage, setFamilyMessage] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [allowAnonymous, setAllowAnonymous] = useState(true);
+  const [showLeaderboard, setShowLeaderboard] = useState(true);
 
   const [originalTracks, setOriginalTracks] = useState<TrackType[]>([]);
   const [selectedTracks, setSelectedTracks] = useState<TrackType[]>([]);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!profile?.isAdmin) {
-      router.push("/" as "/");
+    if (!profile?.isAdmin && !profile?.isSuperAdmin) {
+      router.push("/" as const);
       return;
     }
     (async () => {
       try {
-        const snap = await getDoc(doc(db, "lzecher_projects", id));
-        if (!snap.exists()) {
-          toast.error("Project not found");
-          router.push("/admin" as "/admin");
+        const idToken = await auth.currentUser?.getIdToken(true);
+        if (!idToken) {
+          toast.error("Sign in expired");
+          setLoading(false);
           return;
         }
-        const data = snap.data();
+        const res = await fetch(`/api/projects/${id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        });
+        if (!res.ok) {
+          toast.error("Project not found");
+          router.push("/admin" as const);
+          return;
+        }
+        const data = await res.json();
         setProject(data);
         setNameHebrew(data.nameHebrew || "");
         setFamilyNameHebrew(data.familyNameHebrew || "");
@@ -74,6 +83,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
         setFamilyMessage(data.familyMessage || "");
         setIsPublic(data.isPublic !== false);
         setAllowAnonymous(data.allowAnonymous !== false);
+        setShowLeaderboard(data.showLeaderboard !== false);
         const tracks = Array.isArray(data.tracks) ? data.tracks : [];
         setOriginalTracks(tracks);
         setSelectedTracks(tracks);
@@ -115,6 +125,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
         familyMessage: familyMessage || null,
         isPublic,
         allowAnonymous,
+        showLeaderboard,
       };
       const trackChanges: { add?: TrackType[]; remove?: TrackType[]; confirmDestructive?: string } = {};
       const added = selectedTracks.filter((t) => !originalTracks.includes(t));
@@ -159,7 +170,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
         return;
       }
       toast.success(t("editProject.saved") || "Saved");
-      router.push("/admin" as "/admin");
+      router.push("/admin" as const);
     } catch (err) {
       console.error("[admin/edit] save failed", err);
       toast.error("Save failed");
@@ -284,9 +295,20 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
             <span className="text-sm font-medium text-navy">{t("editProject.allowAnonymous") || "Allow anonymous participation"}</span>
             <Switch checked={allowAnonymous} onCheckedChange={setAllowAnonymous} />
           </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <span className="text-sm font-medium text-navy">{locale === "he" ? "הצג יישר כוח בעמוד" : "Show Yasher Koach on the page"}</span>
+              <p className="text-xs text-muted" dir={locale === "he" ? "rtl" : "ltr"}>
+                {locale === "he"
+                  ? "מומלץ להשאיר פעיל כדי לעודד משתתפים לקחת עוד לימוד."
+                  : "Recommended: keep it on to encourage people to take more learning."}
+              </p>
+            </div>
+            <Switch checked={showLeaderboard} onCheckedChange={setShowLeaderboard} />
+          </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-navy/5">
-            <Button variant="ghost" onClick={() => router.push("/admin" as "/admin")} disabled={saving}>
+            <Button variant="ghost" onClick={() => router.push("/admin" as const)} disabled={saving}>
               {tc("cancel") || "Cancel"}
             </Button>
             <Button onClick={handleSave} disabled={saving}>

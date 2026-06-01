@@ -1,7 +1,7 @@
 /**
  * GET /api/projects/[id]/leaderboard
  *
- * Top "המתמידים" (most-dedicated takers) for one project, by portions taken, named,
+ * Top "Yasher Koach" learners for one project, by portions taken, named,
  * anonymous skipped. Reads the denormalized `topMatmidim` on the project doc (1 read,
  * maintained by recomputeProjectProgress). Falls back to computing from portions for
  * not-yet-backfilled projects. CDN-cached so polling collapses to ~1 read / 20s.

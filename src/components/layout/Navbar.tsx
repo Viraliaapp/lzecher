@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { Link, usePathname } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -135,7 +136,7 @@ export function Navbar() {
                       aria-label={t("profile")}
                     >
                       {user.photoURL ? (
-                        <img src={user.photoURL} alt="" className="h-9 w-9 rounded-full object-cover" />
+                        <Image src={user.photoURL} alt="" width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
                       ) : (
                         userInitial
                       )}

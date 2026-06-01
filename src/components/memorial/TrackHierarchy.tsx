@@ -632,7 +632,6 @@ function InclusiveGrid({ portions, onClaim, claimingId, t, locale }: any) {
           const btnLabel = isKabalos
             ? (locale === "he" ? "אני מקבל/ת על עצמי בלי נדר" : "I accept upon myself (bli neder)")
             : (locale === "he" ? heClaimButton(getVerbForm(p), false).replace("אני ", "") : t("joinCommitment"));
-          const isFreeText = !!(p as Portion & { isFreeText?: boolean }).isFreeText;
           return (
             <Card key={p.id} className="transition-all hover:shadow-sm hover:-translate-y-0.5">
               <CardContent className="p-4">
@@ -897,6 +896,14 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
   const activeSetTaken = activeSetPortions.filter(p => p.status !== "available").length;
   const activeSetPct = activeSetPortions.length > 0 ? Math.round((activeSetTaken / activeSetPortions.length) * 100) : 0;
   const overallPct = completedSets * 100 + activeSetPct;
+  const activeSetText = setLabel(activeSetNumber, locale);
+  const overallText = completedSets > 0
+    ? locale === "he"
+      ? `${completedSets === 1 ? "מחזור א׳ הושלם" : `${completedSets} מחזורים הושלמו`} · עכשיו ${activeSetText} כתוספת זכות`
+      : `${completedSets} ${completedSets === 1 ? "set" : "sets"} complete · now ${activeSetText}`
+    : locale === "he"
+      ? `${activeSetText} · ${activeSetPct}% נלקחו ללימוד`
+      : `${activeSetText} · ${activeSetPct}% taken`;
 
   function toggleSet(sn: number) {
     setExpandedSets(prev => {
@@ -911,10 +918,8 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
       {/* Overall progress meter */}
       <div className="rounded-xl bg-navy/5 px-4 py-3 space-y-1.5">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-navy" dir="rtl">
-            {locale === "he"
-              ? `${completedSets} מחזורים נלמדו — סה״כ ${overallPct}%`
-              : `${completedSets} sets learned — total ${overallPct}%`}
+          <span className="font-medium text-navy" dir={locale === "he" ? "rtl" : "ltr"}>
+            {overallText}
           </span>
           <span className="text-navy font-heading font-bold text-lg">{overallPct}%</span>
         </div>
@@ -930,7 +935,7 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
             );
           })}
         </div>
-        <p className="text-xs text-muted">{totalTaken}/{totalAll} {locale === "he" ? "פרקים בלימוד" : "portions taken"}</p>
+        <p className="text-xs text-muted">{totalTaken}/{totalAll} {locale === "he" ? "חלקים נלקחו ללימוד" : "portions taken"}</p>
       </div>
 
       {/* Stacked sets (newest on top) */}
@@ -962,7 +967,7 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
                 )}
                 {isComplete && (
                   <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
-                    {locale === "he" ? "✓ נלמד" : "✓ Learned"}
+                    {locale === "he" ? "✓ הושלם" : "✓ Complete"}
                   </span>
                 )}
               </div>

@@ -27,7 +27,7 @@ export async function POST(
     }
 
     if (action === "hide") {
-      const decoded = await requireAdmin(idToken);
+      const decoded = await requireAdmin(idToken, "projects");
       await projectRef.update({
         status: "hidden",
         hiddenBy: decoded.uid,
@@ -38,7 +38,7 @@ export async function POST(
     }
 
     if (action === "unhide") {
-      const decoded = await requireAdmin(idToken);
+      const decoded = await requireAdmin(idToken, "projects");
       await projectRef.update({
         status: "active",
         unhiddenBy: decoded.uid,
