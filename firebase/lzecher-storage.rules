@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// Lzecher-scoped Storage snippet.
+// Merge into the shared Viralia ruleset; do not deploy standalone.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function imageUpload() {
+      return request.resource != null
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /lzecher/photos/{creatorUid}/{projectId}/{fileName} {
+      allow read: if true;
+      allow write: if signedIn()
+        && request.auth.uid == creatorUid
+        && imageUpload();
+    }
+
+    match /lzecher/og/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /lzecher/{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

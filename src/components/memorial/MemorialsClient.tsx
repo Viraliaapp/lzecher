@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ interface Props {
 
 export function MemorialsClient({ memorials }: Props) {
   const t = useTranslations("memorials");
+  const locale = useLocale();
+  const showEnglishNames = locale === "en";
   const [search, setSearch] = useState("");
 
   const filtered = memorials.filter((m) => {
@@ -84,7 +86,7 @@ export function MemorialsClient({ memorials }: Props) {
                     <h3 className="font-heading text-lg font-bold text-navy mb-1" dir="rtl">
                       {`${m.nameHebrew} ${m.familyNameHebrew || ""}`.trim()}
                     </h3>
-                    {(m.nameEnglish || m.familyNameEnglish) && (
+                    {showEnglishNames && (m.nameEnglish || m.familyNameEnglish) && (
                       <p className="font-serif italic text-muted text-sm mb-3">
                         {`${m.nameEnglish || ""} ${m.familyNameEnglish || ""}`.trim()}
                       </p>

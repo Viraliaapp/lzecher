@@ -171,7 +171,6 @@ function publicProjectSummary(data: FirebaseFirestore.DocumentData, id: string) 
     isPasswordProtected,
     isPublic: data.isPublic !== false,
     showLeaderboard: data.showLeaderboard !== false,
-    allowAnonymous: data.allowAnonymous !== false,
     locked: data.locked === true,
     repeatingSetEnabled: data.repeatingSetEnabled !== false,
     startedByVisible: data.startedByVisible !== false,

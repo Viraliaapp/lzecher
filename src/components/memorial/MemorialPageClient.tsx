@@ -677,7 +677,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             </h1>
 
             {/* English name accent */}
-            {(project.nameEnglish || project.familyNameEnglish) && (
+            {locale === "en" && (project.nameEnglish || project.familyNameEnglish) && (
               <p className="font-serif italic text-lg mb-1" style={{ color: "rgba(201,162,75,0.55)" }}>
                 {`${project.nameEnglish || ""} ${project.familyNameEnglish || ""}`.trim()}
               </p>

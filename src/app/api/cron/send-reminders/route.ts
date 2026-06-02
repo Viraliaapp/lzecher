@@ -10,6 +10,7 @@ import { signToken, TTL } from "@/lib/signed-tokens";
 import { lzecherEmailFrom } from "@/lib/email-config";
 import { toHebrewCalendarDate } from "@/lib/hebrew-date";
 import { learningLabel, learningScopeLabel } from "@/lib/learning-label";
+import { normalizeLocale } from "@/lib/locales";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -84,7 +85,7 @@ async function processEmail(
     const templateArgs = await buildTemplateArgs(db, data);
 
     // Format the email
-    const locale = (data.locale || "en") as ReminderLocale;
+    const locale = normalizeLocale(data.locale) as ReminderLocale;
     const reminderType = data.reminderType as ReminderType;
     const email = getReminderEmail(reminderType, locale, templateArgs);
 
@@ -149,7 +150,7 @@ async function buildTemplateArgs(
   data: ScheduledEmail
 ) {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lzecher.com";
-  const locale = data.locale || "en";
+  const locale = normalizeLocale(data.locale);
 
   let honoreeName = data.honoreeName || (locale === "he" ? "הנפטר/ת" : "their loved one");
   let commitmentDesc = learningLabel(
@@ -233,7 +234,10 @@ async function buildTemplateArgs(
   // Build unsubscribe link using HMAC token
   let unsubscribeLink: string | undefined;
   if (data.userId && data.claimId) {
-    const token = await buildUnsubscribeToken(data.userId, data.claimId);
+    const token = signToken(
+      { purpose: "unsubscribe", uid: data.userId, claimId: data.claimId, locale },
+      TTL.UNSUBSCRIBE
+    );
     unsubscribeLink = `${baseUrl}/${locale}/unsubscribe?token=${token}`;
   }
 
@@ -251,26 +255,6 @@ async function buildTemplateArgs(
   commitmentDesc = learningLabel(locale, commitmentDesc, data.trackType);
 
   return { honoreeName, commitmentDesc, deadline, link, unsubscribeLink, markCompleteLink, dashboardLink };
-}
-
-// ── HMAC helper (same as unsubscribe page) ────────────────────────────────────
-
-async function buildUnsubscribeToken(userId: string, claimId: string): Promise<string> {
-  const secret = process.env.CRON_SECRET || "fallback-secret";
-  const payload = JSON.stringify({ userId, claimId, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 });
-  const encoded = Buffer.from(payload).toString("base64url");
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(encoded));
-  const sigB64 = Buffer.from(sig).toString("base64url");
-
-  return `${encoded}.${sigB64}`;
 }
 
 // ── Firestore document shape ──────────────────────────────────────────────────

@@ -17,7 +17,7 @@ const EDITABLE_FIELDS = new Set([
   "nameEnglish", "familyNameEnglish", "gender", "honorific",
   "dateOfPassing", "dateOfPassingHebrew", "dateOfPassingGregorian",
   "dateOfBirth", "dateOfBirthHebrew", "datePreference",
-  "biography", "familyMessage", "isPublic", "allowAnonymous",
+  "biography", "familyMessage", "isPublic",
   "photoURL", "projectType", "completionTargetDate", "completionTargetType",
   "repeatingSetEnabled", "showLeaderboard",
   // password protection + attribution + admin display

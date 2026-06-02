@@ -4,6 +4,7 @@ import { Resend } from "resend";
 import { checkRateLimit as checkRL, getClientIp } from "@/lib/rate-limit";
 import { signToken, TTL } from "@/lib/signed-tokens";
 import { lzecherEmailFrom } from "@/lib/email-config";
+import { normalizeLocale } from "@/lib/locales";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -38,13 +39,15 @@ const TAGLINE: Record<string, string> = {
 export async function POST(request: NextRequest) {
   try {
     const { email, locale = "en" } = await request.json();
+    const safeLocale = normalizeLocale(locale);
+    const normalizedEmail = typeof email === "string" ? email.toLowerCase().trim() : "";
 
-    if (!email || typeof email !== "string" || !email.includes("@")) {
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 
     // Rate limit: 5 per hour per email
-    const emailRL = await checkRL("magicLinkPerEmail", email.toLowerCase().trim());
+    const emailRL = await checkRL("magicLinkPerEmail", normalizedEmail);
     if (!emailRL.success) {
       const retryAfter = Math.ceil((emailRL.reset - Date.now()) / 1000);
       return NextResponse.json(
@@ -67,29 +70,29 @@ export async function POST(request: NextRequest) {
     // Sign the email + locale into a token so the verify page can complete sign-in
     // without re-prompting the user (works cross-device / cross-browser).
     const emailToken = signToken(
-      { purpose: "email_signin", email: email.toLowerCase().trim(), locale },
+      { purpose: "email_signin", email: normalizedEmail, locale: safeLocale },
       TTL.EMAIL_SIGNIN
     );
 
     // Generate the sign-in link server-side using Firebase Admin
     const adminAuth = getAdminAuth();
     const actionCodeSettings = {
-      url: `${baseUrl}/${locale}/login?finishSignIn=true&e=${encodeURIComponent(emailToken)}`,
+      url: `${baseUrl}/${safeLocale}/login?finishSignIn=true&e=${encodeURIComponent(emailToken)}`,
       handleCodeInApp: true,
     };
 
     const signInLink = await adminAuth.generateSignInWithEmailLink(
-      email,
+      normalizedEmail,
       actionCodeSettings
     );
 
     // Send branded email via Resend
-    const subject = SUBJECTS[locale] || SUBJECTS.en;
-    const buttonText = BUTTON_TEXT[locale] || BUTTON_TEXT.en;
-    const expiresText = EXPIRES_TEXT[locale] || EXPIRES_TEXT.en;
-    const tagline = TAGLINE[locale] || TAGLINE.en;
-    const dir = locale === "he" ? "rtl" : "ltr";
-    const isHebrew = locale === "he";
+    const subject = SUBJECTS[safeLocale] || SUBJECTS.en;
+    const buttonText = BUTTON_TEXT[safeLocale] || BUTTON_TEXT.en;
+    const expiresText = EXPIRES_TEXT[safeLocale] || EXPIRES_TEXT.en;
+    const tagline = TAGLINE[safeLocale] || TAGLINE.en;
+    const dir = safeLocale === "he" ? "rtl" : "ltr";
+    const isHebrew = safeLocale === "he";
     const brandName = isHebrew ? "לזכרו" : "Lzecher";
     const fontStack = isHebrew
       ? "Arial,'Noto Sans Hebrew','Segoe UI',sans-serif"
@@ -97,11 +100,11 @@ export async function POST(request: NextRequest) {
 
     const { error } = await resend.emails.send({
       from: lzecherEmailFrom(brandName),
-      to: email,
+      to: normalizedEmail,
       subject,
       html: `
 <!DOCTYPE html>
-<html dir="${dir}" lang="${locale}">
+<html dir="${dir}" lang="${safeLocale}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#FAF6EC;font-family:${fontStack};">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAF6EC;padding:40px 20px;">
@@ -119,7 +122,7 @@ export async function POST(request: NextRequest) {
         <!-- Card -->
         <tr><td style="background:#FFFFFF;border-radius:16px;padding:40px 32px;border:1px solid rgba(15,27,45,0.05);">
           <p style="margin:0 0 24px;font-size:16px;color:#2A2D34;line-height:1.6;text-align:center;">
-            ${locale === "he" ? "לחץ על הכפתור למטה כדי להתחבר" : locale === "es" ? "Haz clic en el boton de abajo para iniciar sesion" : locale === "fr" ? "Cliquez sur le bouton ci-dessous pour vous connecter" : "Click the button below to sign in"}
+            ${safeLocale === "he" ? "לחץ על הכפתור למטה כדי להתחבר" : safeLocale === "es" ? "Haz clic en el boton de abajo para iniciar sesion" : safeLocale === "fr" ? "Cliquez sur le bouton ci-dessous pour vous connecter" : "Click the button below to sign in"}
           </p>
 
           <!-- Button -->
@@ -138,7 +141,7 @@ export async function POST(request: NextRequest) {
 
           <!-- Fallback link -->
           <p style="margin:16px 0 0;font-size:11px;color:#6B6F76;text-align:center;word-break:break-all;">
-            ${locale === "he" ? "אם הכפתור לא עובד, העתק את הקישור הזה:" : "If the button doesn't work, copy this link:"}<br>
+            ${safeLocale === "he" ? "אם הכפתור לא עובד, העתק את הקישור הזה:" : "If the button doesn't work, copy this link:"}<br>
             <a href="${signInLink}" style="color:#C9A961;">${signInLink}</a>
           </p>
         </td></tr>

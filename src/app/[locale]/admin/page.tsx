@@ -106,7 +106,6 @@ type SuperProjectSummary = {
   tracks: string[];
   isPasswordProtected: boolean;
   showLeaderboard: boolean;
-  allowAnonymous: boolean;
   isPublic?: boolean;
   locked: boolean;
   repeatingSetEnabled?: boolean;
@@ -1627,7 +1626,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     if (project.status === "active" && !publicProject) {
       notes.push({ severity: "warn", text: label(locale, "פעיל אבל לא מופיע בספרייה", "Active but hidden from directory") });
     }
-    if (!project.isPasswordProtected && project.allowAnonymous !== false) {
+    if (!project.isPasswordProtected) {
       notes.push({ severity: "info", text: label(locale, "פתוח להצטרפות ללא סיסמה", "Open without password") });
     }
     if (project.isPasswordProtected) {
@@ -1638,9 +1637,6 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     }
     if (project.showLeaderboard === false) {
       notes.push({ severity: "info", text: label(locale, "יישר כח מוסתר", "Yasher Koach hidden") });
-    }
-    if (project.allowAnonymous === false) {
-      notes.push({ severity: "info", text: label(locale, "דורש התחברות לבחירה", "Requires sign-in to claim") });
     }
     return { project, notes };
   });
@@ -1666,7 +1662,6 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     open: projectSummaries.filter((project) => !project.isPasswordProtected).length,
     directoryHidden: projectSummaries.filter((project) => project.isPublic === false).length,
     locked: projectSummaries.filter((project) => project.locked).length,
-    anonymousOpen: projectSummaries.filter((project) => !project.isPasswordProtected && project.allowAnonymous !== false).length,
     review: accessRows.filter((row) => row.notes.some((note) => note.severity === "warn")).length,
   };
   const commandCenterItems = [
@@ -1747,7 +1742,6 @@ function SuperAdminPortal({ locale }: { locale: string }) {
       createdByEmail: project.createdByEmail,
       public: project.isPublic !== false,
       passwordProtected: project.isPasswordProtected,
-      allowAnonymous: project.allowAnonymous,
       locked: project.locked,
       leaderboardVisible: project.showLeaderboard,
       repeatingSetEnabled: project.repeatingSetEnabled,
@@ -1777,7 +1771,6 @@ function SuperAdminPortal({ locale }: { locale: string }) {
       passwordProtected: project.isPasswordProtected,
       public: project.isPublic !== false,
       locked: project.locked,
-      anonymousAllowed: project.allowAnonymous,
       leaderboardVisible: project.showLeaderboard,
       totalPortions: project.totalPortions,
       claimedPortions: project.claimedPortions,
@@ -1901,7 +1894,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
               <div>
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <Badge variant="default">{label(locale, "מנהל ראשי פעיל", "Super admin active")}</Badge>
-                  <Badge variant="secondary">lzecher_ only</Badge>
+                  <Badge variant="secondary">{label(locale, "תחום לזכר בלבד", "Lzecher-only scope")}</Badge>
                 </div>
                 <h2 className="font-heading text-xl font-bold">
                   {label(locale, "חדר בקרה של לזכר", "Lzecher Command Center")}
@@ -2234,8 +2227,8 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     <div className="space-y-2">
                       {topProgressProjects.map((project) => (
                         <button key={project.id} type="button" onClick={() => inspectProject(project.id)} className="block w-full rounded-md bg-cream/40 px-2 py-2 text-start transition hover:bg-gold/10">
-                          <div className="flex items-center justify-between gap-3 text-sm">
-                            <span className="min-w-0 truncate font-medium text-navy" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</span>
+                          <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                            <span className="min-w-0 whitespace-normal break-words font-medium text-navy sm:truncate" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</span>
                             <span className="shrink-0 text-muted">{Math.round(project.completedProgressPct || 0)}%</span>
                           </div>
                           <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-navy/10">
@@ -2250,8 +2243,8 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     <h3 className="mb-2 font-heading font-bold text-navy">{label(locale, "השתתפות מובילה", "Top participation")}</h3>
                     <div className="space-y-2">
                       {topParticipantProjects.map((project) => (
-                        <button key={project.id} type="button" onClick={() => inspectProject(project.id)} className="flex w-full items-center justify-between gap-3 rounded-md bg-cream/40 px-2 py-2 text-start transition hover:bg-gold/10">
-                          <span className="min-w-0 truncate text-sm font-medium text-navy" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</span>
+                        <button key={project.id} type="button" onClick={() => inspectProject(project.id)} className="flex w-full flex-col gap-1 rounded-md bg-cream/40 px-2 py-2 text-start transition hover:bg-gold/10 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                          <span className="min-w-0 whitespace-normal break-words text-sm font-medium text-navy sm:truncate" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</span>
                           <span className="shrink-0 text-xs text-muted">{project.participantCount} {label(locale, "משתתפים", "participants")}</span>
                         </button>
                       ))}
@@ -2293,7 +2286,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     {
                       key: "access",
                       title: label(locale, "גישת פרויקטים", "Project access"),
-                      detail: label(locale, `${filteredAccessRows.length} פרויקטים מהחיפוש הנוכחי עם מצב קישור, סיסמה, אנונימיות ונעילה.`, `${filteredAccessRows.length} projects from the current search with link, password, anonymous, and lock state.`),
+                      detail: label(locale, `${filteredAccessRows.length} פרויקטים מהחיפוש הנוכחי עם מצב קישור, סיסמה, נעילה והופעה בספרייה.`, `${filteredAccessRows.length} projects from the current search with link, password, lock, and directory state.`),
                       action: exportAccessCsv,
                     },
                     {
@@ -2353,7 +2346,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                       <div>
                         <h3 className="font-heading font-bold text-navy">{label(locale, "בדיקת גישה ושיתוף", "Access and Sharing Audit")}</h3>
                         <p className="text-xs text-muted">
-                          {label(locale, "תצוגה לקריאה בלבד: האם פרויקט פתוח, דורש סיסמה, מוסתר מהספרייה, נעול לבחירות חדשות או דורש התחברות.", "Read-only view: whether each project is open, password-protected, hidden from the directory, locked for new claims, or requires sign-in.")}
+                          {label(locale, "תצוגה לקריאה בלבד: האם פרויקט פתוח, דורש סיסמה, מוסתר מהספרייה או נעול לבחירות חדשות.", "Read-only view: whether each project is open, password-protected, hidden from the directory, or locked for new claims.")}
                         </p>
                       </div>
                     </div>
@@ -2405,7 +2398,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                         <div key={project.id} className="rounded-lg border border-navy/10 bg-cream/30 p-3">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
-                              <p className="truncate font-medium text-navy" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</p>
+                              <p className="whitespace-normal break-words font-medium text-navy sm:truncate" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</p>
                               <p className="text-xs text-muted">{project.slug || project.id}</p>
                             </div>
                             <div className="flex shrink-0 flex-wrap gap-1">
@@ -2427,9 +2420,6 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                             </Badge>
                             <Badge variant={project.isPasswordProtected ? "default" : "outline"}>
                               {project.isPasswordProtected ? label(locale, "סיסמה", "Password") : label(locale, "ללא סיסמה", "No password")}
-                            </Badge>
-                            <Badge variant={project.allowAnonymous === false ? "outline" : "secondary"}>
-                              {project.allowAnonymous === false ? label(locale, "דורש התחברות", "Sign-in required") : label(locale, "אפשר אנונימי", "Anonymous allowed")}
                             </Badge>
                             {project.locked && <Badge variant="destructive">{label(locale, "נעול", "Locked")}</Badge>}
                             {project.showLeaderboard === false && <Badge variant="outline">{label(locale, "יישר כח מוסתר", "Yasher Koach hidden")}</Badge>}
@@ -2456,8 +2446,8 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                       <h4 className="font-heading font-bold text-navy">{label(locale, "סיכום פתיחות", "Openness summary")}</h4>
                       <div className="mt-3 space-y-2 text-sm">
                         <div className="flex items-center justify-between rounded-md bg-cream/40 px-2 py-2">
-                          <span className="text-navy">{label(locale, "פתוח וגם מאפשר אנונימי", "Open and anonymous")}</span>
-                          <Badge variant="secondary">{accessStats.anonymousOpen}</Badge>
+                          <span className="text-navy">{label(locale, "קישור פתוח ללא סיסמה", "Open links without password")}</span>
+                          <Badge variant="secondary">{accessStats.open}</Badge>
                         </div>
                         <div className="flex items-center justify-between rounded-md bg-cream/40 px-2 py-2">
                           <span className="text-navy">{label(locale, "דורש סיסמה", "Password protected")}</span>
@@ -2507,9 +2497,9 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                           selectedProjectId === project.id ? "border-gold bg-gold/10" : "border-navy/10 bg-cream/30 hover:border-gold/30"
                         )}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="min-w-0 truncate font-medium text-navy" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</p>
-                          {project.issues.length ? <Badge variant="destructive">{project.issues.length}</Badge> : <Badge variant="secondary">{label(locale, "תקין", "OK")}</Badge>}
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="min-w-0 whitespace-normal break-words font-medium text-navy sm:truncate" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</p>
+                          {project.issues.length ? <Badge className="self-start sm:self-auto" variant="destructive">{project.issues.length}</Badge> : <Badge className="self-start sm:self-auto" variant="secondary">{label(locale, "תקין", "OK")}</Badge>}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1 text-xs text-muted">
                           <span>{projectStatusLabel(locale, project.status)}</span>
@@ -2597,12 +2587,6 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                                 value: (projectDetail?.project?.isPublic ?? selectedProject.isPublic ?? true) !== false,
                                 he: "מופיע בספרייה",
                                 en: "Directory listing",
-                              },
-                              {
-                                key: "allowAnonymous",
-                                value: (projectDetail?.project?.allowAnonymous ?? selectedProject.allowAnonymous) !== false,
-                                he: "אפשר אנונימי",
-                                en: "Allow anonymous",
                               },
                               {
                                 key: "showLeaderboard",
@@ -3100,7 +3084,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                         <div key={project.id} className="rounded-lg border border-navy/10 bg-cream/30 p-3">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
-                              <p className="truncate font-medium text-navy" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</p>
+                              <p className="whitespace-normal break-words font-medium text-navy sm:truncate" dir="rtl">{project.nameHebrew} {project.familyNameHebrew}</p>
                               <p className="text-xs text-muted">{project.slug || project.id}</p>
                             </div>
                             <div className="flex shrink-0 flex-wrap gap-1">

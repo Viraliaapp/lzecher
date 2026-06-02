@@ -33,6 +33,7 @@ function trackLabel(track: TrackType, locale: string): string {
 export function HomeClient({ memorials = [] }: HomeClientProps) {
   const t = useTranslations("landing");
   const locale = useLocale();
+  const showEnglishNames = locale === "en";
   const [search, setSearch] = useState("");
 
   const filtered = memorials.filter((m) => {
@@ -217,7 +218,7 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
                             {`${hebrewName} ${honorific}`}
                           </h3>
                           {/* English name accent */}
-                          {(m.nameEnglish || m.familyNameEnglish) && (
+                          {showEnglishNames && (m.nameEnglish || m.familyNameEnglish) && (
                             <p className="font-serif italic relative z-10" style={{ color: "rgba(201,162,75,0.50)", fontSize: "12px", marginTop: "2px" }}>
                               {`${m.nameEnglish || ""} ${m.familyNameEnglish || ""}`.trim()}
                             </p>

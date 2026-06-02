@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import { verifyToken as verifySignedToken } from "@/lib/signed-tokens";
+import { normalizeLocale } from "@/lib/locales";
 import * as crypto from "crypto";
 
 const WRITE_CHUNK = 450;
@@ -64,7 +65,7 @@ async function commitWritesInChunks(
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
-  const locale = req.nextUrl.searchParams.get("locale") || "en";
+  const locale = normalizeLocale(req.nextUrl.searchParams.get("locale"));
 
   if (!token) {
     return NextResponse.redirect(new URL(`/${locale}/dashboard`, req.url));

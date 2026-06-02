@@ -1,45 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-
-// ── HMAC verification (shared logic with cron route) ──────────────────────────
-
-async function verifyUnsubscribeToken(
-  token: string
-): Promise<{ userId: string; claimId: string } | null> {
-  try {
-    const [encoded, sigB64] = token.split(".");
-    if (!encoded || !sigB64) return null;
-
-    const secret = process.env.CRON_SECRET || "fallback-secret";
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify"]
-    );
-
-    const sig = Buffer.from(sigB64, "base64url");
-    const valid = await crypto.subtle.verify(
-      "HMAC",
-      key,
-      sig,
-      new TextEncoder().encode(encoded)
-    );
-
-    if (!valid) return null;
-
-    const payload = JSON.parse(
-      Buffer.from(encoded, "base64url").toString("utf-8")
-    );
-
-    if (payload.exp && Date.now() > payload.exp) return null;
-
-    return { userId: payload.userId, claimId: payload.claimId };
-  } catch {
-    return null;
-  }
-}
+import { verifyUnsubscribeToken } from "@/lib/unsubscribe-tokens";
 
 // ── POST /api/unsubscribe ─────────────────────────────────────────────────────
 
@@ -55,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the HMAC token
-    const verified = await verifyUnsubscribeToken(token);
+    const verified = verifyUnsubscribeToken(token);
     if (!verified || verified.claimId !== claimId) {
       return NextResponse.json(
         { error: "Invalid or expired token" },

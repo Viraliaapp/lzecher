@@ -15,14 +15,10 @@ function configuredTokenSecret(): string | null {
   return normalizeSecret(process.env.REMINDER_ACTION_SECRET) || normalizeSecret(process.env.CRON_SECRET);
 }
 
-function firebaseAdminSecret(): string | null {
-  return normalizeSecret(process.env.FIREBASE_ADMIN_PRIVATE_KEY);
-}
-
 function tokenSecret(): string {
-  const secret = configuredTokenSecret() || firebaseAdminSecret();
+  const secret = configuredTokenSecret();
   if (!secret && process.env.NODE_ENV === "production") {
-    throw new Error("Missing REMINDER_ACTION_SECRET, CRON_SECRET, or FIREBASE_ADMIN_PRIVATE_KEY");
+    throw new Error("Missing REMINDER_ACTION_SECRET or CRON_SECRET");
   }
   return secret || "default-dev-secret-not-for-prod";
 }
@@ -30,7 +26,6 @@ function tokenSecret(): string {
 function verificationSecrets(): string[] {
   const candidates = [
     configuredTokenSecret(),
-    firebaseAdminSecret(),
     process.env.NODE_ENV === "production" ? null : "default-dev-secret-not-for-prod",
   ];
   return [...new Set(candidates.filter((secret): secret is string => Boolean(secret)))];

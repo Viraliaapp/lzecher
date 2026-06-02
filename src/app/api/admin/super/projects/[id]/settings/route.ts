@@ -5,7 +5,6 @@ import { requireSuperAdmin } from "@/lib/auth-roles";
 const VALID_STATUSES = new Set(["active", "completed", "archived", "pending_moderation", "hidden"]);
 const BOOLEAN_FIELDS = new Set([
   "isPublic",
-  "allowAnonymous",
   "showLeaderboard",
   "locked",
   "repeatingSetEnabled",

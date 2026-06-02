@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// Lzecher-scoped Firestore snippet.
+// Merge into the shared Viralia ruleset; do not deploy standalone.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownUserDoc(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userWritableKeys() {
+      return [
+        'uid',
+        'email',
+        'displayName',
+        'photoURL',
+        'language',
+        'emailVerified',
+        'createdAt',
+        'updatedAt',
+        'lastLoginAt'
+      ];
+    }
+
+    match /lzecher_users/{uid} {
+      allow read: if ownUserDoc(uid);
+      allow create: if ownUserDoc(uid)
+        && request.resource.data.keys().hasOnly(userWritableKeys())
+        && request.resource.data.uid == uid;
+      allow update: if ownUserDoc(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userWritableKeys());
+      allow delete: if false;
+    }
+
+    match /lzecher_settings/site {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /lzecher_projects/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /lzecher_portions/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /lzecher_claims/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /lzecher_inclusive_claims/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /lzecher_feedback/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /lzecher_reports/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /lzecher_contact_messages/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /lzecher_scheduled_emails/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /lzecher_admin_audit/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /lzecher_project_photos/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /lzecher_global_stats/{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

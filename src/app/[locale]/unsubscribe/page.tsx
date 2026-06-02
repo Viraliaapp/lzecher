@@ -1,5 +1,8 @@
 import { Suspense } from "react";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { normalizeLocale } from "@/lib/locales";
+import { learningLabel } from "@/lib/learning-label";
+import { verifyUnsubscribeToken } from "@/lib/unsubscribe-tokens";
 import UnsubscribeClient from "./UnsubscribeClient";
 
 interface PageProps {
@@ -7,56 +10,18 @@ interface PageProps {
   searchParams: Promise<{ token?: string }>;
 }
 
-// ── HMAC verification ─────────────────────────────────────────────────────────
-
-async function verifyUnsubscribeToken(
-  token: string
-): Promise<{ userId: string; claimId: string } | null> {
-  try {
-    const [encoded, sigB64] = token.split(".");
-    if (!encoded || !sigB64) return null;
-
-    const secret = process.env.CRON_SECRET || "fallback-secret";
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify"]
-    );
-
-    const sig = Buffer.from(sigB64, "base64url");
-    const valid = await crypto.subtle.verify(
-      "HMAC",
-      key,
-      sig,
-      new TextEncoder().encode(encoded)
-    );
-
-    if (!valid) return null;
-
-    const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf-8"));
-
-    // Check expiry
-    if (payload.exp && Date.now() > payload.exp) return null;
-
-    return { userId: payload.userId, claimId: payload.claimId };
-  } catch {
-    return null;
-  }
-}
-
 // ── Page (server component) ───────────────────────────────────────────────────
 
 export default async function UnsubscribePage({ params, searchParams }: PageProps) {
-  const { locale } = await params;
+  const { locale: rawLocale } = await params;
+  const locale = normalizeLocale(rawLocale);
   const { token } = await searchParams;
 
   if (!token) {
     return <ErrorState locale={locale} reason="missing" />;
   }
 
-  const verified = await verifyUnsubscribeToken(token);
+  const verified = verifyUnsubscribeToken(token);
   if (!verified) {
     return <ErrorState locale={locale} reason="invalid" />;
   }
@@ -106,9 +71,9 @@ export default async function UnsubscribePage({ params, searchParams }: PageProp
         token={token}
         locale={locale}
         honoreeName={honoreeName}
-        commitmentDesc={claim.reference || ""}
         projectSlug={projectSlug}
         currentPreferences={currentPreferences}
+        commitmentDesc={learningLabel(locale, claim.reference || "", claim.trackType)}
       />
     </Suspense>
   );

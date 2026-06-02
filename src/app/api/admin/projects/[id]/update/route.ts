@@ -30,7 +30,6 @@ const EDITABLE_FIELDS = new Set([
   "biography",
   "familyMessage",
   "isPublic",
-  "allowAnonymous",
   "photoURL",
   "projectType",
   "completionTargetDate",

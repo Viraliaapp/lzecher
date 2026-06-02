@@ -7,7 +7,6 @@ const intlMiddleware = createMiddleware(routing);
 const PUBLIC_PATHS = [
   "/",
   "/login",
-  "/signup",
   "/about",
   "/privacy",
   "/terms",
@@ -52,7 +51,7 @@ function extractLocale(pathname: string): string | null {
   return null;
 }
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const stripped = stripLocale(pathname);
 

@@ -214,10 +214,19 @@ assert(
 
 const signedTokens = read("src/lib/signed-tokens.ts");
 assert(
-  signedTokens.includes("FIREBASE_ADMIN_PRIVATE_KEY") &&
-    signedTokens.includes("verificationSecrets") &&
-    signedTokens.includes("configuredTokenSecret()"),
-  "Signed tokens should keep primary secrets valid and allow the Firebase Admin key as a server-side verification fallback"
+  signedTokens.includes("verificationSecrets") &&
+    signedTokens.includes("configuredTokenSecret()") &&
+    signedTokens.includes("Missing REMINDER_ACTION_SECRET or CRON_SECRET") &&
+    !signedTokens.includes("FIREBASE_ADMIN_PRIVATE_KEY"),
+  "Signed tokens should require a dedicated reminder/cron secret in production and avoid Firebase Admin private-key fallback"
+);
+
+const unsubscribeTokens = read("src/lib/unsubscribe-tokens.ts");
+assert(
+  unsubscribeTokens.includes('purpose === "unsubscribe"') &&
+    unsubscribeTokens.includes("verifyLegacyUnsubscribeToken") &&
+    !unsubscribeTokens.includes("fallback-secret"),
+  "Unsubscribe links should use signed tokens and legacy verification must not fall back to a public default secret"
 );
 
 const projectClaimRoute = read("src/app/api/projects/[id]/claims/[claimId]/route.ts");

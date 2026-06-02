@@ -58,7 +58,7 @@ export function PasswordGate({ slug, hebrewName, englishName, hebrewDate }: Pass
         <h1 className="font-heading font-black text-2xl text-cream" dir="rtl">
           {hebrewName}
         </h1>
-        {englishName && (
+        {locale === "en" && englishName && (
           <p className="font-serif italic text-gold/50 text-sm mt-1">{englishName}</p>
         )}
         {hebrewDate && (
