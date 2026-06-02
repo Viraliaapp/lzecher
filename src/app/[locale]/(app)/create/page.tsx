@@ -869,9 +869,6 @@ export default function CreateMemorialPage() {
                   {t("memorialWallConsentRequired")}
                 </p>
               )}
-              <p className="mt-2 text-[11px] leading-relaxed text-muted" dir={locale === "he" ? "rtl" : "ltr"}>
-                {t("memorialWallConsentStorage")}
-              </p>
             </div>
 
             {/* Family message */}

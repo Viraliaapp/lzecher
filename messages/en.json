@@ -298,7 +298,6 @@
     "memorialWallConsentYes": "Yes, it may appear later",
     "memorialWallConsentNo": "No, keep it only on my page",
     "memorialWallConsentRequired": "Please choose an answer to continue.",
-    "memorialWallConsentStorage": "This choice is stored with the creator details only to document consent. No new central wall is being published yet.",
     "memorialWallConsentReviewYes": "Future memorial wall: approved",
     "memorialWallConsentReviewNo": "Future memorial wall: not approved",
     "creatorEmail": "Your email (creator)",

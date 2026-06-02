@@ -108,7 +108,7 @@ assert(
     createPage.includes("showPassword") &&
     createPage.includes("memorialWallConsent !== null") &&
     createPage.includes("memorialWallConsentTitle") &&
-    createPage.includes("memorialWallConsentStorage") &&
+    !createPage.includes("memorialWallConsentStorage") &&
     !createPage.includes("setAllowAnonymous") &&
     !createPage.includes('t("allowAnonymous")'),
   "Create wizard must use the new purpose flow, keep yahrzeit, show launch/password polish, require memorial wall consent, and remove the anonymous setting"

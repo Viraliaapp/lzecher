@@ -298,7 +298,6 @@
     "memorialWallConsentYes": "Si, puede aparecer mas adelante",
     "memorialWallConsentNo": "No, mantener solo en mi pagina",
     "memorialWallConsentRequired": "Elija una respuesta para continuar.",
-    "memorialWallConsentStorage": "Esta eleccion se guarda con los datos del creador solo para documentar consentimiento. Todavia no se publica ningun muro central.",
     "memorialWallConsentReviewYes": "Muro futuro: aprobado",
     "memorialWallConsentReviewNo": "Muro futuro: no aprobado",
     "creatorEmail": "Tu correo (creador)",
