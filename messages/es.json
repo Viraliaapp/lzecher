@@ -682,10 +682,9 @@
     "error": "Algo salió mal. Inténtalo de nuevo."
   },
   "globalCounter": {
-    "heading": "El pueblo de Israel aprende junto",
-    "mishnayos": "Mishnayot",
-    "tehillim": "capítulos de Tehilim",
-    "kabalos": "Kabalot"
+    "heading": "La comunidad de Lzecher",
+    "siteViews": "visitas al sitio",
+    "learningCommitments": "compromisos de estudio"
   },
   "leaderboard": {
     "title": "Yasher Koach",

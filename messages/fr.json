@@ -682,10 +682,9 @@
     "error": "Une erreur s'est produite. Veuillez réessayer."
   },
   "globalCounter": {
-    "heading": "Le peuple d'Israël étudie ensemble",
-    "mishnayos": "Mishnayot",
-    "tehillim": "chapitres de Tehilim",
-    "kabalos": "Kabbalot"
+    "heading": "La communaute Lzecher",
+    "siteViews": "visites du site",
+    "learningCommitments": "engagements d'etude"
   },
   "leaderboard": {
     "title": "Yasher Koach",

@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Global live counter — a warm "כלל ישראל לומד יחד" band showing platform-wide totals.
- * Polls the single pre-aggregated doc via /api/activity/global every ~20s.
+ * Global community counter — a warm "כלל ישראל בלזכר" strip showing safe
+ * aggregate platform totals. It only reads Lzecher-scoped public counters.
  */
 import { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
@@ -13,10 +13,13 @@ interface GlobalStats {
   mishnayos: number;
   tehillim: number;
   kabalos: number;
+  shnayim_mikra: number;
   participants: number;
+  projects: number;
+  siteViews: number;
 }
 
-const POLL_MS = 20000;
+const POLL_MS = 60000;
 
 export function GlobalCounter() {
   const t = useTranslations("globalCounter");
@@ -28,10 +31,20 @@ export function GlobalCounter() {
     let alive = true;
     async function poll() {
       try {
-        const res = await fetch("/api/activity/global", { cache: "no-store" });
+        const res = await fetch("/api/activity/global");
         if (!res.ok) return;
         const d = await res.json();
-        if (alive) setStats({ mishnayos: d.mishnayos || 0, tehillim: d.tehillim || 0, kabalos: d.kabalos || 0, participants: d.participants || 0 });
+        if (alive) {
+          setStats({
+            mishnayos: d.mishnayos || 0,
+            tehillim: d.tehillim || 0,
+            kabalos: d.kabalos || 0,
+            shnayim_mikra: d.shnayim_mikra || 0,
+            participants: d.participants || 0,
+            projects: d.projects || 0,
+            siteViews: d.siteViews || 0,
+          });
+        }
       } catch { /* ignore */ }
     }
     poll();
@@ -39,29 +52,38 @@ export function GlobalCounter() {
     return () => { alive = false; clearInterval(iv); };
   }, []);
 
-  // Nothing learned yet, or not loaded — render nothing rather than zeros.
-  if (!loaded || !settings.featureFlags.globalCounter || !stats || (stats.mishnayos + stats.tehillim + stats.kabalos === 0)) return null;
+  // Nothing tracked yet, or not loaded — render nothing rather than zeros.
+  if (!loaded || !settings.featureFlags.globalCounter || !stats) return null;
 
-  const items = [
-    { n: stats.mishnayos, label: t("mishnayos") },
-    { n: stats.tehillim, label: t("tehillim") },
-    { n: stats.kabalos, label: t("kabalos") },
-  ].filter((i) => i.n > 0);
+  const learningCommitments = stats.mishnayos + stats.tehillim + stats.kabalos + stats.shnayim_mikra;
+  if (stats.siteViews + learningCommitments === 0) return null;
 
   return (
-    <section className="bg-navy border-y border-gold/15">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6 text-center" dir={locale === "he" ? "rtl" : "ltr"}>
-        <p className="font-serif italic text-gold/80 text-sm mb-3">{t("heading")}</p>
-        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-          {items.map((i, idx) => (
-            <div key={idx} className="flex flex-col items-center">
-              <span className="font-heading font-black text-2xl sm:text-3xl" style={{ color: "#C9A961" }}>
-                {fmtNum(i.n, locale)}
-              </span>
-              <span className="text-cream/60 text-xs mt-0.5">{i.label}</span>
-            </div>
-          ))}
+    <section className="relative z-10 border-y border-gold/25 bg-white shadow-[0_12px_28px_rgba(7,22,42,0.07)]">
+      <div
+        className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:flex-row sm:gap-5 sm:px-6 sm:py-5"
+        dir={locale === "he" ? "rtl" : "ltr"}
+      >
+        <span className="font-heading text-sm font-bold text-navy sm:text-base">
+          {t("heading")}
+        </span>
+        <span className="hidden h-7 w-px bg-navy/10 sm:block" aria-hidden="true" />
+        <div className="flex items-baseline gap-2">
+          <span className="font-heading text-4xl font-black leading-none text-gold sm:text-5xl">
+            {fmtNum(stats.siteViews, locale)}
+          </span>
+          <span className="text-sm font-medium text-muted sm:text-base">
+            {t("siteViews")}
+          </span>
         </div>
+        {learningCommitments > 0 && (
+          <>
+            <span className="hidden h-7 w-px bg-navy/10 sm:block" aria-hidden="true" />
+            <span className="text-xs font-medium text-muted sm:text-sm">
+              {fmtNum(learningCommitments, locale)} {t("learningCommitments")}
+            </span>
+          </>
+        )}
       </div>
     </section>
   );

@@ -796,8 +796,20 @@ assert(
 
 const globalCounterSettings = read("src/components/activity/GlobalCounter.tsx");
 assert(
-  globalCounterSettings.includes("settings.featureFlags.globalCounter"),
-  "Global counter should be controlled by the Lzecher site settings feature flag"
+  globalCounterSettings.includes("settings.featureFlags.globalCounter") &&
+    globalCounterSettings.includes("siteViews") &&
+    globalCounterSettings.includes('t("siteViews")') &&
+    globalCounterSettings.includes('fetch("/api/activity/global")'),
+  "Global counter should be controlled by the Lzecher site settings feature flag and show public aggregate site views"
+);
+
+const globalActivityRoute = read("src/app/api/activity/global/route.ts");
+assert(
+  globalActivityRoute.includes('.collection("lzecher_view_stats")') &&
+    globalActivityRoute.includes('.where("scope", "==", "site")') &&
+    globalActivityRoute.includes("siteViews") &&
+    globalActivityRoute.includes("s-maxage=60"),
+  "Global activity endpoint should expose only cached aggregate Lzecher site views"
 );
 
 const authContext = read("src/context/AuthContext.tsx");

@@ -682,10 +682,9 @@
     "error": "Something went wrong. Please try again."
   },
   "globalCounter": {
-    "heading": "Klal Yisrael learning together",
-    "mishnayos": "Mishnayos",
-    "tehillim": "Tehillim chapters",
-    "kabalos": "Kabalos"
+    "heading": "The Lzecher community",
+    "siteViews": "site visits",
+    "learningCommitments": "learning commitments"
   },
   "leaderboard": {
     "title": "Yasher Koach",

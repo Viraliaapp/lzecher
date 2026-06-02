@@ -682,10 +682,9 @@
     "error": "משהו השתבש. נסה שוב."
   },
   "globalCounter": {
-    "heading": "כלל ישראל לומד יחד",
-    "mishnayos": "משניות",
-    "tehillim": "פרקי תהלים",
-    "kabalos": "קבלות"
+    "heading": "כלל ישראל בלזכר",
+    "siteViews": "כניסות לאתר",
+    "learningCommitments": "התחייבויות לימוד"
   },
   "leaderboard": {
     "title": "יישר כח",
