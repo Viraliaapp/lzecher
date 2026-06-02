@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { TrackHierarchy } from "./TrackHierarchy";
+import { TehillimReaderDialog } from "./TehillimReaderDialog";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
@@ -37,6 +38,7 @@ import { Leaderboard } from "@/components/activity/Leaderboard";
 import { ActivityBubbles } from "@/components/activity/ActivityBubbles";
 import { fillShareMessage } from "@/lib/share-templates";
 import { formatHebrewHonoreeName } from "@/lib/honoree-name";
+import { getTehillimChapterNumberFromPortion } from "@/lib/tehillim-ref";
 
 const TRACK_EMOJI: Record<TrackType, string> = {
   mishnayos: "📖",
@@ -190,6 +192,9 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const [completingPortionIds, setCompletingPortionIds] = useState<string[]>([]);
   const [completerName, setCompleterName] = useState("");
   const [submittingComplete, setSubmittingComplete] = useState(false);
+  const [tehillimReaderPortion, setTehillimReaderPortion] = useState<Portion | null>(null);
+  const [readerCompleting, setReaderCompleting] = useState(false);
+  const [readerTakingNext, setReaderTakingNext] = useState(false);
 
   // Multi-select claim state
   const [multiClaimPortionIds, setMultiClaimPortionIds] = useState<string[]>([]);
@@ -334,14 +339,24 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         return;
       }
       claimSucceeded = true;
+      const claimedPortion: Portion = {
+        ...selectedPortion,
+        status: "claimed",
+        claimedByName: claimerName.trim(),
+        claimedBy: user?.uid || "anonymous",
+        claimedAt: Date.now(),
+      };
       setPortions((prev) =>
         prev.map((p) =>
           p.id === selectedPortion.id
-            ? { ...p, status: "claimed" as const, claimedByName: claimerName.trim(), claimedBy: user?.uid || "anonymous", claimedAt: Date.now() }
+            ? claimedPortion
             : p
         )
       );
       toast.success(t("claimSuccess"));
+      if (selectedPortion.trackType === "tehillim") {
+        setTehillimReaderPortion(claimedPortion);
+      }
     } catch (err) {
       console.error("[claim] error:", err);
       toast.error(t("claimError"));
@@ -371,6 +386,39 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     setCompleteDialogOpen(true);
   }
 
+  async function completePortionIds(ids: string[], completedByName: string): Promise<number | null> {
+    if (ids.length === 0) return null;
+    try {
+      const idToken = await auth.currentUser?.getIdToken().catch(() => null);
+      const res = await fetch("/api/claims/complete-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          portionIds: ids,
+          projectId: project.id,
+          completedByName,
+          idToken,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(locale === "he" ? "לא ניתן לסמן כנלמד" : (data.error || "Failed to mark complete"));
+        return null;
+      }
+      const now = Date.now();
+      setPortions(prev => prev.map(p =>
+        ids.includes(p.id) && p.status === "claimed"
+          ? { ...p, status: "completed" as const, completedAt: now, completedByName: completedByName || p.claimedByName }
+          : p
+      ));
+      return data.count || ids.length;
+    } catch(err) {
+      console.error("[complete] error:", err);
+      toast.error(locale === "he" ? "לא ניתן לסמן כנלמד" : "Failed to mark complete");
+      return null;
+    }
+  }
+
   async function confirmComplete() {
     const ids = completingPortion ? [completingPortion.id] : completingPortionIds;
     if (ids.length === 0) return;
@@ -380,35 +428,109 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     }
     setSubmittingComplete(true);
     try {
+      const count = await completePortionIds(ids, completerName.trim());
+      if (count === null) return;
+      toast.success(locale === "he" ? `${count} פרקים סומנו כנלמדו` : `${count} portions marked learned`);
+      setCompleteDialogOpen(false);
+    } finally {
+      setSubmittingComplete(false);
+    }
+  }
+
+  function findNextAvailableTehillim(current: Portion): Portion | null {
+    const currentSet = current.setNumber || 1;
+    const currentChapter = getTehillimChapterNumberFromPortion(current) || 0;
+    const byChapter = (a: Portion, b: Portion) => {
+      const ac = getTehillimChapterNumberFromPortion(a) || a.order || 0;
+      const bc = getTehillimChapterNumberFromPortion(b) || b.order || 0;
+      return ac - bc;
+    };
+    const available = portions.filter((p) => p.trackType === "tehillim" && p.status === "available");
+    const sameSet = available.filter((p) => (p.setNumber || 1) === currentSet).sort(byChapter);
+    const afterCurrent = sameSet.find((p) => (getTehillimChapterNumberFromPortion(p) || 0) > currentChapter);
+    if (afterCurrent) return afterCurrent;
+    if (sameSet[0]) return sameSet[0];
+
+    return available
+      .sort((a, b) => (b.setNumber || 1) - (a.setNumber || 1) || byChapter(a, b))[0] || null;
+  }
+
+  async function claimReaderNextPortion(portion: Portion, name: string): Promise<Portion | null> {
+    setClaimingId(portion.id);
+    try {
       const idToken = await auth.currentUser?.getIdToken().catch(() => null);
-      const res = await fetch("/api/claims/complete-batch", {
+      const res = await fetch("/api/claims", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          portionIds: ids,
+          portionId: portion.id,
           projectId: project.id,
-          completedByName: completerName.trim(),
+          claimerName: name,
           idToken,
+          locale,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(locale === "he" ? "לא ניתן לסמן כנלמד" : (data.error || "Failed to mark complete"));
+        toast.error(data.error || t("claimError"));
+        return null;
+      }
+      const claimedPortion: Portion = {
+        ...portion,
+        status: "claimed",
+        claimedByName: name,
+        claimedBy: user?.uid || "anonymous",
+        claimedAt: Date.now(),
+      };
+      setPortions((prev) => prev.map((p) => p.id === portion.id ? claimedPortion : p));
+      return claimedPortion;
+    } catch (err) {
+      console.error("[tehillim-reader-claim-next] error:", err);
+      toast.error(t("claimError"));
+      return null;
+    } finally {
+      setClaimingId(null);
+    }
+  }
+
+  async function completeReaderPortion(takeNext: boolean) {
+    if (!tehillimReaderPortion) return;
+    const name = (tehillimReaderPortion.claimedByName || user?.displayName || "").trim();
+    if (!name) {
+      toast.error(t("nameRequired") || (locale === "he" ? "נדרש שם כדי לסמן כנלמד" : "A name is required to mark learned"));
+      return;
+    }
+
+    const nextPortion = takeNext ? findNextAvailableTehillim(tehillimReaderPortion) : null;
+    if (takeNext) setReaderTakingNext(true);
+    else setReaderCompleting(true);
+
+    try {
+      const count = await completePortionIds([tehillimReaderPortion.id], name);
+      if (count === null) return;
+
+      if (!takeNext) {
+        toast.success(locale === "he" ? "הפרק סומן כנלמד" : "Chapter marked learned");
+        setTehillimReaderPortion(null);
         return;
       }
-      const now = Date.now();
-      setPortions(prev => prev.map(p =>
-        ids.includes(p.id) && p.status === "claimed"
-          ? { ...p, status: "completed" as const, completedAt: now, completedByName: completerName.trim() || p.claimedByName }
-          : p
-      ));
-      toast.success(locale === "he" ? `${data.count || ids.length} פרקים סומנו כנלמדו` : `${data.count || ids.length} portions marked learned`);
-      setCompleteDialogOpen(false);
-    } catch(err) {
-      console.error("[complete] error:", err);
-      toast.error(locale === "he" ? "לא ניתן לסמן כנלמד" : "Failed to mark complete");
+
+      if (!nextPortion) {
+        toast.success(locale === "he" ? "הפרק סומן כנלמד. לא נמצאו פרקים זמינים נוספים." : "Chapter marked learned. No more chapters are available.");
+        setTehillimReaderPortion(null);
+        return;
+      }
+
+      const claimedNext = await claimReaderNextPortion(nextPortion, name);
+      if (claimedNext) {
+        toast.success(locale === "he" ? "הפרק הבא נשמר עבורך" : "The next chapter is reserved for you");
+        setTehillimReaderPortion(claimedNext);
+      } else {
+        setTehillimReaderPortion(null);
+      }
     } finally {
-      setSubmittingComplete(false);
+      setReaderCompleting(false);
+      setReaderTakingNext(false);
     }
   }
 
@@ -1047,6 +1169,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 trackType={selectedTrack}
                 onClaim={handleClaimClick}
                 onComplete={handleComplete}
+                onReadTehillim={setTehillimReaderPortion}
                 onBulkComplete={handleBulkComplete}
                 onBulkClaim={handleBulkClaim}
                 onMultiClaim={handleMultiClaim}
@@ -1354,6 +1477,22 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TehillimReaderDialog
+        open={!!tehillimReaderPortion}
+        portion={tehillimReaderPortion}
+        project={project}
+        locale={locale}
+        completing={readerCompleting}
+        takingNext={readerTakingNext}
+        onOpenChange={(open) => {
+          if (!open && !readerCompleting && !readerTakingNext) {
+            setTehillimReaderPortion(null);
+          }
+        }}
+        onComplete={() => completeReaderPortion(false)}
+        onCompleteAndNext={() => completeReaderPortion(true)}
+      />
 
       <ReportModal slug={project.slug} open={reportOpen} onOpenChange={setReportOpen} />
     </div>

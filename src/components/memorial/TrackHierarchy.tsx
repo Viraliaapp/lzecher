@@ -53,6 +53,7 @@ interface Props {
   trackType: string;
   onClaim: (portion: Portion) => void;
   onComplete: (portion: Portion) => void;
+  onReadTehillim?: (portion: Portion) => void;
   onBulkComplete?: (portionIds: string[]) => void;
   onBulkClaim?: (scope: string, scopeId: string, scopeName: string) => void;
   onMultiClaim?: (portionIds: string[]) => void;
@@ -62,7 +63,7 @@ interface Props {
 }
 
 export function TrackHierarchy({
-  portions, trackType, onClaim, onComplete, onBulkComplete, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId,
+  portions, trackType, onClaim, onComplete, onReadTehillim, onBulkComplete, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId,
 }: Props) {
   const t = useTranslations("memorial");
   const bt = useTranslations("bulkClaim");
@@ -78,6 +79,7 @@ export function TrackHierarchy({
           trackType={trackType as "mishnayos" | "tehillim"}
           onClaim={onClaim}
           onComplete={onComplete}
+          onReadTehillim={onReadTehillim}
           onBulkComplete={onBulkComplete}
           onBulkClaim={onBulkClaim}
           onMultiClaim={onMultiClaim}
@@ -91,7 +93,7 @@ export function TrackHierarchy({
   }
 
   if (trackType === "mishnayos") return <MishnayosHierarchy {...{ portions, onClaim, onComplete, onBulkComplete, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId, t, bt, locale }} />;
-  if (trackType === "tehillim") return <TehillimHierarchy {...{ portions, onClaim, onComplete, onBulkComplete, onMultiClaim, claimingId, completing, currentUserId, t, locale }} />;
+  if (trackType === "tehillim") return <TehillimHierarchy {...{ portions, onClaim, onComplete, onReadTehillim, onBulkComplete, onMultiClaim, claimingId, completing, currentUserId, t, locale }} />;
   if (trackType === "shnayim_mikra") return <ShnayimMikraHierarchy {...{ portions, onClaim, onComplete, claimingId, completing, currentUserId, t, locale }} />;
 
   if (trackType === "kabalos" || trackType === "daf_yomi") {
@@ -363,7 +365,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onB
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function TehillimHierarchy({ portions, onClaim, onComplete, onBulkComplete, onMultiClaim, claimingId, completing, currentUserId, t, locale }: any) {
+function TehillimHierarchy({ portions, onClaim, onComplete, onReadTehillim, onBulkComplete, onMultiClaim, claimingId, completing, currentUserId, t, locale }: any) {
   const [expandedBook, setExpandedBook] = useState<number | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -475,6 +477,7 @@ function TehillimHierarchy({ portions, onClaim, onComplete, onBulkComplete, onMu
                             portion={p}
                             onClaim={onClaim}
                             onComplete={onComplete}
+                            onReadTehillim={onReadTehillim}
                             claimingId={claimingId}
                             completing={completing}
                             currentUserId={currentUserId}
@@ -705,6 +708,7 @@ interface PortionCardProps {
   portion: Portion;
   onClaim: (p: Portion) => void;
   onComplete?: (p: Portion) => void;
+  onReadTehillim?: (p: Portion) => void;
   claimingId: string | null;
   completing: boolean;
   currentUserId?: string;
@@ -720,7 +724,7 @@ interface PortionCardProps {
   onCompleteSelect?: (id: string) => void;
 }
 
-function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale, t, multiSelectMode, isSelected, onSelect, completeSelectMode, isCompleteSelected, onCompleteSelect }: PortionCardProps) {
+function PortionCard({ portion, onClaim, onComplete, onReadTehillim, claimingId, compact, locale, t, multiSelectMode, isSelected, onSelect, completeSelectMode, isCompleteSelected, onCompleteSelect }: PortionCardProps) {
   const p = portion;
   const verbForm = getVerbForm(p);
 
@@ -848,12 +852,22 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
               </div>
             ) : (
               onComplete && (
-                <button
-                  onClick={() => onComplete(p)}
-                  className="w-full text-[10px] text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded px-2 py-1 font-medium transition-colors"
-                >
-                  {locale === "he" ? "✓ סמן כנלמד" : locale === "es" ? "✓ Marcar completo" : locale === "fr" ? "✓ Marquer terminé" : "✓ Mark as learned"}
-                </button>
+                <div className="space-y-1.5">
+                  {p.trackType === "tehillim" && onReadTehillim && (
+                    <button
+                      onClick={() => onReadTehillim(p)}
+                      className="w-full rounded bg-navy px-2 py-1 text-[10px] font-bold text-cream transition-colors hover:bg-navy-soft"
+                    >
+                      {locale === "he" ? "פתח פרק" : "Open chapter"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onComplete(p)}
+                    className="w-full text-[10px] text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded px-2 py-1 font-medium transition-colors"
+                  >
+                    {locale === "he" ? "✓ סמן כנלמד" : locale === "es" ? "✓ Marcar completo" : locale === "fr" ? "✓ Marquer terminé" : "✓ Mark as learned"}
+                  </button>
+                </div>
               )
             )}
           </div>
@@ -894,7 +908,7 @@ function setLabel(setNumber: number, locale: string): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkComplete, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId, t, bt, locale }: any) {
+function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onReadTehillim, onBulkComplete, onBulkClaim, onMultiClaim, claimingId, completing, currentUserId, t, bt, locale }: any) {
   // Group by setNumber (descending = newest first)
   const setGroups = useMemo(() => {
     const groups: Record<number, Portion[]> = {};
@@ -1028,6 +1042,7 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
                         portions={setPortions}
                         onClaim={onClaim}
                         onComplete={onComplete}
+                        onReadTehillim={onReadTehillim}
                         onBulkComplete={onBulkComplete}
                         onBulkClaim={onBulkClaim}
                         onMultiClaim={onMultiClaim}
@@ -1041,6 +1056,7 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
                         portions={setPortions}
                         onClaim={onClaim}
                         onComplete={onComplete}
+                        onReadTehillim={onReadTehillim}
                         onBulkComplete={onBulkComplete}
                         onMultiClaim={onMultiClaim}
                         claimingId={claimingId}

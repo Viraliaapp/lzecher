@@ -72,6 +72,25 @@
   background: rgba(96, 78, 39, 0.9);
 }
 
+.tehillim-reader-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(96, 78, 39, 0.88) rgba(15, 27, 45, 0.06);
+}
+.tehillim-reader-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.tehillim-reader-scroll::-webkit-scrollbar-track {
+  background: rgba(15, 27, 45, 0.06);
+  border-radius: 999px;
+}
+.tehillim-reader-scroll::-webkit-scrollbar-thumb {
+  background: rgba(96, 78, 39, 0.88);
+  border-radius: 999px;
+}
+.tehillim-reader-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(55, 45, 26, 0.95);
+}
+
 /* ── Base styles ── */
 body {
   background-color: var(--lz-bg-page);
