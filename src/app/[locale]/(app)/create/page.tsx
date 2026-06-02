@@ -26,12 +26,18 @@ import {
   FileText,
   Share2,
   Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
 import type { TrackType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
+import {
+  DEFAULT_PROJECT_TYPE,
+  TRACKS_BY_PURPOSE,
+  type ProjectType,
+} from "@/lib/project-purpose";
 
 const TRACK_OPTIONS: {
   key: TrackType;
@@ -49,14 +55,19 @@ const TRACK_OPTIONS: {
   { key: "daf_yomi", icon: BookOpen, color: "bg-nezikin/10 text-nezikin" },
 ];
 
-const PROJECT_TYPES = [
-  { key: "shloshim", icon: "30" },
-  { key: "yahrzeit", icon: "📅" },
-  { key: "year", icon: "12" },
-  { key: "permanent", icon: "∞" },
-] as const;
+const PURPOSE_OPTIONS: {
+  key: ProjectType;
+  icon: typeof BookOpen;
+}[] = [
+  { key: "shiva", icon: Users },
+  { key: "shloshim", icon: Calendar },
+  { key: "year", icon: BookOpen },
+  { key: "yahrzeit", icon: Heart },
+  { key: "permanent", icon: ScrollText },
+];
 
 const STEPS = [
+  { key: "purpose", icon: Heart },
   { key: "honoree", icon: Users },
   { key: "dates", icon: Calendar },
   { key: "tribute", icon: FileText },
@@ -74,7 +85,14 @@ export default function CreateMemorialPage() {
   const [submitting, setSubmitting] = useState(false);
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
 
-  // Step 1: Honoree
+  // Step 1: Purpose
+  const [projectType, setProjectType] = useState<ProjectType>(DEFAULT_PROJECT_TYPE);
+  const [selectedTracks, setSelectedTracks] = useState<TrackType[]>(
+    TRACKS_BY_PURPOSE[DEFAULT_PROJECT_TYPE]
+  );
+  const [tracksTouched, setTracksTouched] = useState(false);
+
+  // Step 2: Honoree
   const [nameHebrew, setNameHebrew] = useState("");
   const [familyNameHebrew, setFamilyNameHebrew] = useState("");
   const [nameEnglish, setNameEnglish] = useState("");
@@ -84,38 +102,38 @@ export default function CreateMemorialPage() {
   const [gender, setGender] = useState<"male" | "female">("male");
   const [honorific, setHonorific] = useState("ז״ל");
 
-  // Step 2: Dates
+  // Step 3: Dates
   const [dateOfPassing, setDateOfPassing] = useState("");
   const [dateOfPassingHebrew, setDateOfPassingHebrew] = useState("");
   const [datePreference, setDatePreference] = useState<
     "hebrew" | "gregorian" | "both"
   >("both");
 
-  // Step 3: Tribute
+  // Step 4: Tribute
   const [biography, setBiography] = useState("");
 
-  // Step 4: Tracks — Kabalos is on by default along with Mishnayos because most
-  // family members will commit to one mitzvah even if they can't take a perek.
-  const [projectType, setProjectType] = useState<string>("permanent");
-  const [selectedTracks, setSelectedTracks] = useState<TrackType[]>([
-    "mishnayos",
-    "kabalos",
-  ]);
-
-  // Step 5: Sharing
+  // Step 6: Sharing
   const isPublic = true;
-  const [allowAnonymous, setAllowAnonymous] = useState(true);
   const [familyMessage, setFamilyMessage] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [startedByText, setStartedByText] = useState("");
   const [startedByVisible, setStartedByVisible] = useState(false);
 
   function toggleTrack(track: TrackType) {
+    setTracksTouched(true);
     setSelectedTracks((prev) =>
       prev.includes(track)
         ? prev.filter((t2) => t2 !== track)
         : [...prev, track]
     );
+  }
+
+  function selectProjectType(nextType: ProjectType) {
+    setProjectType(nextType);
+    if (!tracksTouched) {
+      setSelectedTracks(TRACKS_BY_PURPOSE[nextType]);
+    }
   }
 
   async function handleSubmit() {
@@ -155,12 +173,12 @@ export default function CreateMemorialPage() {
         biography: biography.trim() || null,
         familyMessage: familyMessage.trim() || null,
         isPublic,
-        allowAnonymous,
         password: password.trim() || undefined,
         startedByText: startedByText.trim() || null,
         startedByVisible,
         tracks: selectedTracks,
         projectType,
+        locale,
       };
 
       const res = await fetch("/api/projects/create", {
@@ -192,14 +210,16 @@ export default function CreateMemorialPage() {
   function canProceed(): boolean {
     switch (step) {
       case 0:
-        return !!nameHebrew.trim() && !!familyNameHebrew.trim();
+        return Boolean(projectType);
       case 1:
-        return true; // dates optional
+        return !!nameHebrew.trim() && !!familyNameHebrew.trim();
       case 2:
-        return true; // tribute optional
+        return true; // dates optional
       case 3:
-        return selectedTracks.length > 0;
+        return true; // tribute optional
       case 4:
+        return selectedTracks.length > 0;
+      case 5:
         return true; // sharing defaults are fine
       default:
         return true;
@@ -243,6 +263,30 @@ export default function CreateMemorialPage() {
               <Share2 className="h-5 w-5" />
               {t("shareLink")}
             </Button>
+            <Link href="/dashboard">
+              <Button variant="ghost" size="lg">
+                <BookOpen className="h-5 w-5" />
+                {t("dashboardButton")}
+              </Button>
+            </Link>
+          </div>
+        </div>
+        <div className="mt-8 rounded-xl border border-navy/10 bg-cream/40 p-4">
+          <h2 className="mb-3 font-heading text-lg font-semibold text-navy">
+            {t("launchChecklistTitle")}
+          </h2>
+          <div className="space-y-2">
+            {[
+              "launchChecklistReview",
+              password.trim() ? "launchChecklistPassword" : null,
+              "launchChecklistShare",
+              "launchChecklistDashboard",
+            ].filter(Boolean).map((key) => (
+              <div key={key} className="flex items-start gap-2 text-sm text-muted">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                <span>{t(key as string)}</span>
+              </div>
+            ))}
           </div>
         </div>
         <ShareTemplates honoree={honoree} url={memorialUrl} />
@@ -273,8 +317,74 @@ export default function CreateMemorialPage() {
         {t("stepOf", { current: step + 1, total: STEPS.length })}
       </p>
 
-      {/* ── Step 1: Honoree Details ── */}
+      {/* ── Step 1: Purpose ── */}
       {step === 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("purposeTitle")}</CardTitle>
+            <CardDescription>{t("purposeSubtitle")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div>
+              <label className="text-sm font-medium text-navy mb-2 block">
+                {t("purposeQuestion")}
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {PURPOSE_OPTIONS.map(({ key, icon: Icon }) => {
+                  const selected = projectType === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => selectProjectType(key)}
+                      className={cn(
+                        "p-4 rounded-xl border-2 text-start transition-all",
+                        selected
+                          ? "border-gold bg-gold/5"
+                          : "border-navy/10 hover:border-navy/20"
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={cn(
+                          "flex h-10 w-10 items-center justify-center rounded-lg shrink-0",
+                          selected ? "bg-gold/15 text-gold-deep" : "bg-cream text-muted"
+                        )}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-navy">
+                            {t(`type_${key}`)}
+                          </p>
+                          <p className="text-xs text-muted leading-relaxed">
+                            {t(`type_${key}_desc`)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {TRACKS_BY_PURPOSE[key].map((track) => (
+                          <Badge key={track} variant="secondary" className="text-[11px]">
+                            {t(`track_${track}`)}
+                          </Badge>
+                        ))}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted mt-2">{t("purposeTracksHint")}</p>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button onClick={() => setStep(1)}>
+                {t("next")}
+                <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Step 2: Honoree Details ── */}
+      {step === 1 && (
         <Card>
           <CardHeader>
             <CardTitle>{t("step1Title")}</CardTitle>
@@ -398,8 +508,12 @@ export default function CreateMemorialPage() {
               <p className="text-xs text-muted mt-1">{t("honorificHint")}</p>
             </div>
 
-            <div className="flex justify-end pt-2">
-              <Button onClick={() => setStep(1)} disabled={!canProceed()}>
+            <div className="flex justify-between pt-2">
+              <Button variant="ghost" onClick={() => setStep(0)}>
+                <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+                {t("back")}
+              </Button>
+              <Button onClick={() => setStep(2)} disabled={!canProceed()}>
                 {t("next")}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </Button>
@@ -408,8 +522,8 @@ export default function CreateMemorialPage() {
         </Card>
       )}
 
-      {/* ── Step 2: Dates ── */}
-      {step === 1 && (
+      {/* ── Step 3: Dates ── */}
+      {step === 2 && (
         <Card>
           <CardHeader>
             <CardTitle>{t("datesTitle")}</CardTitle>
@@ -468,11 +582,11 @@ export default function CreateMemorialPage() {
             )}
 
             <div className="flex justify-between pt-2">
-              <Button variant="ghost" onClick={() => setStep(0)}>
+              <Button variant="ghost" onClick={() => setStep(1)}>
                 <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
                 {t("back")}
               </Button>
-              <Button onClick={() => setStep(2)}>
+              <Button onClick={() => setStep(3)}>
                 {t("next")}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </Button>
@@ -481,8 +595,8 @@ export default function CreateMemorialPage() {
         </Card>
       )}
 
-      {/* ── Step 3: Tribute ── */}
-      {step === 2 && (
+      {/* ── Step 4: Tribute ── */}
+      {step === 3 && (
         <Card>
           <CardHeader>
             <CardTitle>{t("tributeTitle")}</CardTitle>
@@ -511,11 +625,11 @@ export default function CreateMemorialPage() {
             </div>
 
             <div className="flex justify-between pt-2">
-              <Button variant="ghost" onClick={() => setStep(1)}>
+              <Button variant="ghost" onClick={() => setStep(2)}>
                 <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
                 {t("back")}
               </Button>
-              <Button onClick={() => setStep(3)}>
+              <Button onClick={() => setStep(4)}>
                 {t("next")}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </Button>
@@ -524,48 +638,22 @@ export default function CreateMemorialPage() {
         </Card>
       )}
 
-      {/* ── Step 4: Project Type & Tracks ── */}
-      {step === 3 && (
+      {/* ── Step 5: Tracks ── */}
+      {step === 4 && (
         <Card>
           <CardHeader>
             <CardTitle>{t("tracksTitle")}</CardTitle>
             <CardDescription>{t("tracksSubtitle")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Project type */}
-            <div>
-              <label className="text-sm font-medium text-navy mb-2 block">
-                {t("projectType")}
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {PROJECT_TYPES.map(({ key, icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => setProjectType(key)}
-                    className={cn(
-                      "p-3 rounded-xl border-2 text-start transition-all",
-                      projectType === key
-                        ? "border-gold bg-gold/5"
-                        : "border-navy/10 hover:border-navy/20"
-                    )}
-                  >
-                    <span className="text-lg">{icon}</span>
-                    <p className="text-sm font-medium text-navy mt-1">
-                      {t(`type_${key}`)}
-                    </p>
-                    <p className="text-xs text-muted">
-                      {t(`type_${key}_desc`)}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Tracks */}
             <div>
               <label className="text-sm font-medium text-navy mb-2 block">
                 {t("activityTracks")}
               </label>
+              <p className="text-xs text-muted mb-3">
+                {t("activityTracksDesc", { purpose: t(`type_${projectType}`) })}
+              </p>
               <div className="space-y-2">
                 {TRACK_OPTIONS.map(({ key, icon: Icon, color }) => {
                   const selected = selectedTracks.includes(key);
@@ -606,12 +694,12 @@ export default function CreateMemorialPage() {
             </div>
 
             <div className="flex justify-between pt-2">
-              <Button variant="ghost" onClick={() => setStep(2)}>
+              <Button variant="ghost" onClick={() => setStep(3)}>
                 <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
                 {t("back")}
               </Button>
               <Button
-                onClick={() => setStep(4)}
+                onClick={() => setStep(5)}
                 disabled={selectedTracks.length === 0}
               >
                 {t("next")}
@@ -622,8 +710,8 @@ export default function CreateMemorialPage() {
         </Card>
       )}
 
-      {/* ── Step 5: Sharing & Privacy ── */}
-      {step === 4 && (
+      {/* ── Step 6: Sharing & Privacy ── */}
+      {step === 5 && (
         <Card>
           <CardHeader>
             <CardTitle>{t("sharingTitle")}</CardTitle>
@@ -639,13 +727,25 @@ export default function CreateMemorialPage() {
                   <p className="text-xs text-muted">{t("passwordSectionDesc")}</p>
                 </div>
               </div>
-              <Input
-                type="text"
-                placeholder={t("passwordPlaceholder")}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="off"
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder={t("passwordPlaceholder")}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value.slice(0, 128))}
+                  autoComplete="new-password"
+                  className="pr-11"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-muted transition-colors hover:text-navy"
+                  aria-label={showPassword ? t("hidePassword") : t("showPassword")}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-muted">{t("passwordHint")}</p>
             </div>
 
             {/* Started by */}
@@ -666,34 +766,18 @@ export default function CreateMemorialPage() {
               )}
             </div>
 
-            {/* Anonymous */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <Users className="h-5 w-5 text-muted mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-navy">
-                    {t("allowAnonymous")}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {t("allowAnonymousDesc")}
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={allowAnonymous}
-                onCheckedChange={setAllowAnonymous}
-              />
-            </div>
-
             {/* Family message */}
             <div>
-              <label className="text-sm font-medium text-navy mb-1 block">
-                {t("familyMessage")}
-              </label>
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <label className="text-sm font-medium text-navy">
+                  {t("familyMessage")}
+                </label>
+                <span className="text-xs text-muted">{familyMessage.length}/1000</span>
+              </div>
               <Textarea
                 placeholder={t("familyMessagePlaceholder")}
                 value={familyMessage}
-                onChange={(e) => setFamilyMessage(e.target.value)}
+                onChange={(e) => setFamilyMessage(e.target.value.slice(0, 1000))}
                 rows={3}
               />
             </div>
@@ -707,11 +791,11 @@ export default function CreateMemorialPage() {
             </div>
 
             <div className="flex justify-between pt-2">
-              <Button variant="ghost" onClick={() => setStep(3)}>
+              <Button variant="ghost" onClick={() => setStep(4)}>
                 <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
                 {t("back")}
               </Button>
-              <Button onClick={() => setStep(5)}>
+              <Button onClick={() => setStep(6)}>
                 {t("next")}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </Button>
@@ -720,18 +804,29 @@ export default function CreateMemorialPage() {
         </Card>
       )}
 
-      {/* ── Step 6: Review & Create ── */}
-      {step === 5 && (
+      {/* ── Step 7: Review & Create ── */}
+      {step === 6 && (
         <Card>
           <CardHeader>
             <CardTitle>{t("reviewTitle")}</CardTitle>
             <CardDescription>{t("reviewSubtitle")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Purpose */}
+            <ReviewSection
+              title={t("purposeSection")}
+              onEdit={() => setStep(0)}
+              editLabel={t("edit")}
+            >
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary">{t(`type_${projectType}`)}</Badge>
+              </div>
+            </ReviewSection>
+
             {/* Honoree summary */}
             <ReviewSection
               title={t("honoreeSection")}
-              onEdit={() => setStep(0)}
+              onEdit={() => setStep(1)}
               editLabel={t("edit")}
             >
               <p className="font-heading text-navy" dir="rtl">
@@ -752,7 +847,7 @@ export default function CreateMemorialPage() {
             {/* Dates */}
             <ReviewSection
               title={t("datesSection")}
-              onEdit={() => setStep(1)}
+              onEdit={() => setStep(2)}
               editLabel={t("edit")}
             >
               {dateOfPassingHebrew && (
@@ -772,7 +867,7 @@ export default function CreateMemorialPage() {
             {biography && (
               <ReviewSection
                 title={t("tributeSection")}
-                onEdit={() => setStep(2)}
+                onEdit={() => setStep(3)}
                 editLabel={t("edit")}
               >
                 <p className="text-sm text-muted line-clamp-3">{biography}</p>
@@ -782,11 +877,10 @@ export default function CreateMemorialPage() {
             {/* Tracks */}
             <ReviewSection
               title={t("tracksSection")}
-              onEdit={() => setStep(3)}
+              onEdit={() => setStep(4)}
               editLabel={t("edit")}
             >
               <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">{t(`type_${projectType}`)}</Badge>
                 {selectedTracks.map((track) => (
                   <Badge key={track}>{t(`track_${track}`)}</Badge>
                 ))}
@@ -796,7 +890,7 @@ export default function CreateMemorialPage() {
             {/* Sharing */}
             <ReviewSection
               title={t("sharingSection")}
-              onEdit={() => setStep(4)}
+              onEdit={() => setStep(5)}
               editLabel={t("edit")}
             >
               <div className="flex gap-2 flex-wrap">
@@ -805,9 +899,6 @@ export default function CreateMemorialPage() {
                 </Badge>
                 {startedByText.trim() && startedByVisible && (
                   <Badge variant="default">{t("startedByLabel")}</Badge>
-                )}
-                {allowAnonymous && (
-                  <Badge variant="default">{t("anonymousAllowed")}</Badge>
                 )}
               </div>
             </ReviewSection>
@@ -829,7 +920,7 @@ export default function CreateMemorialPage() {
               <Button
                 variant="ghost"
                 className="w-full"
-                onClick={() => setStep(4)}
+                onClick={() => setStep(5)}
               >
                 <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
                 {t("back")}

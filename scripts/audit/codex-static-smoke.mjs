@@ -10,6 +10,11 @@ const requiredMessagePaths = [
   ["dashboard", "signIn"],
   ["softLogin", "errorSendingLink"],
   ["contact", "error"],
+  ["create", "purposeTitle"],
+  ["create", "type_shiva"],
+  ["create", "type_yahrzeit"],
+  ["create", "passwordHint"],
+  ["create", "launchChecklistTitle"],
 ];
 
 function read(rel) {
@@ -80,6 +85,36 @@ const createRoute = read("src/app/api/projects/create/route.ts");
 assert(
   createRoute.includes("FIRESTORE_WRITE_CHUNK") && createRoute.includes("flushBatch"),
   "Project create route is missing chunked Firestore writes"
+);
+assert(
+  createRoute.includes("VALID_TRACKS") &&
+    createRoute.includes("normalizeProjectType") &&
+    createRoute.includes("completionTargetForPurpose") &&
+    createRoute.includes("dateOfPassingGregorian") &&
+    createRoute.includes("language: normalizedLocale") &&
+    createRoute.includes("allowAnonymous: true"),
+  "Project create route must validate purpose/tracks, store canonical dates, save creator locale, and keep participation open without exposing the old anonymous toggle"
+);
+
+const createPage = read("src/app/[locale]/(app)/create/page.tsx");
+assert(
+  createPage.includes("PURPOSE_OPTIONS") &&
+    createPage.includes("TRACKS_BY_PURPOSE") &&
+    createPage.includes('key: "yahrzeit"') &&
+    createPage.includes("launchChecklistTitle") &&
+    createPage.includes("showPassword") &&
+    !createPage.includes("setAllowAnonymous") &&
+    !createPage.includes('t("allowAnonymous")'),
+  "Create wizard must use the new purpose flow, keep yahrzeit, show launch/password polish, and remove the anonymous setting"
+);
+
+const projectPurpose = read("src/lib/project-purpose.ts");
+assert(
+  projectPurpose.includes('"shiva"') &&
+    projectPurpose.includes('"yahrzeit"') &&
+    projectPurpose.includes("completionTargetForPurpose") &&
+    projectPurpose.includes("A true yahrzeit target needs Hebrew-date anniversary logic"),
+  "Project purpose rules must include shiva/yahrzeit and avoid fake yahrzeit target dates"
 );
 
 const bulkRoute = read("src/app/api/claims/bulk/route.ts");

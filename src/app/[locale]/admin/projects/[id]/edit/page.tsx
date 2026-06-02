@@ -39,7 +39,6 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
   const [biography, setBiography] = useState("");
   const [familyMessage, setFamilyMessage] = useState("");
   const [isPublic, setIsPublic] = useState(true);
-  const [allowAnonymous, setAllowAnonymous] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(true);
 
   const [originalTracks, setOriginalTracks] = useState<TrackType[]>([]);
@@ -82,7 +81,6 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
         setBiography(data.biography || "");
         setFamilyMessage(data.familyMessage || "");
         setIsPublic(data.isPublic !== false);
-        setAllowAnonymous(data.allowAnonymous !== false);
         setShowLeaderboard(data.showLeaderboard !== false);
         const tracks = Array.isArray(data.tracks) ? data.tracks : [];
         setOriginalTracks(tracks);
@@ -124,7 +122,6 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
         biography: biography || null,
         familyMessage: familyMessage || null,
         isPublic,
-        allowAnonymous,
         showLeaderboard,
       };
       const trackChanges: { add?: TrackType[]; remove?: TrackType[]; confirmDestructive?: string } = {};
@@ -294,10 +291,6 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
           <div className="flex items-center justify-between border-t border-navy/5 pt-4">
             <span className="text-sm font-medium text-navy">{t("editProject.isPublic") || "Public"}</span>
             <Switch checked={isPublic} onCheckedChange={setIsPublic} />
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-navy">{t("editProject.allowAnonymous") || "Allow anonymous participation"}</span>
-            <Switch checked={allowAnonymous} onCheckedChange={setAllowAnonymous} />
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>

@@ -19,7 +19,7 @@ const ALL_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kaba
 const TRACK_LABELS: Record<TrackType, string> = {
   mishnayos: "משניות",
   tehillim: "תהלים",
-  shnayim_mikra: "שניים מקרא",
+  shnayim_mikra: "שניים מקרא ואחד תרגום",
   kabalos: "קבלות",
   daf_yomi: "דף יומי",
 };
@@ -48,7 +48,6 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
   const [biography, setBiography] = useState("");
   const [familyMessage, setFamilyMessage] = useState("");
   const [isPublic, setIsPublic] = useState(true);
-  const [allowAnonymous, setAllowAnonymous] = useState(true);
   const [repeatingSetEnabled, setRepeatingSetEnabled] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   // Protection + attribution + admin display
@@ -100,7 +99,6 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         setBiography(data.biography || "");
         setFamilyMessage(data.familyMessage || "");
         setIsPublic(data.isPublic !== false);
-        setAllowAnonymous(data.allowAnonymous !== false);
         setRepeatingSetEnabled(data.repeatingSetEnabled !== false);
         setShowLeaderboard(data.showLeaderboard !== false);
         setPasswordCurrentlySet(Boolean(data.isPasswordProtected));
@@ -144,7 +142,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         honorific, gender,
         biography: biography || null,
         familyMessage: familyMessage || null,
-        isPublic, allowAnonymous, repeatingSetEnabled, showLeaderboard,
+        isPublic, repeatingSetEnabled, showLeaderboard,
         startedByText: startedByText.trim() || null,
         startedByVisible,
         announcement: announcement.trim() || null,
@@ -353,7 +351,6 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
           <div className="space-y-3 border-t border-navy/5 pt-4">
             {[
               { label: "הנצחה ציבורית", value: isPublic, onChange: setIsPublic },
-              { label: "אפשר השתתפות ללא חשבון", value: allowAnonymous, onChange: setAllowAnonymous },
               { label: "אפשר מחזורים חוזרים (משניות / תהלים)", value: repeatingSetEnabled, onChange: setRepeatingSetEnabled },
               { label: "הצג יישר כח בעמוד", value: showLeaderboard, onChange: setShowLeaderboard },
             ].map(({ label, value, onChange }) => (

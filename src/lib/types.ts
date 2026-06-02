@@ -18,8 +18,10 @@ export interface MemorialProject {
   motherNameHebrew?: string;
   gender: "male" | "female";
   honorific?: string;
-  dateOfPassing: string; // Hebrew date string
-  dateOfPassingGregorian?: string;
+  dateOfPassing?: string | null; // canonical Gregorian ISO date (yyyy-mm-dd), kept for backward compatibility
+  dateOfPassingGregorian?: string | null;
+  dateOfPassingHebrew?: string | null;
+  datePreference?: "hebrew" | "gregorian" | "both";
   photoURL?: string;
   biography?: string;
   familyMessage?: string;
@@ -53,8 +55,9 @@ export interface MemorialProject {
   repeatingSetEnabled?: boolean; // default true for mishnayos/tehillim
 
   // Completion target
+  projectType?: "shiva" | "shloshim" | "year" | "yahrzeit" | "permanent";
   completionTargetDate?: number | null;
-  completionTargetType?: "shloshim" | "year" | "yahrzeit" | "custom" | "open";
+  completionTargetType?: "shiva" | "shloshim" | "year" | "yahrzeit" | "custom" | "open";
 
   // Tracks enabled
   tracks: TrackType[];

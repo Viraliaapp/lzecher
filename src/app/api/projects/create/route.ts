@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { hashPassword } from "@/lib/password";
+import {
+  completionTargetForPurpose,
+  normalizeIsoDate,
+  normalizeProjectType,
+} from "@/lib/project-purpose";
+import type { TrackType } from "@/lib/types";
 
 const FIRESTORE_WRITE_CHUNK = 450;
+const VALID_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
+const VALID_DATE_PREFERENCES = ["hebrew", "gregorian", "both"] as const;
+const VALID_LOCALES = ["en", "he", "es", "fr"] as const;
+const VALID_GENDERS = ["male", "female"] as const;
 
 function slugify(text: string): string {
   const base = text
@@ -14,6 +24,45 @@ function slugify(text: string): string {
   const suffix = Math.random().toString(36).slice(2, 8);
   // If text was all non-Latin (e.g., Hebrew), base will be empty
   return base ? `${base}-${suffix}` : `memorial-${suffix}`;
+}
+
+function textOrNull(value: unknown, maxLength: number): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, maxLength);
+}
+
+function requiredText(value: unknown, maxLength: number): string | null {
+  return textOrNull(value, maxLength);
+}
+
+function normalizeDatePreference(value: unknown): (typeof VALID_DATE_PREFERENCES)[number] {
+  return typeof value === "string" && VALID_DATE_PREFERENCES.includes(value as (typeof VALID_DATE_PREFERENCES)[number])
+    ? value as (typeof VALID_DATE_PREFERENCES)[number]
+    : "both";
+}
+
+function normalizeLocale(value: unknown): (typeof VALID_LOCALES)[number] {
+  return typeof value === "string" && VALID_LOCALES.includes(value as (typeof VALID_LOCALES)[number])
+    ? value as (typeof VALID_LOCALES)[number]
+    : "en";
+}
+
+function normalizeGender(value: unknown): (typeof VALID_GENDERS)[number] {
+  return typeof value === "string" && VALID_GENDERS.includes(value as (typeof VALID_GENDERS)[number])
+    ? value as (typeof VALID_GENDERS)[number]
+    : "male";
+}
+
+function normalizeTracks(value: unknown): TrackType[] | null {
+  if (!Array.isArray(value)) return null;
+  const unique = [...new Set(value)];
+  if (unique.length === 0) return null;
+  if (!unique.every((track): track is TrackType => VALID_TRACKS.includes(track as TrackType))) {
+    return null;
+  }
+  return unique;
 }
 
 export async function POST(request: NextRequest) {
@@ -35,29 +84,51 @@ export async function POST(request: NextRequest) {
       biography,
       familyMessage,
       isPublic,
-      allowAnonymous,
       tracks,
       projectType,
       password,
       startedByText,
       startedByVisible,
+      locale,
     } = body;
 
     if (!idToken) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    if (!nameHebrew?.trim()) {
+    const nameHebrewClean = requiredText(nameHebrew, 120);
+    const familyNameHebrewClean = requiredText(familyNameHebrew, 120);
+    if (!nameHebrewClean) {
       return NextResponse.json({ error: "Hebrew name is required" }, { status: 400 });
     }
-    if (!familyNameHebrew?.trim()) {
+    if (!familyNameHebrewClean) {
       return NextResponse.json({ error: "Hebrew family name is required" }, { status: 400 });
     }
-    if (!tracks || tracks.length === 0) {
+    const normalizedTracks = normalizeTracks(tracks);
+    if (!normalizedTracks) {
       return NextResponse.json(
-        { error: "At least one track is required" },
+        { error: "At least one valid track is required" },
         { status: 400 }
       );
     }
+    const normalizedProjectType = normalizeProjectType(projectType);
+    const normalizedDateOfPassing = normalizeIsoDate(dateOfPassing);
+    if (dateOfPassing && !normalizedDateOfPassing) {
+      return NextResponse.json({ error: "Invalid date of passing" }, { status: 400 });
+    }
+    const normalizedDatePreference = normalizeDatePreference(datePreference);
+    const normalizedLocale = normalizeLocale(locale);
+    const normalizedGender = normalizeGender(gender);
+    const nameEnglishClean = textOrNull(nameEnglish, 120);
+    const familyNameEnglishClean = textOrNull(familyNameEnglish, 120);
+    const fatherNameHebrewClean = textOrNull(fatherNameHebrew, 120);
+    const motherNameHebrewClean = textOrNull(motherNameHebrew, 120);
+    const honorificClean = textOrNull(honorific, 40) || (normalizedGender === "female" ? "ע״ה" : "ז״ל");
+    const biographyClean = textOrNull(biography, 2000);
+    const familyMessageClean = textOrNull(familyMessage, 1000);
+    const startedByTextClean = textOrNull(startedByText, 160);
+    const dateOfPassingHebrewClean = textOrNull(dateOfPassingHebrew, 80);
+    const nameSpanishClean = textOrNull(body.nameSpanish, 120);
+    const nameFrenchClean = textOrNull(body.nameFrench, 120);
 
     // Verify the ID token
     const adminAuth = getAdminAuth();
@@ -81,11 +152,15 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getAdminDb();
-    const slug = slugify(nameEnglish?.trim() || nameHebrew);
+    const slug = slugify(nameEnglishClean || nameHebrewClean);
 
     // Optional password protection (hashed, never stored plaintext)
     const pw = typeof password === "string" ? password.trim() : "";
+    if (pw && (pw.length < 3 || pw.length > 128)) {
+      return NextResponse.json({ error: "Password must be between 3 and 128 characters" }, { status: 400 });
+    }
     const pwFields = pw ? hashPassword(pw) : { passwordHash: null, passwordSalt: null };
+    const completionTarget = completionTargetForPurpose(normalizedProjectType, normalizedDateOfPassing);
 
     const projectRef = db.collection("lzecher_projects").doc();
     const projectData = {
@@ -95,33 +170,36 @@ export async function POST(request: NextRequest) {
       createdByEmail: email || null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      nameHebrew: nameHebrew.trim(),
-      familyNameHebrew: familyNameHebrew.trim(),
-      nameEnglish: nameEnglish?.trim() || null,
-      familyNameEnglish: familyNameEnglish?.trim() || null,
-      nameSpanish: body.nameSpanish?.trim() || null,
-      nameFrench: body.nameFrench?.trim() || null,
-      fatherNameHebrew: fatherNameHebrew?.trim() || null,
-      motherNameHebrew: motherNameHebrew?.trim() || null,
-      gender: gender || "male",
-      honorific: honorific || (gender === "female" ? "ע״ה" : "ז״ל"),
-      dateOfPassing: dateOfPassing || null,
-      dateOfPassingHebrew: dateOfPassingHebrew || null,
-      datePreference: datePreference || "both",
+      nameHebrew: nameHebrewClean,
+      familyNameHebrew: familyNameHebrewClean,
+      nameEnglish: nameEnglishClean,
+      familyNameEnglish: familyNameEnglishClean,
+      nameSpanish: nameSpanishClean,
+      nameFrench: nameFrenchClean,
+      fatherNameHebrew: fatherNameHebrewClean,
+      motherNameHebrew: motherNameHebrewClean,
+      gender: normalizedGender,
+      honorific: honorificClean,
+      dateOfPassing: normalizedDateOfPassing,
+      dateOfPassingGregorian: normalizedDateOfPassing,
+      dateOfPassingHebrew: dateOfPassingHebrewClean,
+      datePreference: normalizedDatePreference,
       photoURL: null,
-      biography: biography?.trim() || null,
-      familyMessage: familyMessage?.trim() || null,
+      biography: biographyClean,
+      familyMessage: familyMessageClean,
       isPublic: isPublic !== false, // deprecated; retained for backward-compat
       passwordHash: pwFields.passwordHash,
       passwordSalt: pwFields.passwordSalt,
-      startedByText: typeof startedByText === "string" && startedByText.trim() ? startedByText.trim() : null,
-      startedByVisible: Boolean(startedByVisible),
-      allowAnonymous: allowAnonymous !== false,
+      startedByText: startedByTextClean,
+      startedByVisible: Boolean(startedByTextClean && startedByVisible),
+      allowAnonymous: true,
       showLeaderboard: true,
       status: "active",
       reportsCount: 0,
-      projectType: projectType || "permanent",
-      tracks,
+      projectType: normalizedProjectType,
+      completionTargetDate: completionTarget.completionTargetDate,
+      completionTargetType: completionTarget.completionTargetType,
+      tracks: normalizedTracks,
       repeatingSetEnabled: true,
       totalSets: 1,
       totalPortions: 0,
@@ -159,7 +237,7 @@ export async function POST(request: NextRequest) {
         batchCount++;
       };
 
-      if (tracks.includes("mishnayos")) {
+      if (normalizedTracks.includes("mishnayos")) {
         for (const m of MASECHTOS) {
           for (let p = 1; p <= m.perakim; p++) {
             order++;
@@ -176,7 +254,7 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-      if (tracks.includes("tehillim")) {
+      if (normalizedTracks.includes("tehillim")) {
         for (const mz of TEHILLIM) {
           order++;
           const ref = db.collection("lzecher_portions").doc();
@@ -191,7 +269,7 @@ export async function POST(request: NextRequest) {
           totalPortions++;
         }
       }
-      if (tracks.includes("shnayim_mikra")) {
+      if (normalizedTracks.includes("shnayim_mikra")) {
         for (const p of PARSHIYOT) {
           order++;
           const ref = db.collection("lzecher_portions").doc();
@@ -207,7 +285,7 @@ export async function POST(request: NextRequest) {
         }
       }
       // 'kabalos' track — inclusive, bli neder, one portion per template
-      if (tracks.includes("kabalos") || tracks.includes("mitzvot" as never)) {
+      if (normalizedTracks.includes("kabalos")) {
         for (const mt of MITZVAH_TEMPLATES) {
           order++;
           const ref = db.collection("lzecher_portions").doc();
@@ -225,7 +303,7 @@ export async function POST(request: NextRequest) {
           totalPortions++;
         }
       }
-      if (tracks.includes("daf_yomi")) {
+      if (normalizedTracks.includes("daf_yomi")) {
         order++;
         const ref = db.collection("lzecher_portions").doc();
         await setPortion(ref, {
@@ -276,7 +354,7 @@ export async function POST(request: NextRequest) {
         displayName: null,
         photoURL: null,
         createdAt: Date.now(),
-        language: "en",
+        language: normalizedLocale,
         totalClaimed: 0,
         totalCompleted: 0,
         projectsCreated: 1,
