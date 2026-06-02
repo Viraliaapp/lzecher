@@ -29,6 +29,7 @@ const EDITABLE_FIELDS = new Set([
   "datePreference",
   "biography",
   "familyMessage",
+  "shareMessage",
   "isPublic",
   "photoURL",
   "projectType",
@@ -43,7 +44,7 @@ const EDITABLE_FIELDS = new Set([
   "customDedication",
 ]);
 
-const VALID_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
+const VALID_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos"];
 const BATCH_CHUNK = 400;
 
 export async function POST(

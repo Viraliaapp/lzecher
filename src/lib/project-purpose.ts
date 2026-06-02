@@ -15,7 +15,7 @@ export const DEFAULT_PROJECT_TYPE: ProjectType = "shiva";
 export const TRACKS_BY_PURPOSE: Record<ProjectType, TrackType[]> = {
   shiva: ["mishnayos", "tehillim", "kabalos"],
   shloshim: ["mishnayos", "tehillim", "kabalos"],
-  year: ["mishnayos", "kabalos", "daf_yomi"],
+  year: ["mishnayos", "tehillim", "kabalos"],
   yahrzeit: ["mishnayos", "tehillim"],
   permanent: ["mishnayos", "kabalos"],
 };

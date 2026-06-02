@@ -257,3 +257,14 @@ Tizkou lemitsvot.`,
 export function fillTemplate(text: string, honoree: string, url: string): string {
   return text.replace(/\{name\}/g, honoree).replace(/\{link\}/g, url);
 }
+
+export function fillShareMessage(text: string | null | undefined, url: string): string {
+  const trimmed = typeof text === "string" ? text.trim() : "";
+  if (!trimmed) return url;
+  if (trimmed.includes("{link}")) return trimmed.replace(/\{link\}/g, url);
+  return `${trimmed}\n\n${url}`;
+}
+
+export function fillTemplateForDraft(text: string, honoree: string): string {
+  return text.replace(/\{name\}/g, honoree);
+}

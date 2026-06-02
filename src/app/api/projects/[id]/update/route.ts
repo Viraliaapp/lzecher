@@ -17,14 +17,14 @@ const EDITABLE_FIELDS = new Set([
   "nameEnglish", "familyNameEnglish", "gender", "honorific",
   "dateOfPassing", "dateOfPassingHebrew", "dateOfPassingGregorian",
   "dateOfBirth", "dateOfBirthHebrew", "datePreference",
-  "biography", "familyMessage", "isPublic",
+  "biography", "familyMessage", "shareMessage", "isPublic",
   "photoURL", "projectType", "completionTargetDate", "completionTargetType",
   "repeatingSetEnabled", "showLeaderboard",
   // password protection + attribution + admin display
   "startedByText", "startedByVisible", "announcement", "locked", "customDedication",
 ]);
 
-const VALID_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
+const VALID_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos"];
 const BATCH_CHUNK = 400;
 
 export async function POST(

@@ -82,13 +82,6 @@ export default function HalachicGuidancePage() {
             </h2>
             <p className="text-muted leading-relaxed">{t("general_content")}</p>
           </div>
-
-          {/* Disclaimer */}
-          <div className="mt-10 rounded-xl bg-cream-warm border border-gold/10 p-6 sm:p-8 text-center">
-            <p className="text-navy/70 text-sm leading-relaxed font-serif italic">
-              {t("disclaimer")}
-            </p>
-          </div>
         </div>
       </main>
       <Footer />

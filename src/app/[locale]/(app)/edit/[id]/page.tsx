@@ -15,7 +15,7 @@ import { auth } from "@/lib/firebase/config";
 import type { TrackType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const ALL_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
+const ALL_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos"];
 const TRACK_LABELS: Record<TrackType, string> = {
   mishnayos: "משניות",
   tehillim: "תהלים",
@@ -47,6 +47,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
   const [gender, setGender] = useState<"male" | "female">("male");
   const [biography, setBiography] = useState("");
   const [familyMessage, setFamilyMessage] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [repeatingSetEnabled, setRepeatingSetEnabled] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(true);
@@ -98,6 +99,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         setGender(data.gender || "male");
         setBiography(data.biography || "");
         setFamilyMessage(data.familyMessage || "");
+        setShareMessage(data.shareMessage || "");
         setIsPublic(data.isPublic !== false);
         setRepeatingSetEnabled(data.repeatingSetEnabled !== false);
         setShowLeaderboard(data.showLeaderboard !== false);
@@ -142,6 +144,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         honorific, gender,
         biography: biography || null,
         familyMessage: familyMessage || null,
+        shareMessage: shareMessage.trim() || null,
         isPublic, repeatingSetEnabled, showLeaderboard,
         startedByText: startedByText.trim() || null,
         startedByVisible,
@@ -330,6 +333,17 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
           <div>
             <label className="text-sm font-medium text-navy mb-1 block">הודעה לבני המשפחה</label>
             <Textarea value={familyMessage} onChange={e => setFamilyMessage(e.target.value)} rows={2} dir={locale === "he" ? "rtl" : "ltr"} />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-navy mb-1 block">נוסח שיתוף</label>
+            <Textarea
+              value={shareMessage}
+              onChange={e => setShareMessage(e.target.value.slice(0, 2000))}
+              rows={4}
+              dir={locale === "he" ? "rtl" : "ltr"}
+              placeholder="הנוסח שכפתור השיתוף הציבורי ישתמש בו. אפשר להשאיר {link} במקום שבו הקישור אמור להופיע."
+            />
+            <p className="text-xs text-muted mt-1">כפתור השיתוף בדף ההנצחה ישתמש בנוסח הזה. אם לא תכתבו {"{link}"}, הקישור יתווסף בסוף.</p>
           </div>
 
           {/* Tracks */}

@@ -10,7 +10,7 @@ import {
 import type { TrackType } from "@/lib/types";
 
 const FIRESTORE_WRITE_CHUNK = 450;
-const VALID_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
+const VALID_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos"];
 const VALID_DATE_PREFERENCES = ["hebrew", "gregorian", "both"] as const;
 const VALID_LOCALES = ["en", "he", "es", "fr"] as const;
 const VALID_GENDERS = ["male", "female"] as const;
@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
       datePreference,
       biography,
       familyMessage,
+      shareMessage,
       isPublic,
       tracks,
       projectType,
@@ -125,6 +126,7 @@ export async function POST(request: NextRequest) {
     const honorificClean = textOrNull(honorific, 40) || (normalizedGender === "female" ? "ע״ה" : "ז״ל");
     const biographyClean = textOrNull(biography, 2000);
     const familyMessageClean = textOrNull(familyMessage, 1000);
+    const shareMessageClean = textOrNull(shareMessage, 2000);
     const startedByTextClean = textOrNull(startedByText, 160);
     const dateOfPassingHebrewClean = textOrNull(dateOfPassingHebrew, 80);
     const nameSpanishClean = textOrNull(body.nameSpanish, 120);
@@ -187,6 +189,7 @@ export async function POST(request: NextRequest) {
       photoURL: null,
       biography: biographyClean,
       familyMessage: familyMessageClean,
+      shareMessage: shareMessageClean,
       isPublic: isPublic !== false, // deprecated; retained for backward-compat
       passwordHash: pwFields.passwordHash,
       passwordSalt: pwFields.passwordSalt,
@@ -303,21 +306,6 @@ export async function POST(request: NextRequest) {
           totalPortions++;
         }
       }
-      if (normalizedTracks.includes("daf_yomi")) {
-        order++;
-        const ref = db.collection("lzecher_portions").doc();
-        await setPortion(ref, {
-          id: ref.id, projectId: projectRef.id, trackType: "daf_yomi",
-          claimMode: "inclusive",
-          reference: "Daf Yomi commitment",
-          displayName: "Daf Yomi",
-          displayNameHebrew: "דף יומי",
-          order, status: "available",
-          currentClaimerCount: 0,
-        });
-        totalPortions++;
-      }
-
       await flushBatch();
       await projectRef.update({ totalPortions });
     } catch (seedErr) {

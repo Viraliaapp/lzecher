@@ -57,7 +57,8 @@ export function activitySentence(
   switch (locale) {
     case "he": {
       const who = e.name || "מישהו";
-      return `${who} בחר/ה ${unit} עבור ${honoree}`;
+      const verb = e.trackType === "mishnayos" || e.trackType === "shnayim_mikra" ? "לקח" : "לקח/ה";
+      return `${who} ${verb} ${unit} עבור ${honoree}`;
     }
     case "es": {
       const who = e.name || "Alguien";

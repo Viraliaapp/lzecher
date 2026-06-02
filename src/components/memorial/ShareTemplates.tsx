@@ -8,12 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, Copy, Mail, MessageCircle, Printer, QrCode, Share2 } from "lucide-react";
 import { toast } from "sonner";
-import { SHARE_TEMPLATES, fillTemplate, type TemplateKey } from "@/lib/share-templates";
+import { SHARE_TEMPLATES, fillShareMessage, fillTemplate, type TemplateKey } from "@/lib/share-templates";
 import { cn } from "@/lib/utils";
 
 interface Props {
   honoree: string;
   url: string;
+  preferredText?: string | null;
 }
 
 const LOCALE_LABELS: Record<string, string> = {
@@ -23,18 +24,24 @@ const LOCALE_LABELS: Record<string, string> = {
   fr: "Français",
 };
 
-export function ShareTemplates({ honoree, url }: Props) {
+export function ShareTemplates({ honoree, url, preferredText }: Props) {
   const locale = useLocale() as "he" | "en" | "es" | "fr";
-  const [activeKey, setActiveKey] = useState<TemplateKey>("shiva");
+  const [activeKey, setActiveKey] = useState<TemplateKey | "project" | "custom">(preferredText ? "project" : "shiva");
   const [displayLocale, setDisplayLocale] = useState<"he" | "en" | "es" | "fr">(locale);
   const [customText, setCustomText] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
 
   const activeTemplate = SHARE_TEMPLATES.find(t => t.key === activeKey);
-  const isCustom = activeKey === ("custom" as TemplateKey);
+  const isCustom = activeKey === "custom";
+  const isProjectText = activeKey === "project";
   const rawText = isCustom ? customText : (activeTemplate?.text[displayLocale] || "");
-  const filledText = isCustom ? `${customText}\n\n${url}` : fillTemplate(rawText, honoree, url);
+  const filledText = isProjectText
+    ? fillShareMessage(preferredText, url)
+    : isCustom
+      ? fillShareMessage(customText, url)
+      : fillTemplate(rawText, honoree, url);
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(filledText)}`;
   const emailUrl = `mailto:?subject=${encodeURIComponent(honoree)}&body=${encodeURIComponent(filledText)}`;
 
@@ -64,7 +71,22 @@ export function ShareTemplates({ honoree, url }: Props) {
     }
   }
 
-  const allKeys: (TemplateKey | "custom")[] = [...SHARE_TEMPLATES.map(t => t.key), "custom"];
+  async function handleCopyLink() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      toast.success(displayLocale === "he" ? "הקישור הועתק!" : "Link copied!");
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      toast.error("Copy failed");
+    }
+  }
+
+  const allKeys: (TemplateKey | "project" | "custom")[] = [
+    ...(preferredText ? (["project"] as const) : []),
+    ...SHARE_TEMPLATES.map(t => t.key),
+    "custom",
+  ];
 
   return (
     <div className="mt-8 border-t border-navy/10 pt-6">
@@ -78,13 +100,15 @@ export function ShareTemplates({ honoree, url }: Props) {
       {/* Template tabs */}
       <div className="flex flex-wrap gap-1.5 mb-3">
         {allKeys.map(key => {
-          const label = key === "custom"
-            ? (displayLocale === "he" ? "כתיבה אישית" : "Custom")
-            : (SHARE_TEMPLATES.find(t => t.key === key)?.label[displayLocale] || key);
+          const label = key === "project"
+            ? (displayLocale === "he" ? "נוסח הדף" : "Project text")
+            : key === "custom"
+              ? (displayLocale === "he" ? "כתיבה אישית" : "Custom")
+              : (SHARE_TEMPLATES.find(t => t.key === key)?.label[displayLocale] || key);
           return (
             <button
               key={key}
-              onClick={() => setActiveKey(key as TemplateKey)}
+              onClick={() => setActiveKey(key)}
               className={cn(
                 "px-3 py-1 rounded-full text-xs font-medium transition-all border",
                 activeKey === key
@@ -119,7 +143,14 @@ export function ShareTemplates({ honoree, url }: Props) {
       {/* Template text */}
       <Card className="mb-3">
         <CardContent className="p-3">
-          {isCustom ? (
+          {isProjectText ? (
+            <pre
+              dir={displayLocale === "he" ? "rtl" : "ltr"}
+              className="text-sm text-navy whitespace-pre-wrap font-sans leading-relaxed"
+            >
+              {filledText}
+            </pre>
+          ) : isCustom ? (
             <>
               <Textarea
                 dir={displayLocale === "he" ? "rtl" : "ltr"}
@@ -160,6 +191,12 @@ export function ShareTemplates({ honoree, url }: Props) {
       )}
 
       <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={handleCopyLink} className="flex-1 sm:flex-none">
+          {copiedLink ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copiedLink
+            ? (displayLocale === "he" ? "הועתק!" : "Copied!")
+            : (displayLocale === "he" ? "קישור בלבד" : "Link only")}
+        </Button>
         <Button size="sm" onClick={handleCopy} className="flex-1 sm:flex-none">
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           {copied

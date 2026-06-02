@@ -26,7 +26,7 @@ function homeMeta(locale: string, description: string) {
   if (locale === "he") {
     return {
       title: "לזכר · לימוד תורה לעילוי נשמה",
-      description: "יצירת דפי הנצחה ללימוד משניות, תהלים, שניים מקרא, קבלות טובות ודף יומי לעילוי נשמת יקיריכם.",
+      description: "יצירת דפי הנצחה ללימוד משניות, תהלים, שניים מקרא וקבלות טובות לעילוי נשמת יקיריכם.",
     };
   }
   return {

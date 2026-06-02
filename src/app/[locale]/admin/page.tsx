@@ -581,6 +581,7 @@ export default function AdminPage() {
               <ShareTemplates
                 honoree={`${shareProject.nameHebrew} ${shareProject.familyNameHebrew || ""}`.trim()}
                 url={`${typeof window !== "undefined" ? window.location.origin : ""}/${locale}/memorial/${shareProject.slug}`}
+                preferredText={shareProject.shareMessage}
               />
             </>
           )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -33,6 +33,7 @@ import { auth } from "@/lib/firebase/config";
 import type { TrackType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
+import { SHARE_TEMPLATES, fillTemplateForDraft, type TemplateKey } from "@/lib/share-templates";
 import {
   DEFAULT_PROJECT_TYPE,
   TRACKS_BY_PURPOSE,
@@ -52,7 +53,6 @@ const TRACK_OPTIONS: {
     color: "bg-zeraim/10 text-zeraim",
   },
   { key: "kabalos", icon: Heart, color: "bg-nashim/10 text-nashim" },
-  { key: "daf_yomi", icon: BookOpen, color: "bg-nezikin/10 text-nezikin" },
 ];
 
 const PURPOSE_OPTIONS: {
@@ -119,6 +119,25 @@ export default function CreateMemorialPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [startedByText, setStartedByText] = useState("");
   const [startedByVisible, setStartedByVisible] = useState(false);
+  const [shareTemplateKey, setShareTemplateKey] = useState<TemplateKey>("shiva");
+  const [shareMessage, setShareMessage] = useState("");
+  const [shareMessageTouched, setShareMessageTouched] = useState(false);
+
+  const shareLocale = (["he", "en", "es", "fr"].includes(locale) ? locale : "he") as "he" | "en" | "es" | "fr";
+  const honoreeForShare = `${nameHebrew} ${familyNameHebrew}`.trim() || t("shareHonoreeFallback");
+
+  const buildShareDraft = useCallback((templateKey: TemplateKey) => {
+    const template = SHARE_TEMPLATES.find((item) => item.key === templateKey) || SHARE_TEMPLATES[0];
+    return fillTemplateForDraft(template.text[shareLocale] || template.text.he, honoreeForShare);
+  }, [honoreeForShare, shareLocale]);
+
+  function selectShareTemplate(templateKey: TemplateKey) {
+    setShareTemplateKey(templateKey);
+    setShareMessage("");
+    setShareMessageTouched(false);
+  }
+
+  const preparedShareMessage = shareMessageTouched ? shareMessage : buildShareDraft(shareTemplateKey);
 
   function toggleTrack(track: TrackType) {
     setTracksTouched(true);
@@ -172,6 +191,7 @@ export default function CreateMemorialPage() {
         datePreference,
         biography: biography.trim() || null,
         familyMessage: familyMessage.trim() || null,
+        shareMessage: (preparedShareMessage.trim() || buildShareDraft(shareTemplateKey)).slice(0, 2000),
         isPublic,
         password: password.trim() || undefined,
         startedByText: startedByText.trim() || null,
@@ -289,7 +309,7 @@ export default function CreateMemorialPage() {
             ))}
           </div>
         </div>
-        <ShareTemplates honoree={honoree} url={memorialUrl} />
+        <ShareTemplates honoree={honoree} url={memorialUrl} preferredText={preparedShareMessage} />
       </div>
     );
   }
@@ -720,6 +740,45 @@ export default function CreateMemorialPage() {
           <CardContent className="space-y-6">
             {/* Password protection (replaces public/private) */}
             <div>
+              <div className="mb-2 flex items-start gap-3">
+                <Share2 className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
+                <div>
+                  <p className="font-medium text-navy">{t("shareMessageTitle")}</p>
+                  <p className="text-xs text-muted">{t("shareMessageHelp")}</p>
+                </div>
+              </div>
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {SHARE_TEMPLATES.map((template) => (
+                  <button
+                    key={template.key}
+                    type="button"
+                    onClick={() => selectShareTemplate(template.key)}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-medium transition-all",
+                      shareTemplateKey === template.key
+                        ? "border-navy bg-navy text-cream"
+                        : "border-navy/20 text-navy hover:border-navy/40"
+                    )}
+                  >
+                    {template.label[shareLocale]}
+                  </button>
+                ))}
+              </div>
+              <Textarea
+                dir={shareLocale === "he" ? "rtl" : "ltr"}
+                value={preparedShareMessage}
+                onChange={(e) => {
+                  setShareMessage(e.target.value.slice(0, 2000));
+                  setShareMessageTouched(true);
+                }}
+                rows={6}
+                placeholder={t("shareMessagePlaceholder")}
+                className="text-sm leading-relaxed"
+              />
+              <p className="mt-1 text-xs text-muted">{t("shareMessageLinkHint")}</p>
+            </div>
+
+            <div>
               <div className="flex items-start gap-3 mb-2">
                 <Lock className="h-5 w-5 text-gold mt-0.5 shrink-0" />
                 <div>
@@ -900,6 +959,7 @@ export default function CreateMemorialPage() {
                 {startedByText.trim() && startedByVisible && (
                   <Badge variant="default">{t("startedByLabel")}</Badge>
                 )}
+                <Badge variant="secondary">{t("shareMessageReview")}</Badge>
               </div>
             </ReviewSection>
 

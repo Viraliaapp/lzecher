@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
 import type { TrackType } from "@/lib/types";
 
-const ALL_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos", "daf_yomi"];
+const ALL_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos"];
 
 export default function AdminEditProjectPage({ params }: { params: Promise<{ locale: string; id: string }> }) {
   const { id } = use(params);
@@ -38,6 +38,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
   const [gender, setGender] = useState<"male" | "female">("male");
   const [biography, setBiography] = useState("");
   const [familyMessage, setFamilyMessage] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(true);
 
@@ -80,6 +81,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
         setGender(data.gender || "male");
         setBiography(data.biography || "");
         setFamilyMessage(data.familyMessage || "");
+        setShareMessage(data.shareMessage || "");
         setIsPublic(data.isPublic !== false);
         setShowLeaderboard(data.showLeaderboard !== false);
         const tracks = Array.isArray(data.tracks) ? data.tracks : [];
@@ -121,6 +123,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
         gender,
         biography: biography || null,
         familyMessage: familyMessage || null,
+        shareMessage: shareMessage.trim() || null,
         isPublic,
         showLeaderboard,
       };
@@ -262,6 +265,19 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
           <div>
             <label className="text-sm font-medium text-navy mb-1 block">{tc("familyMessage") || "Family message"}</label>
             <Textarea value={familyMessage} onChange={(e) => setFamilyMessage(e.target.value)} rows={2} dir={locale === "he" ? "rtl" : "ltr"} />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-navy mb-1 block">{locale === "he" ? "נוסח שיתוף" : "Share text"}</label>
+            <Textarea
+              value={shareMessage}
+              onChange={(e) => setShareMessage(e.target.value.slice(0, 2000))}
+              rows={4}
+              dir={locale === "he" ? "rtl" : "ltr"}
+              placeholder={locale === "he" ? "הנוסח שכפתור השיתוף הציבורי ישתמש בו. אפשר להשאיר {link} במקום הקישור." : "Text used by the public share button. Use {link} where the link should appear."}
+            />
+            <p className="text-xs text-muted mt-1" dir={locale === "he" ? "rtl" : "ltr"}>
+              {locale === "he" ? "אם לא מופיע {link}, הקישור יתווסף בסוף." : "If {link} is not included, the link is appended at the end."}
+            </p>
           </div>
 
           <div>

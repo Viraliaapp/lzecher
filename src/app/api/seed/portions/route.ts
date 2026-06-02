@@ -149,27 +149,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate Daf Yomi portion (single inclusive commitment)
-    if (tracks.includes("daf_yomi")) {
-      order++;
-      const ref = adminDb.collection("lzecher_portions").doc();
-      const currentBatch = getCurrentBatch();
-      currentBatch.set(ref, {
-        id: ref.id,
-        projectId,
-        trackType: "daf_yomi",
-        claimMode: "inclusive",
-        reference: "Daf Yomi commitment",
-        displayName: "Daf Yomi",
-        displayNameHebrew: "דף יומי",
-        order,
-        status: "available",
-        currentClaimerCount: 0,
-      });
-      batchCount++;
-      totalPortions++;
-    }
-
     // Commit all batches
     for (const b of batches) {
       await b.commit();

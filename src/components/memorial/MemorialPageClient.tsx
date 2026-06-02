@@ -22,12 +22,12 @@ import {
 import {
   Share2,
   Flag,
-  Camera,
   Mail,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { ReportModal } from "./ReportModal";
-import { PhotoUploadModal } from "@/components/photo/PhotoUploadModal";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Portion, TrackType } from "@/lib/types";
@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { computeProgress, cyclesLabel } from "@/lib/progress";
 import { Leaderboard } from "@/components/activity/Leaderboard";
 import { ActivityBubbles } from "@/components/activity/ActivityBubbles";
+import { fillShareMessage } from "@/lib/share-templates";
 
 const TRACK_EMOJI: Record<TrackType, string> = {
   mishnayos: "📖",
@@ -220,10 +221,11 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const [reminderPrefs, setReminderPrefs] = useState<string[]>([]);
   const [reportOpen, setReportOpen] = useState(false);
   const [completing] = useState(false);
-  const [photoUploadOpen, setPhotoUploadOpen] = useState(false);
   const [bulkClaimScope, setBulkClaimScope] = useState<{ scope: string; scopeId: string; scopeName: string } | null>(null);
   const [bulkClaiming, setBulkClaiming] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(project.photoURL || null);
+  const photoUrl = project.photoURL || null;
+  const [shareOpen, setShareOpen] = useState(false);
+  const [copiedShareKind, setCopiedShareKind] = useState<"link" | "text" | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
   const [contactMessage, setContactMessage] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -459,10 +461,53 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     }
   }
 
+  function getShareUrl() {
+    if (typeof window === "undefined") return `/${locale}/memorial/${project.slug}`;
+    return `${window.location.origin}/${locale}/memorial/${project.slug}`;
+  }
+
+  function getFallbackShareText() {
+    if (locale === "he") {
+      return `לימוד תורה לעילוי נשמת ${displayNameWithHonorific}\nהצטרפו כאן:\n{link}`;
+    }
+    return `Torah learning in memory of ${displayNameWithHonorific}\nJoin here:\n{link}`;
+  }
+
+  function getFullShareText() {
+    return fillShareMessage(project.shareMessage || getFallbackShareText(), getShareUrl());
+  }
+
   function shareLink() {
-    const url = `${window.location.origin}/${locale}/memorial/${project.slug}`;
-    navigator.clipboard.writeText(url);
-    toast.success(t("linkCopied"));
+    setShareOpen(true);
+  }
+
+  async function copyShare(kind: "link" | "text") {
+    const url = getShareUrl();
+    const text = kind === "link" ? url : getFullShareText();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedShareKind(kind);
+      toast.success(kind === "link"
+        ? t("linkCopied")
+        : (locale === "he" ? "נוסח השיתוף הועתק!" : "Share text copied!"));
+      setTimeout(() => setCopiedShareKind(null), 1800);
+    } catch {
+      toast.error(locale === "he" ? "לא ניתן להעתיק" : "Copy failed");
+    }
+  }
+
+  async function nativeShare(kind: "link" | "text") {
+    const url = getShareUrl();
+    const text = kind === "link" ? undefined : getFullShareText();
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share(kind === "link" ? { url } : { text });
+        return;
+      } catch {
+        return;
+      }
+    }
+    await copyShare(kind);
   }
 
   function handleBulkClaim(scope: string, scopeId: string, scopeName: string) {
@@ -772,15 +817,6 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 <Mail className="h-3 w-3 inline mr-1" />
                 {t("contactFamily")}
               </button>
-              {!photoUrl && user && user.uid === project.createdBy && (
-                <button
-                  className="text-xs text-cream/30 hover:text-cream/60 transition-colors"
-                  onClick={() => setPhotoUploadOpen(true)}
-                >
-                  <Camera className="h-3 w-3 inline mr-1" />
-                  {t("addPhoto")}
-                </button>
-              )}
               <button
                 onClick={() => setReportOpen(true)}
                 className="text-xs text-cream/25 hover:text-cream/55 transition-colors"
@@ -967,9 +1003,6 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             >
               {t("learnSectionTitle")}
             </h2>
-            <p className="font-serif italic text-muted text-sm">
-              {t("trackPickSubtitle")}
-            </p>
           </div>
 
           {/* Tile Grid */}
@@ -1301,6 +1334,43 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         </DialogContent>
       </Dialog>
 
+      {/* Share options */}
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle dir={locale === "he" ? "rtl" : "ltr"}>
+              {locale === "he" ? "שיתוף דף ההנצחה" : "Share memorial page"}
+            </DialogTitle>
+            <DialogDescription dir={locale === "he" ? "rtl" : "ltr"}>
+              {locale === "he"
+                ? "אפשר לשלוח רק את הקישור, או את נוסח השיתוף שהמשפחה הכינה יחד עם הקישור."
+                : "Share just the link, or the prepared invitation text together with the link."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Button variant="outline" className="w-full justify-between" onClick={() => nativeShare("link")}>
+              <span>{locale === "he" ? "קישור בלבד" : "Link only"}</span>
+              {copiedShareKind === "link" ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+            </Button>
+            <Button className="w-full justify-between" onClick={() => nativeShare("text")}>
+              <span>{locale === "he" ? "נוסח עם קישור" : "Text with link"}</span>
+              {copiedShareKind === "text" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </Button>
+            <div className="rounded-lg border border-navy/10 bg-cream/50 p-3">
+              <p className="text-xs font-medium text-navy" dir={locale === "he" ? "rtl" : "ltr"}>
+                {locale === "he" ? "תצוגה מקדימה" : "Preview"}
+              </p>
+              <pre
+                dir={locale === "he" ? "rtl" : "ltr"}
+                className="mt-2 max-h-44 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-muted"
+              >
+                {getFullShareText()}
+              </pre>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Completion dialog ── */}
       <Dialog open={completeDialogOpen} onOpenChange={(o) => !o && setCompleteDialogOpen(false)}>
         <DialogContent className="max-w-md">
@@ -1343,12 +1413,6 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       </Dialog>
 
       <ReportModal slug={project.slug} open={reportOpen} onOpenChange={setReportOpen} />
-      <PhotoUploadModal
-        open={photoUploadOpen}
-        onOpenChange={setPhotoUploadOpen}
-        projectId={project.id}
-        onUploadComplete={(url) => setPhotoUrl(url)}
-      />
     </div>
   );
 }

@@ -25,6 +25,7 @@ export interface MemorialProject {
   photoURL?: string;
   biography?: string;
   familyMessage?: string;
+  shareMessage?: string | null;
 
   // Settings
   // NOTE: isPublic is DEPRECATED — replaced by optional password protection below.
