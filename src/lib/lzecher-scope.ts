@@ -15,6 +15,7 @@ export const LZECHER_CORE_COLLECTIONS = [
   "lzecher_scheduled_emails",
   "lzecher_settings",
   "lzecher_users",
+  "lzecher_view_stats",
 ] as const;
 
 export type LzecherCollectionName = (typeof LZECHER_CORE_COLLECTIONS)[number];

@@ -189,6 +189,89 @@ function publicProjectSummary(data: FirebaseFirestore.DocumentData, id: string) 
   };
 }
 
+function lastDayKeys(days: number) {
+  const keys: string[] = [];
+  const base = new Date();
+  base.setUTCHours(0, 0, 0, 0);
+  for (let i = 0; i < days; i++) {
+    const date = new Date(base.getTime() - i * 86400000);
+    keys.push(date.toISOString().slice(0, 10));
+  }
+  return keys;
+}
+
+function safeNumberMap(value: unknown) {
+  if (!value || typeof value !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([, count]) => typeof count === "number")
+      .map(([key, count]) => [key, Number(count)])
+  ) as Record<string, number>;
+}
+
+function safeStringMap(value: unknown) {
+  if (!value || typeof value !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([, item]) => typeof item === "string")
+      .map(([key, item]) => [key, String(item)])
+  ) as Record<string, string>;
+}
+
+function siteViewSummary(
+  viewDocs: FirebaseFirestore.DocumentSnapshot[],
+  projectSummaries: ReturnType<typeof publicProjectSummary>[]
+) {
+  const projectLookup = new Map(projectSummaries.map((project) => [project.id, project]));
+  let today = 0;
+  let thisWeek = 0;
+  let thisMonth = 0;
+  const byLocale: Record<string, number> = {};
+  const byRoute: Record<string, number> = {};
+  const projectViews: Record<string, number> = {};
+  const projectSlugs: Record<string, string> = {};
+  const projectNames: Record<string, string> = {};
+
+  viewDocs.forEach((doc, index) => {
+    if (!doc.exists) return;
+    const data = doc.data() || {};
+    const total = Number(data.total || 0);
+    if (index === 0) today += total;
+    if (index < 7) thisWeek += total;
+    thisMonth += total;
+
+    for (const [locale, count] of Object.entries(safeNumberMap(data.byLocale))) {
+      byLocale[locale] = (byLocale[locale] || 0) + count;
+    }
+    for (const [route, count] of Object.entries(safeNumberMap(data.byRoute))) {
+      byRoute[route] = (byRoute[route] || 0) + count;
+    }
+    const slugs = safeStringMap(data.projectSlugs);
+    const names = safeStringMap(data.projectNames);
+    for (const [projectId, count] of Object.entries(safeNumberMap(data.projectViews))) {
+      projectViews[projectId] = (projectViews[projectId] || 0) + count;
+      if (slugs[projectId]) projectSlugs[projectId] = slugs[projectId];
+      if (names[projectId]) projectNames[projectId] = names[projectId];
+    }
+  });
+
+  const topProjects = Object.entries(projectViews)
+    .map(([projectId, views]) => {
+      const project = projectLookup.get(projectId);
+      const fallbackName = [project?.nameHebrew, project?.familyNameHebrew].filter(Boolean).join(" ").trim();
+      return {
+        projectId,
+        slug: projectSlugs[projectId] || project?.slug || null,
+        name: projectNames[projectId] || fallbackName || projectId,
+        views,
+      };
+    })
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 8);
+
+  return { today, thisWeek, thisMonth, byLocale, byRoute, topProjects };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { idToken } = await request.json();
@@ -294,6 +377,11 @@ export async function POST(request: NextRequest) {
     for (const doc of superSnap.docs) adminUsers.set(doc.id, publicAdminUser(doc.data(), doc.id));
 
     const projectSummaries = projectsSnap.docs.map((doc) => publicProjectSummary(doc.data(), doc.id));
+    const viewDayKeys = lastDayKeys(30);
+    const viewDocs = await db.getAll(
+      ...viewDayKeys.map((key) => db.collection("lzecher_view_stats").doc(`site_${key}`))
+    ).catch(() => [] as FirebaseFirestore.DocumentSnapshot[]);
+    const siteViews = siteViewSummary(viewDocs, projectSummaries);
     const allLoadedClaims = claimsForUsersSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Record<string, unknown>);
     const nonParentLoadedClaims = allLoadedClaims.filter((claim) => claim.isParent !== true);
     const loadedAllClaims = claimsForUsersSnap.size < 5000;
@@ -435,6 +523,9 @@ export async function POST(request: NextRequest) {
         projectsWithIssues: issueProjects.length,
         undeliveredContacts: undeliveredContacts.length,
         openContactMessages: openContactMessages.length,
+        siteViewsToday: siteViews.today,
+        siteViewsThisWeek: siteViews.thisWeek,
+        siteViewsThisMonth: siteViews.thisMonth,
       },
       healthChecks: [
         {
@@ -489,6 +580,7 @@ export async function POST(request: NextRequest) {
       recentAudit: Array.from(auditById.values())
         .sort((a, b) => b.at - a.at)
         .slice(0, RECENT_LIMIT),
+      siteViews,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

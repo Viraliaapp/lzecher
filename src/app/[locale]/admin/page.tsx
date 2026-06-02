@@ -206,6 +206,15 @@ type SuperAuditEntry = {
   details: unknown;
 };
 
+type SuperSiteViews = {
+  today: number;
+  thisWeek: number;
+  thisMonth: number;
+  byLocale: Record<string, number>;
+  byRoute: Record<string, number>;
+  topProjects: { projectId: string; slug: string | null; name: string; views: number }[];
+};
+
 type SuperOverview = {
   stats: Record<string, number>;
   healthChecks: SuperHealthCheck[];
@@ -218,6 +227,7 @@ type SuperOverview = {
   recentContacts: SuperContactMessage[];
   recentScheduledEmails: SuperScheduledEmail[];
   recentAudit: SuperAuditEntry[];
+  siteViews?: SuperSiteViews;
 };
 
 type SuperProjectDetail = {
@@ -805,10 +815,46 @@ function reminderTypeLabel(locale: string, type?: string | null) {
   return locale === "he" ? he[key] || key : en[key] || key;
 }
 
+function viewRouteLabel(locale: string, route: string) {
+  const he: Record<string, string> = {
+    home: "דף הבית",
+    memorial: "דפי הנצחה",
+    memorials: "ספריית הנצחות",
+    create: "יצירת דף",
+    halachic_guidance: "מקורות והדרכה",
+    contact: "צור קשר",
+    login: "כניסה",
+    other: "אחר",
+  };
+  const en: Record<string, string> = {
+    home: "Home",
+    memorial: "Memorial pages",
+    memorials: "Memorial directory",
+    create: "Create page",
+    halachic_guidance: "Halachic guidance",
+    contact: "Contact",
+    login: "Login",
+    other: "Other",
+  };
+  return locale === "he" ? he[route] || route : en[route] || route;
+}
+
 function csvValue(value: unknown) {
   if (value === null || value === undefined) return "";
   const text = typeof value === "object" ? JSON.stringify(value) : String(value);
   return `"${text.replace(/"/g, '""')}"`;
+}
+
+function exportRow(locale: string, fields: [he: string, en: string, value: unknown][]) {
+  return Object.fromEntries(fields.map(([he, en, value]) => [label(locale, he, en), value]));
+}
+
+function yesNoLabel(locale: string, value: unknown) {
+  return value ? label(locale, "כן", "Yes") : label(locale, "לא", "No");
+}
+
+function exportDate(locale: string, ts?: number | null) {
+  return ts ? formatTimestamp(Number(ts), locale) : "";
 }
 
 function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
@@ -930,6 +976,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [projectDetail, setProjectDetail] = useState<SuperProjectDetail | null>(null);
   const [loadingProject, setLoadingProject] = useState(false);
+  const [openingProjectId, setOpeningProjectId] = useState<string | null>(null);
   const [recomputingProject, setRecomputingProject] = useState(false);
   const [savingProjectControls, setSavingProjectControls] = useState(false);
   const [projectAnnouncement, setProjectAnnouncement] = useState("");
@@ -1098,6 +1145,36 @@ function SuperAdminPortal({ locale }: { locale: string }) {
       return;
     }
     setSelectedProjectId(projectId);
+  }
+
+  async function openProjectForSafetyReview(project: Pick<SuperProjectSummary, "id" | "slug" | "isPasswordProtected">) {
+    if (!project.slug) {
+      toast.error(label(locale, "לפרויקט אין קישור ציבורי", "Project has no public slug"));
+      return;
+    }
+    setOpeningProjectId(project.id);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch(`/api/admin/super/projects/${project.id}/access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, locale }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || label(locale, "לא ניתן לפתוח את הפרויקט", "Could not open project"));
+        return;
+      }
+      window.open(String(data.url || `/${locale}/memorial/${project.slug}`), "_blank", "noopener");
+      toast.success(project.isPasswordProtected
+        ? label(locale, "נפתחה גישה מתועדת לפרויקט המוגן", "Audited access opened for protected project")
+        : label(locale, "הפרויקט נפתח לבדיקה", "Project opened for review"));
+      await loadOverview();
+    } catch {
+      toast.error(label(locale, "לא ניתן לפתוח את הפרויקט", "Could not open project"));
+    } finally {
+      setOpeningProjectId(null);
+    }
   }
 
   async function recomputeProject(projectId: string) {
@@ -1483,6 +1560,14 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   }
 
   const stats = overview?.stats || {};
+  const siteViews = overview?.siteViews || {
+    today: 0,
+    thisWeek: 0,
+    thisMonth: 0,
+    byLocale: {},
+    byRoute: {},
+    topProjects: [],
+  };
   const projectSummaries = overview?.projectSummaries || [];
   const userSummaries = overview?.userSummaries || [];
   const projectsWithIssues = projectSummaries
@@ -1719,167 +1804,167 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   }
 
   function exportAnalyticsCsv() {
-    finishExport(downloadCsv(`lzecher-analytics-${analyticsRangeDays}d-${exportStamp}.csv`, analyticsDaily.map((day) => ({
-      date: day.date,
-      projectsCreated: day.projectsCreated,
-      claimsTaken: day.claimsTaken,
-      claimsCompleted: day.claimsCompleted,
-      feedbackSubmitted: day.feedbackSubmitted,
-      reportsSubmitted: day.reportsSubmitted,
-      remindersQueued: day.remindersQueued,
-      remindersSent: day.remindersSent,
-      remindersFailed: day.remindersFailed,
-    }))));
+    finishExport(downloadCsv(`lzecher-analytics-${analyticsRangeDays}d-${exportStamp}.csv`, analyticsDaily.map((day) => exportRow(locale, [
+      ["תאריך", "Date", day.date],
+      ["פרויקטים חדשים", "New projects", day.projectsCreated],
+      ["בחירות לימוד", "Claims taken", day.claimsTaken],
+      ["סומנו כנלמדו", "Marked learned", day.claimsCompleted],
+      ["משובים", "Feedback submitted", day.feedbackSubmitted],
+      ["דיווחים", "Reports submitted", day.reportsSubmitted],
+      ["תזכורות שנוצרו", "Reminders queued", day.remindersQueued],
+      ["תזכורות שנשלחו", "Reminders sent", day.remindersSent],
+      ["תזכורות שנכשלו", "Reminders failed", day.remindersFailed],
+    ]))));
   }
 
   function exportAccessCsv() {
-    finishExport(downloadCsv(`lzecher-access-audit-${exportStamp}.csv`, filteredAccessRows.map(({ project, notes }) => ({
-      id: project.id,
-      slug: project.slug,
-      status: project.status,
-      nameHebrew: project.nameHebrew,
-      familyNameHebrew: project.familyNameHebrew,
-      createdByEmail: project.createdByEmail,
-      public: project.isPublic !== false,
-      passwordProtected: project.isPasswordProtected,
-      locked: project.locked,
-      leaderboardVisible: project.showLeaderboard,
-      repeatingSetEnabled: project.repeatingSetEnabled,
-      startedByVisible: project.startedByVisible,
-      totalPortions: project.totalPortions,
-      claimedPortions: project.claimedPortions,
-      completedPortions: project.completedPortions,
-      notes: notes.map((note) => note.text).join("|"),
-      issues: project.issues.join("|"),
-    }))));
+    finishExport(downloadCsv(`lzecher-access-audit-${exportStamp}.csv`, filteredAccessRows.map(({ project, notes }) => exportRow(locale, [
+      ["מזהה", "ID", project.id],
+      ["קישור", "Slug", project.slug],
+      ["סטטוס", "Status", projectStatusLabel(locale, project.status)],
+      ["שם פרטי", "Hebrew first name", project.nameHebrew],
+      ["שם משפחה", "Hebrew family name", project.familyNameHebrew],
+      ["אימייל יוצר", "Creator email", project.createdByEmail],
+      ["מופיע בספרייה", "Directory visible", yesNoLabel(locale, project.isPublic !== false)],
+      ["דורש סיסמה", "Password protected", yesNoLabel(locale, project.isPasswordProtected)],
+      ["נעול לבחירות חדשות", "Locked for new claims", yesNoLabel(locale, project.locked)],
+      ["יישר כח מוצג", "Yasher Koach visible", yesNoLabel(locale, project.showLeaderboard)],
+      ["מחזור נוסף פעיל", "Bonus rounds enabled", yesNoLabel(locale, project.repeatingSetEnabled)],
+      ["הוקם על ידי מוצג", "Started-by visible", yesNoLabel(locale, project.startedByVisible)],
+      ["סה״כ חלקים", "Total portions", project.totalPortions],
+      ["נלקחו", "Taken", project.claimedPortions],
+      ["נלמדו", "Learned", project.completedPortions],
+      ["הערות", "Notes", notes.map((note) => note.text).join(" | ")],
+      ["בעיות", "Issues", project.issues.map((issue) => projectIssueCopy(locale, issue)).join(" | ")],
+    ]))));
   }
 
   function exportProjectsCsv() {
-    finishExport(downloadCsv(`lzecher-projects-${exportStamp}.csv`, projectSummaries.map((project) => ({
-      id: project.id,
-      slug: project.slug,
-      status: project.status,
-      nameHebrew: project.nameHebrew,
-      familyNameHebrew: project.familyNameHebrew,
-      nameEnglish: project.nameEnglish,
-      familyNameEnglish: project.familyNameEnglish,
-      createdBy: project.createdBy,
-      createdByEmail: project.createdByEmail,
-      createdAt: project.createdAt,
-      updatedAt: project.updatedAt,
-      tracks: project.tracks.join("|"),
-      passwordProtected: project.isPasswordProtected,
-      public: project.isPublic !== false,
-      locked: project.locked,
-      leaderboardVisible: project.showLeaderboard,
-      totalPortions: project.totalPortions,
-      claimedPortions: project.claimedPortions,
-      completedPortions: project.completedPortions,
-      participantCount: project.participantCount,
-      progressPct: project.progressPct,
-      completedProgressPct: project.completedProgressPct,
-      completedCycles: project.completedCycles,
-      issues: project.issues.join("|"),
-    }))));
+    finishExport(downloadCsv(`lzecher-projects-${exportStamp}.csv`, projectSummaries.map((project) => exportRow(locale, [
+      ["מזהה", "ID", project.id],
+      ["קישור", "Slug", project.slug],
+      ["סטטוס", "Status", projectStatusLabel(locale, project.status)],
+      ["שם פרטי", "Hebrew first name", project.nameHebrew],
+      ["שם משפחה", "Hebrew family name", project.familyNameHebrew],
+      ["שם באנגלית", "English first name", project.nameEnglish],
+      ["משפחה באנגלית", "English family name", project.familyNameEnglish],
+      ["מזהה יוצר", "Creator UID", project.createdBy],
+      ["אימייל יוצר", "Creator email", project.createdByEmail],
+      ["נוצר בתאריך", "Created at", exportDate(locale, project.createdAt)],
+      ["עודכן בתאריך", "Updated at", exportDate(locale, project.updatedAt)],
+      ["תחומי לימוד", "Learning tracks", project.tracks.map((track) => learningLabel(locale, null, track)).join(" | ")],
+      ["דורש סיסמה", "Password protected", yesNoLabel(locale, project.isPasswordProtected)],
+      ["מופיע בספרייה", "Directory visible", yesNoLabel(locale, project.isPublic !== false)],
+      ["נעול לבחירות חדשות", "Locked for new claims", yesNoLabel(locale, project.locked)],
+      ["יישר כח מוצג", "Yasher Koach visible", yesNoLabel(locale, project.showLeaderboard)],
+      ["סה״כ חלקים", "Total portions", project.totalPortions],
+      ["נלקחו", "Taken", project.claimedPortions],
+      ["נלמדו", "Learned", project.completedPortions],
+      ["משתתפים", "Participants", project.participantCount],
+      ["אחוז שנלקח", "Taken percent", project.progressPct],
+      ["אחוז שנלמד", "Learned percent", project.completedProgressPct],
+      ["מחזורים שהושלמו", "Completed cycles", project.completedCycles],
+      ["בעיות", "Issues", project.issues.map((issue) => projectIssueCopy(locale, issue)).join(" | ")],
+    ]))));
   }
 
   function exportUsersCsv() {
-    finishExport(downloadCsv(`lzecher-users-${exportStamp}.csv`, userSummaries.map((user) => ({
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      isAdmin: user.isAdmin,
-      isSuperAdmin: user.isSuperAdmin,
-      permissions: user.permissions.join("|"),
-      projectCount: user.projectCount,
-      activeProjectCount: user.activeProjectCount,
-      claimCount: user.claimCount,
-      completedClaimCount: user.completedClaimCount,
-      lastProjectAt: user.lastProjectAt,
-      lastClaimAt: user.lastClaimAt,
-      lastActivityAt: user.lastActivityAt,
-    }))));
+    finishExport(downloadCsv(`lzecher-users-${exportStamp}.csv`, userSummaries.map((user) => exportRow(locale, [
+      ["מזהה משתמש", "User ID", user.uid],
+      ["אימייל", "Email", user.email],
+      ["שם לתצוגה", "Display name", user.displayName],
+      ["מנהל", "Admin", yesNoLabel(locale, user.isAdmin)],
+      ["מנהל ראשי", "Super admin", yesNoLabel(locale, user.isSuperAdmin)],
+      ["הרשאות", "Permissions", user.permissions.join(" | ")],
+      ["מספר פרויקטים", "Project count", user.projectCount],
+      ["פרויקטים פעילים", "Active project count", user.activeProjectCount],
+      ["בחירות לימוד", "Claim count", user.claimCount],
+      ["סומנו כנלמדו", "Completed claim count", user.completedClaimCount],
+      ["פרויקט אחרון", "Last project at", exportDate(locale, user.lastProjectAt)],
+      ["בחירה אחרונה", "Last claim at", exportDate(locale, user.lastClaimAt)],
+      ["פעילות אחרונה", "Last activity at", exportDate(locale, user.lastActivityAt)],
+    ]))));
   }
 
   function exportSupportCsv() {
     const rows = [
-      ...filteredFeedbackItems.map((item) => ({
-        kind: "feedback",
-        id: item.id,
-        status: item.status,
-        priority: item.priority || "normal",
-        subject: item.type,
-        message: item.message,
-        email: item.email,
-        projectId: "",
-        path: item.currentPath,
-        submittedAt: item.submittedAt,
-        assignedTo: item.assignedTo || "",
-        tag: item.tag || "",
-      })),
-      ...filteredReportItems.map((item) => ({
-        kind: "report",
-        id: item.id,
-        status: item.status,
-        priority: item.priority || "normal",
-        subject: item.reason,
-        message: item.details || "",
-        email: item.reporterEmail,
-        projectId: item.projectId || "",
-        path: item.projectSlug || "",
-        submittedAt: item.reportedAt,
-        assignedTo: item.assignedTo || "",
-        tag: item.tag || "",
-      })),
-      ...filteredContactItems.map((item) => ({
-        kind: "contact",
-        id: item.id,
-        status: item.supportStatus || (item.delivered ? "resolved" : "new"),
-        priority: item.priority || "normal",
-        subject: item.reason || "contact",
-        message: item.message,
-        email: item.senderEmail,
-        projectId: item.projectId || "",
-        path: item.slug || "",
-        submittedAt: item.sentAt,
-        assignedTo: item.assignedTo || "",
-        tag: item.tag || "",
-      })),
+      ...filteredFeedbackItems.map((item) => exportRow(locale, [
+        ["סוג", "Kind", label(locale, "משוב", "Feedback")],
+        ["מזהה", "ID", item.id],
+        ["סטטוס", "Status", feedbackStatusLabel(locale, item.status)],
+        ["עדיפות", "Priority", priorityLabel(locale, item.priority || "normal")],
+        ["נושא", "Subject", feedbackTypeLabel(locale, item.type)],
+        ["הודעה", "Message", item.message],
+        ["אימייל", "Email", item.email],
+        ["מזהה פרויקט", "Project ID", ""],
+        ["נתיב", "Path", item.currentPath],
+        ["נשלח בתאריך", "Submitted at", exportDate(locale, item.submittedAt)],
+        ["משויך אל", "Assigned to", item.assignedTo || ""],
+        ["תגית", "Tag", item.tag || ""],
+      ])),
+      ...filteredReportItems.map((item) => exportRow(locale, [
+        ["סוג", "Kind", label(locale, "דיווח", "Report")],
+        ["מזהה", "ID", item.id],
+        ["סטטוס", "Status", reportStatusLabel(locale, item.status)],
+        ["עדיפות", "Priority", priorityLabel(locale, item.priority || "normal")],
+        ["נושא", "Subject", reportReasonLabel(locale, item.reason)],
+        ["הודעה", "Message", item.details || ""],
+        ["אימייל", "Email", item.reporterEmail],
+        ["מזהה פרויקט", "Project ID", item.projectId || ""],
+        ["נתיב", "Path", item.projectSlug || ""],
+        ["נשלח בתאריך", "Submitted at", exportDate(locale, item.reportedAt)],
+        ["משויך אל", "Assigned to", item.assignedTo || ""],
+        ["תגית", "Tag", item.tag || ""],
+      ])),
+      ...filteredContactItems.map((item) => exportRow(locale, [
+        ["סוג", "Kind", label(locale, "הודעת משפחה", "Family message")],
+        ["מזהה", "ID", item.id],
+        ["סטטוס", "Status", feedbackStatusLabel(locale, item.supportStatus || (item.delivered ? "resolved" : "new"))],
+        ["עדיפות", "Priority", priorityLabel(locale, item.priority || "normal")],
+        ["נושא", "Subject", item.reason || label(locale, "הודעה", "Contact")],
+        ["הודעה", "Message", item.message],
+        ["אימייל", "Email", item.senderEmail],
+        ["מזהה פרויקט", "Project ID", item.projectId || ""],
+        ["נתיב", "Path", item.slug || ""],
+        ["נשלח בתאריך", "Submitted at", exportDate(locale, item.sentAt)],
+        ["משויך אל", "Assigned to", item.assignedTo || ""],
+        ["תגית", "Tag", item.tag || ""],
+      ])),
     ];
     finishExport(downloadCsv(`lzecher-support-${exportStamp}.csv`, rows));
   }
 
   function exportScheduledEmailsCsv() {
-    finishExport(downloadCsv(`lzecher-reminders-${exportStamp}.csv`, filteredScheduledEmails.map((item) => ({
-      id: item.id,
-      status: item.status,
-      reminderType: item.reminderType,
-      toEmail: item.toEmail,
-      userId: item.userId,
-      projectId: item.projectId,
-      projectSlug: item.projectSlug,
-      claimId: item.claimId,
-      locale: item.locale,
-      sendAt: item.sendAt,
-      createdAt: item.createdAt,
-      sentAt: item.sentAt,
-      failedAt: item.failedAt,
-      attempts: item.attempts,
-      lastError: item.lastError,
-    }))));
+    finishExport(downloadCsv(`lzecher-reminders-${exportStamp}.csv`, filteredScheduledEmails.map((item) => exportRow(locale, [
+      ["מזהה", "ID", item.id],
+      ["סטטוס", "Status", reminderStatusLabel(locale, item.status)],
+      ["סוג תזכורת", "Reminder type", reminderTypeLabel(locale, item.reminderType)],
+      ["אימייל יעד", "Recipient email", item.toEmail],
+      ["מזהה משתמש", "User ID", item.userId],
+      ["מזהה פרויקט", "Project ID", item.projectId],
+      ["קישור פרויקט", "Project slug", item.projectSlug],
+      ["מזהה בחירה", "Claim ID", item.claimId],
+      ["שפה", "Locale", item.locale],
+      ["מתוכנן לתאריך", "Send at", exportDate(locale, item.sendAt)],
+      ["נוצר בתאריך", "Created at", exportDate(locale, item.createdAt)],
+      ["נשלח בתאריך", "Sent at", exportDate(locale, item.sentAt)],
+      ["נכשל בתאריך", "Failed at", exportDate(locale, item.failedAt)],
+      ["מספר ניסיונות", "Attempts", item.attempts],
+      ["שגיאה אחרונה", "Last error", item.lastError ? friendlyEmailError(item.lastError) : ""],
+    ]))));
   }
 
   function exportAuditCsv() {
-    finishExport(downloadCsv(`lzecher-audit-${exportStamp}.csv`, auditEntries.map((entry) => ({
-      id: entry.id,
-      action: entry.action,
-      adminUid: entry.adminUid,
-      projectId: entry.projectId,
-      targetUid: entry.targetUid,
-      feedbackId: entry.feedbackId,
-      at: entry.at,
-      details: entry.details,
-    }))));
+    finishExport(downloadCsv(`lzecher-audit-${exportStamp}.csv`, auditEntries.map((entry) => exportRow(locale, [
+      ["מזהה", "ID", entry.id],
+      ["פעולה", "Action", entry.action],
+      ["מזהה מנהל", "Admin UID", entry.adminUid],
+      ["מזהה פרויקט", "Project ID", entry.projectId],
+      ["מזהה יעד", "Target UID", entry.targetUid],
+      ["מזהה משוב", "Feedback ID", entry.feedbackId],
+      ["תאריך", "At", exportDate(locale, entry.at)],
+      ["פרטים", "Details", entry.details],
+    ]))));
   }
 
   return (
@@ -1976,6 +2061,9 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                   [label(locale, "פתוחים", "Open links"), stats.openProjects],
                   [label(locale, "נוצרו היום", "Created today"), stats.projectsToday],
                   [label(locale, "נוצרו השבוע", "Created this week"), stats.projectsThisWeek],
+                  [label(locale, "צפיות היום", "Views today"), stats.siteViewsToday],
+                  [label(locale, "צפיות השבוע", "Views this week"), stats.siteViewsThisWeek],
+                  [label(locale, "צפיות החודש", "Views this month"), stats.siteViewsThisMonth],
                   [label(locale, "בחירות לימוד", "Claims"), stats.totalClaims],
                   [label(locale, "בחירות השבוע", "Claims this week"), stats.claimsThisWeek],
                   [label(locale, "נלמדו", "Learned"), stats.completedClaims],
@@ -1992,6 +2080,72 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     <p className="font-heading text-2xl font-bold text-navy">{Number(value || 0).toLocaleString()}</p>
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)]">
+                <div className="rounded-lg border border-navy/10 bg-white p-3">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-heading font-bold text-navy">{label(locale, "צפיות באתר", "Site views")}</h3>
+                      <p className="text-xs text-muted">
+                        {label(locale, "ספירה מצטברת וללא פרטים אישיים מתוך lzecher_view_stats.", "Aggregate, non-personal counts from lzecher_view_stats.")}
+                      </p>
+                    </div>
+                    <Badge variant="secondary">{siteViews.thisMonth.toLocaleString()} {label(locale, "החודש", "this month")}</Badge>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    {[
+                      [label(locale, "היום", "Today"), siteViews.today],
+                      [label(locale, "השבוע", "This week"), siteViews.thisWeek],
+                      [label(locale, "החודש", "This month"), siteViews.thisMonth],
+                    ].map(([name, value]) => (
+                      <div key={String(name)} className="rounded-md bg-cream/40 p-2">
+                        <p className="text-xs text-muted">{name}</p>
+                        <p className="font-heading text-xl font-bold text-navy">{Number(value || 0).toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-md bg-cream/30 p-2">
+                      <p className="mb-1 text-xs font-medium text-navy">{label(locale, "לפי שפה", "By language")}</p>
+                      {Object.entries(siteViews.byLocale).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([key, value]) => (
+                        <div key={key} className="flex justify-between gap-3 text-xs text-muted">
+                          <span>{key}</span>
+                          <span>{value.toLocaleString()}</span>
+                        </div>
+                      ))}
+                      {!Object.keys(siteViews.byLocale).length && <p className="text-xs text-muted">{label(locale, "אין נתונים עדיין", "No data yet")}</p>}
+                    </div>
+                    <div className="rounded-md bg-cream/30 p-2">
+                      <p className="mb-1 text-xs font-medium text-navy">{label(locale, "לפי אזור באתר", "By site area")}</p>
+                      {Object.entries(siteViews.byRoute).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([key, value]) => (
+                        <div key={key} className="flex justify-between gap-3 text-xs text-muted">
+                          <span>{viewRouteLabel(locale, key)}</span>
+                          <span>{value.toLocaleString()}</span>
+                        </div>
+                      ))}
+                      {!Object.keys(siteViews.byRoute).length && <p className="text-xs text-muted">{label(locale, "אין נתונים עדיין", "No data yet")}</p>}
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-navy/10 bg-white p-3">
+                  <h3 className="mb-2 font-heading font-bold text-navy">{label(locale, "דפים נצפים ביותר", "Top viewed projects")}</h3>
+                  <div className="space-y-2">
+                    {siteViews.topProjects.map((project) => (
+                      <div key={project.projectId} className="rounded-md bg-cream/40 px-2 py-2 text-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-navy" dir="rtl">{project.name}</p>
+                            <p className="text-xs text-muted">{project.slug || project.projectId}</p>
+                          </div>
+                          <Badge variant="secondary">{project.views.toLocaleString()}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                    {!siteViews.topProjects.length && (
+                      <p className="py-4 text-center text-sm text-muted">{label(locale, "אין צפיות בפרויקטים עדיין", "No project views yet")}</p>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="mt-4 grid gap-3 lg:grid-cols-2">
                 <div className="rounded-lg border border-navy/10 bg-white p-3">
@@ -2403,9 +2557,15 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                             </div>
                             <div className="flex shrink-0 flex-wrap gap-1">
                               {project.slug && (
-                                <a href={`/${locale}/memorial/${project.slug}`} target="_blank" rel="noopener">
-                                  <Button size="sm" variant="ghost"><Eye className="h-4 w-4" />{label(locale, "פתח", "Open")}</Button>
-                                </a>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => openProjectForSafetyReview(project)}
+                                  disabled={openingProjectId === project.id}
+                                >
+                                  {openingProjectId === project.id ? <Spinner className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                  {project.isPasswordProtected ? label(locale, "פתח מוגן", "Open protected") : label(locale, "פתח", "Open")}
+                                </Button>
                               )}
                               <Button size="sm" variant="ghost" onClick={() => inspectProject(project.id)}>
                                 <Shield className="h-4 w-4" />
@@ -2525,9 +2685,15 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {selectedProject.slug && (
-                            <a href={`/${locale}/memorial/${selectedProject.slug}`} target="_blank" rel="noopener">
-                              <Button size="sm" variant="ghost"><Eye className="h-4 w-4" />{label(locale, "פתח", "Open")}</Button>
-                            </a>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => openProjectForSafetyReview(selectedProject)}
+                              disabled={openingProjectId === selectedProject.id}
+                            >
+                              {openingProjectId === selectedProject.id ? <Spinner className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              {selectedProject.isPasswordProtected ? label(locale, "פתח מוגן", "Open protected") : label(locale, "פתח", "Open")}
+                            </Button>
                           )}
                           <Button size="sm" variant="ghost" onClick={recomputeSelectedProject} disabled={recomputingProject}>
                             {recomputingProject ? <Spinner className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}

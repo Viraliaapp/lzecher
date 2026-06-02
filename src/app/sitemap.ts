@@ -15,6 +15,15 @@ const STATIC_ROUTES = [
   { path: "/create", changeFrequency: "monthly" as const, priority: 0.6 },
 ];
 
+function languageAlternates(path: string) {
+  return {
+    he: `${BASE_URL}/he${path}`,
+    en: `${BASE_URL}/en${path}`,
+    es: `${BASE_URL}/es${path}`,
+    fr: `${BASE_URL}/fr${path}`,
+  };
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [];
 
@@ -26,6 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: new Date(),
         changeFrequency: route.changeFrequency,
         priority: route.priority,
+        alternates: { languages: languageAlternates(route.path) },
       });
     }
   }
@@ -48,6 +58,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           lastModified: data.updatedAt ? new Date(data.updatedAt) : new Date(),
           changeFrequency: "weekly",
           priority: 0.8,
+          alternates: { languages: languageAlternates(`/memorial/${data.slug}`) },
         });
       }
     }

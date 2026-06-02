@@ -6,6 +6,35 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import type { MemorialProject } from "@/lib/types";
 import type { Metadata } from "next";
 
+const BASE_URL = "https://lzecher.com";
+
+function localizedAlternates(locale: string, path = "") {
+  const normalized = path ? `/${path.replace(/^\/+/, "")}` : "";
+  return {
+    canonical: `${BASE_URL}/${locale}${normalized}`,
+    languages: {
+      he: `${BASE_URL}/he${normalized}`,
+      en: `${BASE_URL}/en${normalized}`,
+      es: `${BASE_URL}/es${normalized}`,
+      fr: `${BASE_URL}/fr${normalized}`,
+      "x-default": `${BASE_URL}/he${normalized}`,
+    },
+  };
+}
+
+function homeMeta(locale: string, description: string) {
+  if (locale === "he") {
+    return {
+      title: "לזכר · לימוד תורה לעילוי נשמה",
+      description: "יצירת דפי הנצחה ללימוד משניות, תהלים, שניים מקרא, קבלות טובות ודף יומי לעילוי נשמת יקיריכם.",
+    };
+  }
+  return {
+    title: "Lzecher · Memorial Learning Platform",
+    description,
+  };
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -13,17 +42,19 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "landing" });
+  const meta = homeMeta(locale, t("heroDescription"));
   return {
-    title: "Lzecher · Memorial Learning Platform",
-    description: t("heroDescription"),
-    alternates: { canonical: `https://lzecher.com/${locale}` },
+    title: meta.title,
+    description: meta.description,
+    alternates: localizedAlternates(locale),
     openGraph: {
-      title: "Lzecher · Memorial Learning Platform",
-      description: t("heroDescription"),
-      url: `https://lzecher.com/${locale}`,
+      title: meta.title,
+      description: meta.description,
+      url: `${BASE_URL}/${locale}`,
       type: "website",
+      locale: locale === "he" ? "he_IL" : locale,
     },
-    twitter: { card: "summary_large_image" },
+    twitter: { card: "summary_large_image", title: meta.title, description: meta.description },
   };
 }
 
@@ -82,12 +113,23 @@ export default async function HomePage() {
 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "Lzecher",
-    url: "https://lzecher.com",
-    description:
-      "A free multilingual memorial learning platform for organizing communal Torah study l'iluy nishmas.",
-    sameAs: [],
+    "@graph": [
+      {
+        "@type": "Organization",
+        name: "Lzecher",
+        url: BASE_URL,
+        description:
+          "A free multilingual memorial learning platform for organizing communal Torah study l'iluy nishmas.",
+        sameAs: [],
+      },
+      {
+        "@type": "WebSite",
+        name: "Lzecher",
+        alternateName: "לזכר",
+        url: BASE_URL,
+        inLanguage: ["he", "en", "es", "fr"],
+      },
+    ],
   };
 
   return (

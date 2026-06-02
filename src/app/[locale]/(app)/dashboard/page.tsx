@@ -264,22 +264,25 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
   }
 
   function exportClaimsCsv() {
+    const headers = locale === "he"
+      ? ["שם", "אימייל", "תחום", "חלק", "סטטוס", "נלקח בתאריך", "סומן כנלמד"]
+      : ["Name", "Email", "Track", "Portion", "Status", "Taken date", "Completed date"];
     const rows = [
-      ["name", "email", "track", "reference", "status", "taken_at", "completed_at"],
+      headers,
       ...filteredClaims.map((c) => {
         return [
           c.userName || "",
           c.userEmail || "",
-          c.trackType || "",
-          c.reference || "",
-          c.status || "",
-          c.claimedAt ? new Date(Number(c.claimedAt)).toISOString() : "",
-          c.completedAt ? new Date(Number(c.completedAt)).toISOString() : "",
+          learningLabel(locale, null, c.trackType),
+          learningLabel(locale, c.reference, c.trackType),
+          claimStatusLabel(c.status || "active", locale),
+          c.claimedAt ? formatDate(c.claimedAt, locale) : "",
+          c.completedAt ? formatDate(c.completedAt, locale) : "",
         ];
       }),
     ];
-    const csv = rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

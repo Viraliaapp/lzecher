@@ -9,8 +9,23 @@ import { isProtected } from "@/lib/password";
 import type { MemorialProject, Portion } from "@/lib/types";
 import type { Metadata } from "next";
 
+const BASE_URL = "https://lzecher.com";
+
 interface Props {
   params: Promise<{ locale: string; slug: string }>;
+}
+
+function localizedAlternates(locale: string, slug: string) {
+  return {
+    canonical: `${BASE_URL}/${locale}/memorial/${slug}`,
+    languages: {
+      he: `${BASE_URL}/he/memorial/${slug}`,
+      en: `${BASE_URL}/en/memorial/${slug}`,
+      es: `${BASE_URL}/es/memorial/${slug}`,
+      fr: `${BASE_URL}/fr/memorial/${slug}`,
+      "x-default": `${BASE_URL}/he/memorial/${slug}`,
+    },
+  };
 }
 
 async function getProjectBySlug(slug: string) {
@@ -35,21 +50,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const project = await getProjectBySlug(slug);
   if (!project) return { title: "Memorial · Lzecher" };
 
-  const displayName = project.nameEnglish || project.nameHebrew;
-  const title = `${displayName} · Lzecher`;
-  const description = `Honor the memory of ${project.nameHebrew}${project.nameEnglish ? ` (${project.nameEnglish})` : ""} through communal Torah learning.`;
+  const hebrewDisplay = `${project.nameHebrew} ${project.familyNameHebrew || ""}`.trim();
+  const englishDisplay = `${project.nameEnglish || project.nameHebrew} ${project.familyNameEnglish || ""}`.trim();
+  const title = locale === "he"
+    ? `${hebrewDisplay} · לזכר`
+    : `${englishDisplay || hebrewDisplay} · Lzecher`;
+  const description = locale === "he"
+    ? `הצטרפו ללימוד תורה לעילוי נשמת ${hebrewDisplay}.`
+    : `Honor the memory of ${project.nameHebrew}${project.nameEnglish ? ` (${project.nameEnglish})` : ""} through communal Torah learning.`;
 
   return {
     title,
     description,
-    alternates: { canonical: `https://lzecher.com/${locale}/memorial/${slug}` },
-    openGraph: { title, description, url: `https://lzecher.com/${locale}/memorial/${slug}`, type: "article" },
+    alternates: localizedAlternates(locale, slug),
+    openGraph: { title, description, url: `${BASE_URL}/${locale}/memorial/${slug}`, type: "article", locale: locale === "he" ? "he_IL" : locale },
     twitter: { card: "summary_large_image", title, description },
   };
 }
 
 export default async function MemorialPage({ params }: Props) {
-  const { slug } = await params;
+  const { locale, slug } = await params;
   const project = await getProjectBySlug(slug);
 
   if (!project) {
@@ -100,9 +120,12 @@ export default async function MemorialPage({ params }: Props) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: `${project.nameEnglish || project.nameHebrew} - Memorial Page`,
-    description: `Torah learning dedicated l'iluy nishmas ${project.nameHebrew}`,
-    url: `https://lzecher.com/en/memorial/${project.slug}`,
+    name: `${project.nameHebrew} - ${locale === "he" ? "דף הנצחה" : "Memorial Page"}`,
+    description: locale === "he"
+      ? `לימוד תורה לעילוי נשמת ${project.nameHebrew}`
+      : `Torah learning dedicated l'iluy nishmas ${project.nameHebrew}`,
+    url: `${BASE_URL}/${locale}/memorial/${project.slug}`,
+    inLanguage: locale,
   };
   const { passwordHash, passwordSalt, ...safeProject } = project;
   void passwordHash;

@@ -13,6 +13,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SiteNotice } from "@/components/SiteNotice";
+import { ViewTracker } from "@/components/analytics/ViewTracker";
 import type { Metadata, Viewport } from "next";
 import "../globals.css";
 
@@ -116,6 +117,7 @@ export default async function LocaleLayout({ children, params }: Props) {
             />
           </AuthProvider>
           <FeedbackWidget />
+          <ViewTracker />
           <Analytics />
           <SpeedInsights />
         </NextIntlClientProvider>
