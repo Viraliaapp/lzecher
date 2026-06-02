@@ -684,7 +684,9 @@
   "globalCounter": {
     "heading": "La communaute Lzecher",
     "siteViews": "visites du site",
-    "learningCommitments": "engagements d'etude"
+    "mishnayos": "Mishnayot",
+    "tehillim": "Tehilim",
+    "kabalos": "Kabbalot"
   },
   "leaderboard": {
     "title": "Yasher Koach",

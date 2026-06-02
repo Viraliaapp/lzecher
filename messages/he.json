@@ -684,7 +684,9 @@
   "globalCounter": {
     "heading": "כלל ישראל בלזכר",
     "siteViews": "כניסות לאתר",
-    "learningCommitments": "התחייבויות לימוד"
+    "mishnayos": "משניות",
+    "tehillim": "תהילים",
+    "kabalos": "קבלות"
   },
   "leaderboard": {
     "title": "יישר כח",

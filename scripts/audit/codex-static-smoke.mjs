@@ -799,8 +799,11 @@ assert(
   globalCounterSettings.includes("settings.featureFlags.globalCounter") &&
     globalCounterSettings.includes("siteViews") &&
     globalCounterSettings.includes('t("siteViews")') &&
+    globalCounterSettings.includes('t("mishnayos")') &&
+    globalCounterSettings.includes('t("tehillim")') &&
+    globalCounterSettings.includes('t("kabalos")') &&
     globalCounterSettings.includes('fetch("/api/activity/global")'),
-  "Global counter should be controlled by the Lzecher site settings feature flag and show public aggregate site views"
+  "Global counter should be controlled by the Lzecher site settings feature flag and show public aggregate site views plus the separate learning counters"
 );
 
 const globalActivityRoute = read("src/app/api/activity/global/route.ts");
