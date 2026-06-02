@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Check, RefreshCw } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BookOpen, Check, Moon, Pause, Play, RefreshCw, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -52,6 +52,9 @@ export function TehillimReaderDialog({
   const [chapterData, setChapterData] = useState<TehillimChapterPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [darkReader, setDarkReader] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const chapterNumber = useMemo(
     () => (portion ? getTehillimChapterNumberFromPortion(portion) : null),
@@ -88,7 +91,10 @@ export function TehillimReaderDialog({
         const res = await fetch(`/api/tehillim/${chapterNumber}`, { signal: controller.signal });
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.verses) throw new Error(data?.error || "Chapter unavailable");
-        if (active) setChapterData(data as TehillimChapterPayload);
+        if (active) {
+          setChapterData(data as TehillimChapterPayload);
+          requestAnimationFrame(() => scrollRef.current?.scrollTo({ top: 0 }));
+        }
       } catch (err) {
         const isAbort = err instanceof Error && err.name === "AbortError";
         if (!isAbort) {
@@ -105,28 +111,59 @@ export function TehillimReaderDialog({
     };
   }, [chapterNumber, isHebrew, open]);
 
+  useEffect(() => {
+    if (!autoScroll) return;
+
+    let frame = 0;
+    let lastTime = performance.now();
+    const step = (time: number) => {
+      const el = scrollRef.current;
+      if (!el) {
+        frame = requestAnimationFrame(step);
+        return;
+      }
+
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      if (el.scrollTop >= maxScroll - 2) {
+        setAutoScroll(false);
+        return;
+      }
+
+      const elapsed = time - lastTime;
+      lastTime = time;
+      el.scrollTop += Math.max(0.35, elapsed * 0.028);
+      frame = requestAnimationFrame(step);
+    };
+
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [autoScroll]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[calc(100vw-24px)] max-w-5xl overflow-hidden p-0 sm:rounded-3xl">
-        <div className="grid max-h-[92vh] grid-rows-[auto_1fr_auto] bg-cream sm:grid-cols-[minmax(260px,330px)_1fr] sm:grid-rows-[1fr_auto]">
+      <DialogContent className="h-[calc(100dvh-16px)] max-h-[calc(100dvh-16px)] w-[calc(100vw-16px)] max-w-5xl gap-0 overflow-hidden p-0 sm:h-[min(92vh,820px)] sm:max-h-[92vh] sm:rounded-3xl">
+        <div className={cn(
+          "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] bg-cream sm:grid-cols-[minmax(240px,310px)_minmax(0,1fr)] sm:grid-rows-[minmax(0,1fr)_auto]",
+          darkReader && "bg-[#07101D]"
+        )}>
           <aside
-            className="border-b border-navy/10 bg-navy px-5 py-5 text-cream sm:border-b-0 sm:border-l sm:border-navy/10 sm:px-6 sm:py-8"
+            className="border-b border-navy/10 bg-navy px-4 py-3 text-cream sm:border-b-0 sm:border-l sm:border-navy/10 sm:px-6 sm:py-8"
             dir={isHebrew ? "rtl" : "ltr"}
           >
             <DialogHeader className="text-start">
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-gold/15 text-gold">
+              <div className="mb-3 hidden h-11 w-11 items-center justify-center rounded-2xl bg-gold/15 text-gold sm:flex">
                 <BookOpen className="h-5 w-5" />
               </div>
-              <DialogTitle className="text-2xl leading-tight text-cream">
+              <DialogTitle className="pe-10 text-xl leading-tight text-cream sm:pe-0 sm:text-2xl">
                 {isHebrew ? `${chapterLabel} נשמר עבורך` : `${chapterLabel} is reserved for you`}
               </DialogTitle>
-              <DialogDescription className="pt-2 text-sm leading-relaxed text-cream/70">
+              <DialogDescription className="pt-1 text-xs leading-relaxed text-cream/70 sm:pt-2 sm:text-sm">
                 {isHebrew
                   ? `קראו בנחת לעילוי נשמת ${honoreeName}. בסיום אפשר לסמן כנלמד, או לקבל פרק נוסף.`
                   : `Read it l'iluy nishmas ${honoreeName}. When finished, mark it learned or take another chapter.`}
               </DialogDescription>
             </DialogHeader>
-            <div className="mt-5 rounded-2xl border border-gold/25 bg-cream/5 px-4 py-3 text-sm text-cream/80">
+            <div className="mt-5 hidden rounded-2xl border border-gold/25 bg-cream/5 px-4 py-3 text-sm text-cream/80 sm:block">
               <p className="font-medium text-gold">{isHebrew ? "חד־פעמי" : "One-time"}</p>
               <p className="mt-1 leading-relaxed">
                 {isHebrew
@@ -136,17 +173,59 @@ export function TehillimReaderDialog({
             </div>
           </aside>
 
-          <main className="min-h-0 bg-white" dir="rtl" lang="he">
-            <div className="border-b border-navy/10 px-5 py-4 sm:px-7">
-              <p className="font-heading text-2xl font-black text-navy">{chapterLabel}</p>
-              {chapterData && (
-                <p className="mt-1 text-xs text-muted">
-                  {chapterData.verseCount} {isHebrew ? "פסוקים" : "verses"} · טקסט מנוקד
-                </p>
-              )}
+          <main className={cn("flex min-h-0 flex-col", darkReader ? "bg-[#080D17]" : "bg-white")} dir="rtl" lang="he">
+            <div className={cn("shrink-0 border-b px-4 py-2.5 sm:px-7 sm:py-3", darkReader ? "border-cream/10" : "border-navy/10")}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className={cn("font-heading text-xl font-black sm:text-2xl", darkReader ? "text-cream" : "text-navy")}>{chapterLabel}</p>
+                  {chapterData && (
+                    <p className={cn("mt-0.5 text-xs", darkReader ? "text-cream/55" : "text-muted")}>
+                      {chapterData.verseCount} {isHebrew ? "פסוקים" : "verses"} · טקסט מנוקד
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5" dir={isHebrew ? "rtl" : "ltr"}>
+                  <button
+                    type="button"
+                    onClick={() => setDarkReader((v) => !v)}
+                    aria-pressed={darkReader}
+                    title={isHebrew ? "מצב כהה" : "Dark mode"}
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-full border transition-colors",
+                      darkReader ? "border-cream/15 bg-cream/10 text-gold hover:bg-cream/15" : "border-navy/10 bg-cream text-navy hover:bg-cream-warm"
+                    )}
+                  >
+                    {darkReader ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    <span className="sr-only">{isHebrew ? "מצב כהה" : "Dark mode"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAutoScroll((v) => !v)}
+                    aria-pressed={autoScroll}
+                    title={isHebrew ? "גלילה אוטומטית" : "Auto scroll"}
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-full border transition-colors",
+                      autoScroll
+                        ? "border-gold/60 bg-gold text-navy"
+                        : darkReader
+                          ? "border-cream/15 bg-cream/10 text-gold hover:bg-cream/15"
+                          : "border-navy/10 bg-cream text-navy hover:bg-cream-warm"
+                    )}
+                  >
+                    {autoScroll ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    <span className="sr-only">{isHebrew ? "גלילה אוטומטית" : "Auto scroll"}</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="tehillim-reader-scroll max-h-[48vh] min-h-[280px] overflow-y-auto px-5 py-5 sm:max-h-[70vh] sm:px-8 sm:py-7">
+            <div
+              ref={scrollRef}
+              className={cn(
+                "tehillim-reader-scroll min-h-0 flex-1 overflow-y-auto px-5 py-4 pb-12 sm:px-8 sm:py-6 sm:pb-14",
+                darkReader && "tehillim-reader-scroll-dark"
+              )}
+            >
               {loading && (
                 <div className="flex min-h-[240px] items-center justify-center text-gold">
                   <Spinner className="h-6 w-6" />
@@ -163,7 +242,8 @@ export function TehillimReaderDialog({
                     <p
                       key={index}
                       className={cn(
-                        "font-heading text-[1.35rem] leading-[2.15] text-navy sm:text-[1.55rem]",
+                        "font-heading text-[1.35rem] leading-[2.15] sm:text-[1.55rem]",
+                        darkReader ? "text-cream" : "text-navy",
                         index === 0 && "text-[1.45rem] sm:text-[1.7rem]"
                       )}
                     >
@@ -178,12 +258,15 @@ export function TehillimReaderDialog({
             </div>
           </main>
 
-          <DialogFooter className="border-t border-navy/10 bg-cream px-4 py-4 sm:col-span-2 sm:flex-row sm:justify-between sm:px-6">
+          <DialogFooter className={cn(
+            "shrink-0 border-t px-3 py-2.5 sm:col-span-2 sm:flex-row sm:justify-between sm:px-6 sm:py-4",
+            darkReader ? "border-cream/10 bg-[#07101D]" : "border-navy/10 bg-cream"
+          )}>
             <Button
               variant="ghost"
               onClick={() => onOpenChange(false)}
               disabled={completing || takingNext}
-              className="text-navy/70"
+              className={cn(darkReader ? "text-cream/70 hover:bg-cream/10 hover:text-cream" : "text-navy/70")}
             >
               {isHebrew ? "אקרא אחר כך" : "Read later"}
             </Button>
@@ -192,7 +275,10 @@ export function TehillimReaderDialog({
                 variant="outline"
                 onClick={onCompleteAndNext}
                 disabled={loading || !!loadError || completing || takingNext}
-                className="border-gold/40 text-navy hover:bg-gold/10"
+                className={cn(
+                  "border-gold/40",
+                  darkReader ? "bg-transparent text-cream hover:bg-cream/10 hover:text-cream" : "text-navy hover:bg-gold/10"
+                )}
               >
                 {takingNext ? <Spinner className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
                 {isHebrew ? "סיימתי — רוצה פרק נוסף" : "Done, take another"}

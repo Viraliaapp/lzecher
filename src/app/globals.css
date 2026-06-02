@@ -90,6 +90,18 @@
 .tehillim-reader-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(55, 45, 26, 0.95);
 }
+.tehillim-reader-scroll-dark {
+  scrollbar-color: rgba(201, 169, 97, 0.86) rgba(250, 246, 236, 0.08);
+}
+.tehillim-reader-scroll-dark::-webkit-scrollbar-track {
+  background: rgba(250, 246, 236, 0.08);
+}
+.tehillim-reader-scroll-dark::-webkit-scrollbar-thumb {
+  background: rgba(201, 169, 97, 0.86);
+}
+.tehillim-reader-scroll-dark::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 205, 147, 0.95);
+}
 
 /* ── Base styles ── */
 body {
