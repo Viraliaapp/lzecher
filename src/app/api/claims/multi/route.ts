@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { queueRemindersForClaim } from "@/lib/queue-reminders";
+import { normalizeFutureTimestamp, queueRemindersForClaim, sanitizeReminderPreferences } from "@/lib/queue-reminders";
 import { maybeOpenNextSet } from "@/lib/open-next-set";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import { recomputeGlobalStats } from "@/lib/recompute-global";
 import { getClaimMode } from "@/lib/track-config";
 import { learningScopeLabel } from "@/lib/learning-label";
+import { normalizeEmailAddress } from "@/lib/email-validation";
 import type { TrackType } from "@/lib/types";
 import type * as FirebaseFirestore from "@google-cloud/firestore";
 
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     const locale = (typeof claimLocale === "string" && ["en", "he", "es", "fr"].includes(claimLocale)) ? claimLocale : "en";
+    const sanitizedReminderPreferences = sanitizeReminderPreferences(reminderPreferences);
 
     const rawPortionIds = Array.isArray(portionIds)
       ? portionIds
@@ -57,7 +59,12 @@ export async function POST(request: NextRequest) {
         // treat as anonymous
       }
     }
-    email = email || claimerEmail || null;
+    const submittedEmail = typeof claimerEmail === "string" ? claimerEmail.trim() : "";
+    const normalizedSubmittedEmail = normalizeEmailAddress(submittedEmail);
+    if (submittedEmail && !normalizedSubmittedEmail && sanitizedReminderPreferences.length > 0) {
+      return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+    }
+    email = normalizedSubmittedEmail || normalizeEmailAddress(email);
 
     // Rate limit only for anonymous users
     if (uid === "anonymous") {
@@ -77,9 +84,11 @@ export async function POST(request: NextRequest) {
     if (!lockSnap.exists) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
-    if (lockSnap.data()!.locked === true) {
+    const projectData = lockSnap.data()!;
+    if (projectData.locked === true) {
       return NextResponse.json({ error: "This memorial is locked. No new portions can be taken." }, { status: 423 });
     }
+    const reminderEndDate = normalizeFutureTimestamp(projectData.completionTargetDate, now);
 
     // Fetch all portions in one query (Firestore supports up to 30 in-clause items,
     // so we fetch by projectId + status and filter in JS for larger sets)
@@ -126,7 +135,8 @@ export async function POST(request: NextRequest) {
       claimedAt: now,
       status: "active",
       duration: "oneTime",
-      reminderPreferences: reminderPreferences ?? [],
+      durationEndDate: reminderEndDate,
+      reminderPreferences: sanitizedReminderPreferences,
     });
 
     // Batch write — Firestore limit is 500 ops; each portion = 2 ops (update + claim doc)
@@ -163,7 +173,8 @@ export async function POST(request: NextRequest) {
           isParent: false,
           parentClaimId: parentClaimRef.id,
           duration: "oneTime",
-          reminderPreferences: reminderPreferences ?? [],
+          durationEndDate: reminderEndDate,
+          reminderPreferences: sanitizedReminderPreferences,
         });
 
         claimedCount++;
@@ -196,7 +207,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Queue reminders once for the whole multi-claim batch
-    if (email && reminderPreferences && reminderPreferences.length > 0) {
+    if (email && sanitizedReminderPreferences.length > 0) {
       try {
         await queueRemindersForClaim({
           claimId: parentClaimRef.id,
@@ -204,10 +215,11 @@ export async function POST(request: NextRequest) {
           projectSlug,
           userId: uid,
           userEmail: email,
-          reminderPreferences,
-          durationEndDate: null,
+          reminderPreferences: sanitizedReminderPreferences,
+          durationEndDate: reminderEndDate,
           locale,
           commitmentDesc: learningScopeLabel(locale, "multi", null, validPortions[0]?.data.trackType as string | undefined, claimedCount),
+          trackType: validPortions[0]?.data.trackType as string | undefined,
         });
       } catch (e) {
         console.error("[multi-claim] queue reminders failed:", e);

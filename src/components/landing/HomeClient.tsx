@@ -19,7 +19,7 @@ interface HomeClientProps {
 
 const TRACK_LABELS: Record<TrackType, { he: string; en: string; es: string; fr: string }> = {
   mishnayos: { he: "משניות", en: "Mishnayos", es: "Mishnayot", fr: "Mishnayot" },
-  tehillim: { he: "תהלים", en: "Tehillim", es: "Tehilim", fr: "Tehilim" },
+  tehillim: { he: "תהילים", en: "Tehillim", es: "Tehilim", fr: "Tehilim" },
   shnayim_mikra: { he: "שניים מקרא", en: "Shnayim Mikra", es: "Shnaim Mikra", fr: "Chnayim Mikra" },
   kabalos: { he: "קבלות טובות", en: "Kabalos", es: "Kabalot", fr: "Kabalot" },
   daf_yomi: { he: "דף יומי", en: "Daf Yomi", es: "Daf Yomi", fr: "Daf Yomi" },
@@ -297,7 +297,7 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
                             const tC = byTrack.tehillim || 0;
                             const kC = byTrack.kabalos || 0;
                             if (mC > 0) parts.push(`${mC} ${locale === "he" ? "משניות" : "Mishnayos"}`);
-                            if (tC > 0) parts.push(`${tC} ${locale === "he" ? "תהלים" : "Tehillim"}`);
+                            if (tC > 0) parts.push(`${tC} ${locale === "he" ? "תהילים" : "Tehillim"}`);
                             if (kC > 0) parts.push(`${kC} ${locale === "he" ? "קבלות טובות" : "Kabalos"}`);
                             if ((m.participantCount || 0) > 0) parts.push(`${m.participantCount} ${locale === "he" ? "משתתפים" : "participants"}`);
                             if (parts.length === 0) {

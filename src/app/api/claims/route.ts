@@ -3,11 +3,12 @@ import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { getClaimMode } from "@/lib/track-config";
 import type { TrackType, CommitmentDuration } from "@/lib/types";
-import { queueRemindersForClaim } from "@/lib/queue-reminders";
+import { normalizeFutureTimestamp, queueRemindersForClaim, sanitizeReminderPreferences } from "@/lib/queue-reminders";
 import { maybeOpenNextSet } from "@/lib/open-next-set";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import { recomputeGlobalStats } from "@/lib/recompute-global";
 import { learningLabel } from "@/lib/learning-label";
+import { normalizeEmailAddress } from "@/lib/email-validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
       locale: claimLocale,
     } = body;
     const locale = (typeof claimLocale === "string" && ["en", "he", "es", "fr"].includes(claimLocale)) ? claimLocale : "en";
+    const sanitizedReminderPreferences = sanitizeReminderPreferences(reminderPreferences);
 
     if (!portionId || !projectId || !claimerName?.trim()) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -51,7 +53,12 @@ export async function POST(request: NextRequest) {
         // Invalid token — treat as anonymous
       }
     }
-    email = email || claimerEmail || null;
+    const submittedEmail = typeof claimerEmail === "string" ? claimerEmail.trim() : "";
+    const normalizedSubmittedEmail = normalizeEmailAddress(submittedEmail);
+    if (submittedEmail && !normalizedSubmittedEmail && sanitizedReminderPreferences.length > 0) {
+      return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+    }
+    email = normalizedSubmittedEmail || normalizeEmailAddress(email);
 
     const db = getAdminDb();
 
@@ -62,7 +69,8 @@ export async function POST(request: NextRequest) {
     if (!lockSnap.exists) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
-    if (lockSnap.data()!.locked === true) {
+    const projectData = lockSnap.data()!;
+    if (projectData.locked === true) {
       return NextResponse.json({ error: "This memorial is locked. No new portions can be taken." }, { status: 423 });
     }
 
@@ -86,7 +94,9 @@ export async function POST(request: NextRequest) {
 
     // Resolve duration
     const resolvedDuration: CommitmentDuration = duration || "oneTime";
-    let resolvedEndDate: number | null = durationEndDate ?? null;
+    let resolvedEndDate: number | null =
+      normalizeFutureTimestamp(durationEndDate, now) ||
+      normalizeFutureTimestamp(projectData.completionTargetDate, now);
     if (!resolvedEndDate && durationValue) {
       if (resolvedDuration === "daily") {
         resolvedEndDate = now + durationValue * 24 * 60 * 60 * 1000;
@@ -140,7 +150,7 @@ export async function POST(request: NextRequest) {
           durationValue: durationValue ?? null,
           durationEndDate: resolvedEndDate,
           specificItem: specificItem ?? null,
-          reminderPreferences: reminderPreferences ?? [],
+          reminderPreferences: sanitizedReminderPreferences,
         });
         return { ok: true as const };
       });
@@ -190,7 +200,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Queue reminder emails
-      if (email && reminderPreferences && reminderPreferences.length > 0) {
+      if (email && sanitizedReminderPreferences.length > 0) {
         try {
           await queueRemindersForClaim({
             claimId: claimRef.id,
@@ -198,10 +208,11 @@ export async function POST(request: NextRequest) {
             projectSlug,
             userId: uid,
             userEmail: email,
-            reminderPreferences,
+            reminderPreferences: sanitizedReminderPreferences,
             durationEndDate: resolvedEndDate,
             locale,
             commitmentDesc: learningLabel(locale, portionData.reference || portionData.displayName, trackType),
+            trackType,
           });
         } catch (e) {
           console.error("Failed to queue reminders:", e);
@@ -286,7 +297,7 @@ export async function POST(request: NextRequest) {
           durationValue: durationValue ?? null,
           durationEndDate: resolvedEndDate,
           specificItem: specificItem ?? null,
-          reminderPreferences: reminderPreferences ?? [],
+          reminderPreferences: sanitizedReminderPreferences,
           progress: progressTotal ? { completed: 0, total: progressTotal } : null,
           lastCheckIn: null,
           currentStreak: 0,
@@ -318,7 +329,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Queue reminder emails
-      if (email && reminderPreferences && reminderPreferences.length > 0) {
+      if (email && sanitizedReminderPreferences.length > 0) {
         try {
           await queueRemindersForClaim({
             claimId: claimRef.id,
@@ -326,10 +337,11 @@ export async function POST(request: NextRequest) {
             projectSlug: projectSlugInc,
             userId: uid,
             userEmail: email,
-            reminderPreferences,
+            reminderPreferences: sanitizedReminderPreferences,
             durationEndDate: resolvedEndDate,
             locale,
             commitmentDesc: learningLabel(locale, portionData.reference || portionData.displayName, trackType),
+            trackType,
           });
         } catch (e) {
           console.error("Failed to queue reminders:", e);

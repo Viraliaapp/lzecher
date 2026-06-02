@@ -13,7 +13,7 @@ interface UnitForms {
 const UNITS: Record<string, Record<string, UnitForms>> = {
   he: {
     mishnayos: { one: () => "משנה אחת", many: (n) => `${n} משניות` },
-    tehillim: { one: () => "פרק תהלים", many: (n) => `${n} פרקי תהלים` },
+    tehillim: { one: () => "פרק תהילים", many: (n) => `${n} פרקי תהילים` },
     kabalos: { one: () => "קבלה טובה", many: (n) => `${n} קבלות טובות` },
     shnayim_mikra: { one: () => "פרשה", many: (n) => `${n} פרשות` },
     daf_yomi: { one: () => "דף", many: (n) => `${n} דפים` },

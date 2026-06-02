@@ -10,11 +10,7 @@ import { cn } from "@/lib/utils";
 const ALL_REMINDER_TYPES = [
   "confirmation",
   "halfway",
-  "sevenDaysBefore",
-  "threeDaysBefore",
-  "oneDayBefore",
-  "dailyReminder",
-  "weeklyDigest",
+  "sevenDays",
 ] as const;
 
 type ReminderKey = (typeof ALL_REMINDER_TYPES)[number];
@@ -41,11 +37,7 @@ const COPY: Record<string, LocaleCopy> = {
     reminderLabels: {
       confirmation: "Confirmation (immediate)",
       halfway: "Halfway reminder",
-      sevenDaysBefore: "7 days before deadline",
-      threeDaysBefore: "3 days before deadline",
-      oneDayBefore: "1 day before deadline",
-      dailyReminder: "Daily reminders",
-      weeklyDigest: "Weekly digest",
+      sevenDays: "Final reminder, 1 week before deadline",
     },
     saveButton: "Save preferences",
     saving: "Saving...",
@@ -61,11 +53,7 @@ const COPY: Record<string, LocaleCopy> = {
     reminderLabels: {
       confirmation: "אישור (מיידי)",
       halfway: "תזכורת באמצע",
-      sevenDaysBefore: "7 ימים לפני המועד",
-      threeDaysBefore: "3 ימים לפני המועד",
-      oneDayBefore: "יום לפני המועד",
-      dailyReminder: "תזכורות יומיות",
-      weeklyDigest: "סיכום שבועי",
+      sevenDays: "תזכורת אחרונה שבוע לפני המועד",
     },
     saveButton: "שמור העדפות",
     saving: "שומר...",
@@ -81,11 +69,7 @@ const COPY: Record<string, LocaleCopy> = {
     reminderLabels: {
       confirmation: "Confirmacion (inmediata)",
       halfway: "Recordatorio a la mitad",
-      sevenDaysBefore: "7 dias antes del plazo",
-      threeDaysBefore: "3 dias antes del plazo",
-      oneDayBefore: "1 dia antes del plazo",
-      dailyReminder: "Recordatorios diarios",
-      weeklyDigest: "Resumen semanal",
+      sevenDays: "Recordatorio final, 1 semana antes del plazo",
     },
     saveButton: "Guardar preferencias",
     saving: "Guardando...",
@@ -101,11 +85,7 @@ const COPY: Record<string, LocaleCopy> = {
     reminderLabels: {
       confirmation: "Confirmation (immediate)",
       halfway: "Rappel a mi-parcours",
-      sevenDaysBefore: "7 jours avant l'echeance",
-      threeDaysBefore: "3 jours avant l'echeance",
-      oneDayBefore: "1 jour avant l'echeance",
-      dailyReminder: "Rappels quotidiens",
-      weeklyDigest: "Resume hebdomadaire",
+      sevenDays: "Dernier rappel, 1 semaine avant l'echeance",
     },
     saveButton: "Enregistrer les preferences",
     saving: "Enregistrement...",
@@ -143,7 +123,11 @@ export default function UnsubscribeClient({
   const isRtl = locale === "he";
 
   const [prefs, setPrefs] = React.useState<Set<string>>(
-    new Set(currentPreferences)
+    new Set(
+      currentPreferences
+        .map((key) => key === "sevenDaysBefore" ? "sevenDays" : key)
+        .filter((key) => (ALL_REMINDER_TYPES as readonly string[]).includes(key))
+    )
   );
   const [saveState, setSaveState] = React.useState<SaveState>("idle");
 

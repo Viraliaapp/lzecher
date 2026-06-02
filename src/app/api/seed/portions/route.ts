@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
           claimMode: "exclusive",
           reference: `Tehillim ${mizmor.number}`,
           displayName: `Psalm ${mizmor.number}`,
-          displayNameHebrew: `תהלים ${mizmor.number}`,
+          displayNameHebrew: `תהילים ${mizmor.number}`,
           order,
           status: "available",
           mizmor: mizmor.number,

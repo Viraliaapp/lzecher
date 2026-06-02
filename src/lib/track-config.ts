@@ -23,7 +23,7 @@ export const TRACK_CONFIGS: Record<TrackType, TrackConfiguration> = {
   tehillim: {
     trackType: "tehillim",
     claimMode: "exclusive",
-    label: { en: "Tehillim", he: "תהלים" },
+    label: { en: "Tehillim", he: "תהילים" },
     supportsDaily: false,
     defaultDuration: "oneTime",
     claimVerbForm: "both",

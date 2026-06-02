@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { queueRemindersForClaim } from "@/lib/queue-reminders";
+import { normalizeFutureTimestamp, queueRemindersForClaim, sanitizeReminderPreferences } from "@/lib/queue-reminders";
 import { maybeOpenNextSet } from "@/lib/open-next-set";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 import { recomputeGlobalStats } from "@/lib/recompute-global";
 import { learningScopeLabel } from "@/lib/learning-label";
+import { normalizeEmailAddress } from "@/lib/email-validation";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { projectId, scope, scopeId, claimerName, idToken, claimerEmail, reminderPreferences, locale: claimLocale } = body;
     const locale = (typeof claimLocale === "string" && ["en", "he", "es", "fr"].includes(claimLocale)) ? claimLocale : "en";
+    const sanitizedReminderPreferences = sanitizeReminderPreferences(reminderPreferences);
 
     if (!projectId || !scope || !claimerName?.trim()) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -39,7 +41,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Too many requests" }, { status: 429 });
       }
     }
-    email = email || claimerEmail || null;
+    const submittedEmail = typeof claimerEmail === "string" ? claimerEmail.trim() : "";
+    const normalizedSubmittedEmail = normalizeEmailAddress(submittedEmail);
+    if (submittedEmail && !normalizedSubmittedEmail && sanitizedReminderPreferences.length > 0) {
+      return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+    }
+    email = normalizedSubmittedEmail || normalizeEmailAddress(email);
 
     const db = getAdminDb();
     const now = Date.now();
@@ -50,9 +57,11 @@ export async function POST(request: NextRequest) {
     if (!lockSnap.exists) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
-    if (lockSnap.data()!.locked === true) {
+    const projectData = lockSnap.data()!;
+    if (projectData.locked === true) {
       return NextResponse.json({ error: "This memorial is locked. No new portions can be taken." }, { status: 423 });
     }
+    const reminderEndDate = normalizeFutureTimestamp(projectData.completionTargetDate, now);
 
     // Build query to find matching portions
     let query = db.collection("lzecher_portions").where("projectId", "==", projectId);
@@ -125,7 +134,8 @@ export async function POST(request: NextRequest) {
       claimedAt: now,
       status: "active",
       duration: "oneTime",
-      reminderPreferences: reminderPreferences || [],
+      durationEndDate: reminderEndDate,
+      reminderPreferences: sanitizedReminderPreferences,
     });
 
     // Batch update portions and create child claims.
@@ -171,6 +181,7 @@ export async function POST(request: NextRequest) {
           isParent: false,
           parentClaimId: parentClaimRef.id,
           duration: "oneTime",
+          durationEndDate: reminderEndDate,
         });
       }
 
@@ -192,7 +203,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Queue reminders for the parent claim (one set per bulk action, not per child)
-    if (email && reminderPreferences && reminderPreferences.length > 0) {
+    if (email && sanitizedReminderPreferences.length > 0) {
       try {
         await queueRemindersForClaim({
           claimId: parentClaimRef.id,
@@ -200,8 +211,8 @@ export async function POST(request: NextRequest) {
           projectSlug,
           userId: uid,
           userEmail: email,
-          reminderPreferences,
-          durationEndDate: null,
+          reminderPreferences: sanitizedReminderPreferences,
+          durationEndDate: reminderEndDate,
           locale,
           honoreeName,
           commitmentDesc: learningScopeLabel(
@@ -211,6 +222,7 @@ export async function POST(request: NextRequest) {
             firstPortion.trackType,
             availablePortions.length
           ),
+          trackType: firstPortion.trackType,
         });
       } catch (e) {
         console.error("[bulk-claim] queue reminders failed:", e);

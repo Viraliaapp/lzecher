@@ -336,12 +336,12 @@ const templates: Record<
   // ── Seven Days Before ───────────────────────────────────────────────────────
   sevenDaysBefore: {
     en: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink }) => ({
-      subject: `7 days left — your commitment for ${honoreeName}`,
+      subject: `Final reminder — one week left for ${honoreeName}`,
       body: emailWrapper(
         `
-        ${heading(`7 days remaining`)}
+        ${heading(`Final reminder: one week remaining`)}
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
-        ${body(`You have <strong>7 days left</strong> to complete your commitment for <strong>${honoreeName}</strong>. There's still time — you can do this!`)}
+        ${body(`This is the final scheduled reminder for your learning commitment for <strong>${honoreeName}</strong>. You have about <strong>one week</strong> left to complete it.`)}
         ${body(`<strong>Your commitment:</strong> ${commitmentDesc}${deadline ? `<br><strong>Deadline:</strong> ${deadline}` : ""}`)}
         ${ctaButton(link, "View my commitment")}
         `,
@@ -354,12 +354,12 @@ const templates: Record<
     }),
 
     he: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink }) => ({
-      subject: `נותרו 7 ימים — הלימוד לעילוי נשמת ${honoreeName}`,
+      subject: `תזכורת אחרונה — שבוע לסיום הלימוד לעילוי נשמת ${honoreeName}`,
       body: emailWrapper(
         `
-        ${heading(`נותרו 7 ימים`)}
+        ${heading(`תזכורת אחרונה: נותר בערך שבוע`)}
         ${badge(`לעילוי נשמת ${honoreeName}`)}
-        ${body(`נותרו <strong>7 ימים</strong> להשלים את הלימוד שקיבלת לעילוי נשמת <strong>${honoreeName}</strong>. עוד יש זמן להתקדם בנחת.`)}
+        ${body(`זו התזכורת האחרונה שנקבעה ללימוד שקיבלת לעילוי נשמת <strong>${honoreeName}</strong>. נותר בערך <strong>שבוע</strong> להשלים את הלימוד בנחת.`)}
         ${body(`<strong>הלימוד שלך:</strong> ${commitmentDesc}${deadline ? `<br><strong>עד:</strong> ${deadline}` : ""}`)}
         ${ctaButton(link, "לצפייה בלימוד שלי")}
         `,
@@ -372,12 +372,12 @@ const templates: Record<
     }),
 
     es: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink }) => ({
-      subject: `7 dias restantes — tu compromiso por ${honoreeName}`,
+      subject: `Recordatorio final — queda una semana por ${honoreeName}`,
       body: emailWrapper(
         `
-        ${heading(`Quedan 7 dias`)}
+        ${heading(`Recordatorio final: queda una semana`)}
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
-        ${body(`Te quedan <strong>7 dias</strong> para completar tu compromiso por <strong>${honoreeName}</strong>. Todavia hay tiempo.`)}
+        ${body(`Este es el ultimo recordatorio programado para tu compromiso por <strong>${honoreeName}</strong>. Queda aproximadamente <strong>una semana</strong> para completarlo.`)}
         ${body(`<strong>Tu compromiso:</strong> ${commitmentDesc}${deadline ? `<br><strong>Fecha limite:</strong> ${deadline}` : ""}`)}
         ${ctaButton(link, "Ver mi compromiso")}
         `,
@@ -390,12 +390,12 @@ const templates: Record<
     }),
 
     fr: ({ honoreeName, commitmentDesc, deadline, link, unsubscribeLink }) => ({
-      subject: `7 jours restants — votre engagement pour ${honoreeName}`,
+      subject: `Dernier rappel — une semaine restante pour ${honoreeName}`,
       body: emailWrapper(
         `
-        ${heading(`Il reste 7 jours`)}
+        ${heading(`Dernier rappel : il reste une semaine`)}
         ${badge(`L'iluy Nishmas ${honoreeName}`)}
-        ${body(`Il vous reste <strong>7 jours</strong> pour accomplir votre engagement pour <strong>${honoreeName}</strong>. Il est encore temps !`)}
+        ${body(`Ceci est le dernier rappel programme pour votre engagement pour <strong>${honoreeName}</strong>. Il reste environ <strong>une semaine</strong> pour le terminer.`)}
         ${body(`<strong>Votre engagement :</strong> ${commitmentDesc}${deadline ? `<br><strong>Echeance :</strong> ${deadline}` : ""}`)}
         ${ctaButton(link, "Voir mon engagement")}
         `,

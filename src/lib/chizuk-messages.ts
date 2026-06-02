@@ -76,7 +76,7 @@ export const CHIZUK_MESSAGES: ChizukMessage[] = [
   {
     id: 'first_tehillim_2',
     scenario: 'first_tehillim',
-    he: 'תהלים ראשון לעילוי נשמת {name}. כל פרק שתאמר מוסיף זכות לנשמה.',
+    he: 'תהילים ראשון לעילוי נשמת {name}. כל פרק שתאמר מוסיף זכות לנשמה.',
     en: 'First Tehillim l\'iluy nishmas {name}. Every chapter you recite adds merit to the neshama.',
     es: 'Primer Tehilim l\'iluy nishmas {name}. Cada capitulo que recitas agrega merito a la neshama.',
     fr: 'Premier Tehilim l\'iluy nishmas {name}. Chaque chapitre que vous recitez ajoute du merite a la neshama.',
@@ -84,7 +84,7 @@ export const CHIZUK_MESSAGES: ChizukMessage[] = [
   {
     id: 'first_tehillim_3',
     scenario: 'first_tehillim',
-    he: 'המזמור הראשון עלה לפני הקב״ה. נשמת {name} מקבלת את הזכות של דברי תהלים שאמרת.',
+    he: 'המזמור הראשון עלה לפני הקב״ה. נשמת {name} מקבלת את הזכות של דברי תהילים שאמרת.',
     en: 'The first mizmor has risen before Hashem. {name}\'s neshama receives the zechus of these words of praise.',
     es: 'El primer mizmor ha subido ante Hashem. La neshama de {name} recibe el zechus de estas palabras de alabanza.',
     fr: 'Le premier mizmor est monte devant Hachem. La neshama de {name} recoit le zekhout de ces paroles de louange.',
@@ -224,7 +224,7 @@ export const CHIZUK_MESSAGES: ChizukMessage[] = [
   {
     id: 'tehillim_book_complete_1',
     scenario: 'tehillim_book_complete',
-    he: 'ספר תהלים שלם הושלם. דברי דוד המלך עלו לפני הקב״ה כזכות לנשמת {name}.',
+    he: 'ספר תהילים שלם הושלם. דברי דוד המלך עלו לפני הקב״ה כזכות לנשמת {name}.',
     en: 'A full book of Tehillim is complete. The words of King David have ascended before Hashem as a merit for {name}\'s neshama.',
     es: 'Un libro completo de Tehilim fue completado. Las palabras del Rey David han ascendido ante Hashem como merito para la neshama de {name}.',
     fr: 'Un livre entier de Tehilim est complete. Les paroles du roi David sont montees devant Hachem comme merite pour la neshama de {name}.',
@@ -232,7 +232,7 @@ export const CHIZUK_MESSAGES: ChizukMessage[] = [
   {
     id: 'tehillim_book_complete_2',
     scenario: 'tehillim_book_complete',
-    he: 'ספר תהלים הושלם לעילוי נשמת {name}. יהי רצון שיתקבל ברצון.',
+    he: 'ספר תהילים הושלם לעילוי נשמת {name}. יהי רצון שיתקבל ברצון.',
     en: 'A book of Tehillim completed l\'iluy nishmas {name}. May it be received with favor above.',
     es: 'Un libro de Tehilim completado l\'iluy nishmas {name}. Que sea recibido con favor en lo Alto.',
     fr: 'Un livre de Tehilim complete l\'iluy nishmas {name}. Puisse-t-il etre recu avec faveur en Haut.',
@@ -240,7 +240,7 @@ export const CHIZUK_MESSAGES: ChizukMessage[] = [
   {
     id: 'tehillim_book_complete_3',
     scenario: 'tehillim_book_complete',
-    he: 'ספר שלם של תהלים מוקדש לנשמת {name}. כל מזמור שאמרת הוא עוד אור בגן עדן.',
+    he: 'ספר שלם של תהילים מוקדש לנשמת {name}. כל מזמור שאמרת הוא עוד אור בגן עדן.',
     en: 'A full book of Tehillim dedicated to {name}\'s neshama. Each mizmor you recited is another light in Gan Eden.',
     es: 'Un libro completo de Tehilim dedicado a la neshama de {name}. Cada mizmor que recitaste es otra luz en el Gan Eden.',
     fr: 'Un livre entier de Tehilim dedie a la neshama de {name}. Chaque mizmor recite est une lumiere de plus au Gan Eden.',
@@ -250,7 +250,7 @@ export const CHIZUK_MESSAGES: ChizukMessage[] = [
   {
     id: 'tehillim_all_complete_1',
     scenario: 'tehillim_all_complete',
-    he: 'כל ספר תהלים הושלם לעילוי נשמת {name}. מאה וחמישים מזמורים — מתנה שלמה לנשמה.',
+    he: 'כל ספר תהילים הושלם לעילוי נשמת {name}. מאה וחמישים מזמורים — מתנה שלמה לנשמה.',
     en: 'All of Tehillim completed l\'iluy nishmas {name}. One hundred and fifty psalms — a whole gift for the neshama.',
     es: 'Todo el Tehilim completado l\'iluy nishmas {name}. Ciento cincuenta salmos, un regalo completo para la neshama.',
     fr: 'Tout le Tehilim complete l\'iluy nishmas {name}. Cent cinquante psaumes — un cadeau entier pour la neshama.',
@@ -266,7 +266,7 @@ export const CHIZUK_MESSAGES: ChizukMessage[] = [
   {
     id: 'tehillim_all_complete_3',
     scenario: 'tehillim_all_complete',
-    he: 'כל תהלים הסתיים. ספר שלם של שירה ותפילה הוקדש לנשמת {name} — זכות עצומה לעד.',
+    he: 'כל תהילים הסתיים. ספר שלם של שירה ותפילה הוקדש לנשמת {name} — זכות עצומה לעד.',
     en: 'All of Tehillim concluded. An entire book of song and prayer has been dedicated to {name}\'s neshama — an eternal zechus.',
     es: 'Todo el Tehilim concluido. Un libro entero de canto y oracion ha sido dedicado a la neshama de {name} — un zechus eterno.',
     fr: 'Tout le Tehilim conclu. Un livre entier de chant et de priere a ete dedie a la neshama de {name} — un zekhout eternel.',

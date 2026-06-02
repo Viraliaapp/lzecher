@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 const ALL_TRACKS: TrackType[] = ["mishnayos", "tehillim", "shnayim_mikra", "kabalos"];
 const TRACK_LABELS: Record<TrackType, string> = {
   mishnayos: "משניות",
-  tehillim: "תהלים",
+  tehillim: "תהילים",
   shnayim_mikra: "שניים מקרא ואחד תרגום",
   kabalos: "קבלות",
   daf_yomi: "דף יומי",
@@ -398,7 +398,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
           <div className="space-y-3 border-t border-navy/5 pt-4">
             {[
               { label: "הנצחה ציבורית", value: isPublic, onChange: setIsPublic },
-              { label: "אפשר מחזורים חוזרים (משניות / תהלים)", value: repeatingSetEnabled, onChange: setRepeatingSetEnabled },
+              { label: "אפשר מחזורים חוזרים (משניות / תהילים)", value: repeatingSetEnabled, onChange: setRepeatingSetEnabled },
               { label: "הצג יישר כח בעמוד", value: showLeaderboard, onChange: setShowLeaderboard },
             ].map(({ label, value, onChange }) => (
               <div key={label} className="flex items-center justify-between">

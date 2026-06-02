@@ -54,12 +54,12 @@ export function learningScopeLabel(
   if (resolvedScope === "shas") return "כל ששה סדרי משנה";
   if (resolvedScope === "seder") return `סדר ${sederNameHebrew(scopeId)}`;
   if (resolvedScope === "masechta") return `מסכת ${masechtaNameHebrew(scopeId)}`;
-  if (resolvedScope === "whole_tehillim") return "כל ספר תהלים";
+  if (resolvedScope === "whole_tehillim") return "כל ספר תהילים";
   if (resolvedScope === "tehillim_book") {
     const bookNumber = Number(scopeId);
     return Number.isFinite(bookNumber) && bookNumber > 0
-      ? `ספר ${toHebrewNumeral(bookNumber)} בתהלים`
-      : "ספר בתהלים";
+      ? `ספר ${toHebrewNumeral(bookNumber)} בתהילים`
+      : "ספר בתהילים";
   }
   if (resolvedScope === "multi") return portionCount ? `${portionCount} חלקים` : "כמה חלקים";
 
@@ -75,7 +75,7 @@ export function learningLabel(locale: string, reference?: string | null, trackTy
     if (cleanReference === "Daf Yomi commitment") return "דף יומי";
     if (/^personal commitment$/i.test(cleanReference)) return "קבלה אישית";
     if (/^shas mishnayos$/i.test(cleanReference)) return "כל ששה סדרי משנה";
-    if (/^(all|whole)\s+tehillim$/i.test(cleanReference)) return "כל ספר תהלים";
+    if (/^(all|whole)\s+tehillim$/i.test(cleanReference)) return "כל ספר תהילים";
 
     const portionCount = cleanReference.match(/^(\d+)\s+portions?$/i);
     if (portionCount) return `${Number(portionCount[1])} חלקים`;
@@ -87,10 +87,10 @@ export function learningLabel(locale: string, reference?: string | null, trackTy
     if (bulkSeder) return `סדר ${sederNameHebrew(bulkSeder[1])}`;
 
     const tehillimBook = cleanReference.match(/^Tehillim\s+Book\s+(\d+)$/i);
-    if (tehillimBook) return `ספר ${toHebrewNumeral(Number(tehillimBook[1]))} בתהלים`;
+    if (tehillimBook) return `ספר ${toHebrewNumeral(Number(tehillimBook[1]))} בתהילים`;
 
     const tehillim = cleanReference.match(/^(?:Tehillim|Psalm)\s+(\d+)$/);
-    if (tehillim) return `תהלים ${toHebrewNumeral(Number(tehillim[1]))}`;
+    if (tehillim) return `תהילים ${toHebrewNumeral(Number(tehillim[1]))}`;
 
     const parsha = cleanReference.match(/^Parshas\s+(.+)$/);
     if (parsha) {

@@ -199,22 +199,24 @@ assert(
 );
 
 const cronReminderRoute = read("src/app/api/cron/send-reminders/route.ts");
+const reminderSender = read("src/lib/reminder-sender.ts");
 assert(
-  cronReminderRoute.includes('purpose: "mark_complete"') &&
-    cronReminderRoute.includes("markCompleteLink") &&
-    cronReminderRoute.includes("/api/claims/mark-complete-via-link"),
+  reminderSender.includes('purpose: "mark_complete"') &&
+    reminderSender.includes("markCompleteLink") &&
+    reminderSender.includes("/api/claims/mark-complete-via-link"),
   "Reminder emails must include a signed one-click mark-learned link"
 );
 assert(
-  cronReminderRoute.includes('lzecherEmailFrom(locale === "he" ? "לזכר" : "Lzecher")') &&
-    cronReminderRoute.includes("RESEND_CHUNK_SIZE") &&
-    cronReminderRoute.includes("RESEND_CHUNK_PAUSE_MS") &&
-    cronReminderRoute.includes("isPermanentEmailError") &&
-    cronReminderRoute.includes("isValidRecipientEmail") &&
-    cronReminderRoute.includes("learningScopeLabel") &&
-    cronReminderRoute.includes("learningLabel") &&
-    cronReminderRoute.includes("toHebrewCalendarDate") &&
-    !cronReminderRoute.includes("onboarding@resend.dev"),
+  cronReminderRoute.includes("sendReadyReminderEmails") &&
+    reminderSender.includes('lzecherEmailFrom(locale === "he" ? "לזכר" : "Lzecher")') &&
+    reminderSender.includes("RESEND_CHUNK_SIZE") &&
+    reminderSender.includes("RESEND_CHUNK_PAUSE_MS") &&
+    reminderSender.includes("isPermanentEmailError") &&
+    reminderSender.includes("isValidEmailAddress") &&
+    reminderSender.includes("learningScopeLabel") &&
+    reminderSender.includes("learningLabel") &&
+    reminderSender.includes("toHebrewCalendarDate") &&
+    !reminderSender.includes("onboarding@resend.dev"),
   "Reminder emails must use the verified localized Lzecher sender, localize learning labels/dates, and throttle Resend calls"
 );
 
@@ -651,7 +653,7 @@ assert(
 const learningLabel = read("src/lib/learning-label.ts");
 assert(
   learningLabel.includes("Tehillim") &&
-    learningLabel.includes("תהלים") &&
+    learningLabel.includes("תהילים") &&
     learningLabel.includes("MASECHTOS") &&
     learningLabel.includes("hebrewNumberSequence") &&
     learningLabel.includes("learningScopeLabel") &&
@@ -810,9 +812,18 @@ const globalActivityRoute = read("src/app/api/activity/global/route.ts");
 assert(
   globalActivityRoute.includes('.collection("lzecher_view_stats")') &&
     globalActivityRoute.includes('.where("scope", "==", "site")') &&
+    globalActivityRoute.includes("PUBLIC_SITE_VIEW_BASELINE") &&
     globalActivityRoute.includes("siteViews") &&
     globalActivityRoute.includes("s-maxage=60"),
   "Global activity endpoint should expose only cached aggregate Lzecher site views"
+);
+
+const viewTracker = read("src/components/analytics/ViewTracker.tsx");
+assert(
+  viewTracker.includes('navigator.sendBeacon("/api/metrics/view"') &&
+    viewTracker.includes('fetch("/api/metrics/view"') &&
+    !viewTracker.includes("sessionStorage"),
+  "View tracker should increment the Lzecher site counter for each rendered page view"
 );
 
 const authContext = read("src/context/AuthContext.tsx");

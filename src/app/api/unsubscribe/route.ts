@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { verifyUnsubscribeToken } from "@/lib/unsubscribe-tokens";
+import { sanitizeReminderPreferences } from "@/lib/queue-reminders";
 
 // ── POST /api/unsubscribe ─────────────────────────────────────────────────────
 
@@ -24,20 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate preference keys
-    const VALID_KEYS = new Set([
-      "confirmation",
-      "halfway",
-      "sevenDaysBefore",
-      "threeDaysBefore",
-      "oneDayBefore",
-      "dailyReminder",
-      "weeklyDigest",
-    ]);
-
-    const sanitized = (reminderPreferences as string[]).filter((k) =>
-      VALID_KEYS.has(k)
-    );
+    const sanitized = sanitizeReminderPreferences(reminderPreferences);
 
     const db = getAdminDb();
     const claimRef = db.collection("lzecher_claims").doc(claimId);
@@ -54,6 +42,32 @@ export async function POST(request: NextRequest) {
     }
 
     await claimRef.update({ reminderPreferences: sanitized });
+
+    const selectedReminderTypes = new Set<string>();
+    for (const pref of sanitized) {
+      selectedReminderTypes.add(pref);
+      selectedReminderTypes.add(pref === "sevenDays" ? "sevenDaysBefore" : pref);
+    }
+    const pendingSnap = await db
+      .collection("lzecher_scheduled_emails")
+      .where("claimId", "==", claimId)
+      .limit(100)
+      .get();
+
+    const batch = db.batch();
+    let cancelCount = 0;
+    for (const doc of pendingSnap.docs) {
+      const data = doc.data();
+      if (data.status !== "pending") continue;
+      const reminderType = data.reminderType || data.type;
+      if (selectedReminderTypes.has(reminderType)) continue;
+      batch.update(doc.ref, {
+        status: "canceled",
+        canceledAt: Date.now(),
+      });
+      cancelCount++;
+    }
+    if (cancelCount > 0) await batch.commit();
 
     return NextResponse.json({ success: true });
   } catch (err) {

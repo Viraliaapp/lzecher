@@ -10,6 +10,8 @@ import type { Firestore } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { GLOBAL_STATS_DOC } from "@/lib/recompute-global";
 
+const PUBLIC_SITE_VIEW_BASELINE = 550;
+
 async function aggregateSiteViews(db: Firestore) {
   const snap = await db
     .collection("lzecher_view_stats")
@@ -25,10 +27,11 @@ async function aggregateSiteViews(db: Firestore) {
 export async function GET() {
   try {
     const db = getAdminDb();
-    const [snap, siteViews] = await Promise.all([
+    const [snap, rawSiteViews] = await Promise.all([
       db.collection("lzecher_global_stats").doc(GLOBAL_STATS_DOC).get(),
       aggregateSiteViews(db),
     ]);
+    const siteViews = PUBLIC_SITE_VIEW_BASELINE + rawSiteViews;
     const data = snap.exists ? snap.data()! : {};
     return NextResponse.json(
       {

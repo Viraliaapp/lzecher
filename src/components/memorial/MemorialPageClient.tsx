@@ -87,7 +87,7 @@ interface Props {
 
 // ── ReminderSection — module-level component prevents remount-on-keystroke ────
 
-type ReminderPreset = 'confirmation' | 'light' | 'daily' | 'weekly' | 'custom';
+const CLAIM_REMINDER_PREFS = ["confirmation", "halfway", "sevenDays"];
 
 interface ReminderSectionProps {
   showEmailSection: boolean;
@@ -96,23 +96,17 @@ interface ReminderSectionProps {
   setClaimerEmail: (v: string) => void;
   reminderEnabled: boolean;
   setReminderEnabled: (v: boolean) => void;
-  reminderPreset: ReminderPreset;
-  setReminderPreset: (v: ReminderPreset) => void;
-  showCustomReminders: boolean;
-  setShowCustomReminders: (v: boolean) => void;
-  reminderPrefs: string[];
-  setReminderPrefs: (update: string[] | ((prev: string[]) => string[])) => void;
+  hasDeadline: boolean;
 }
 
 function ReminderSection({
   showEmailSection, setShowEmailSection,
   claimerEmail, setClaimerEmail,
   reminderEnabled, setReminderEnabled,
-  reminderPreset, setReminderPreset,
-  showCustomReminders, setShowCustomReminders,
-  reminderPrefs, setReminderPrefs,
+  hasDeadline,
 }: ReminderSectionProps) {
   const t = useTranslations("memorial");
+  const locale = useLocale();
   if (!showEmailSection) {
     return (
       <button
@@ -127,7 +121,7 @@ function ReminderSection({
   return (
     <>
       <div>
-        <label className="text-sm font-medium text-navy mb-1 block">{t("yourEmail") || "Your email for reminders (optional)"}</label>
+        <label className="text-sm font-medium text-navy mb-1 block">{t("yourEmail") || "Your email for reminders"}</label>
         <Input
           type="email"
           value={claimerEmail}
@@ -147,61 +141,14 @@ function ReminderSection({
             <span className="text-sm font-medium text-navy">{t("reminderToggle") || "Send me reminders to help me stay on track"}</span>
           </label>
           {reminderEnabled && (
-            <div className="mt-3 space-y-2 pl-6">
-              {([
-                { value: 'confirmation' as const, label: t("reminderPresetConfirmation") || "Just a confirmation now" },
-                { value: 'light' as const, label: t("reminderPresetLight") || "Light touch — recommended", desc: t("reminderPresetLightDesc") || "Halfway, 1 week before, 1 day before" },
-                { value: 'daily' as const, label: t("reminderPresetDaily") || "Daily — for daily commitments" },
-                { value: 'weekly' as const, label: t("reminderPresetWeekly") || "Weekly digest" },
-              ]).map(({ value, label, desc }) => (
-                <label key={value} className="flex items-start gap-2 text-xs text-muted cursor-pointer">
-                  <input
-                    type="radio"
-                    name="reminderPreset"
-                    checked={reminderPreset === value}
-                    onChange={() => { setReminderPreset(value); setShowCustomReminders(false); }}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    {label}
-                    {desc && <span className="block text-[10px] text-muted/70">{desc}</span>}
-                  </span>
-                </label>
-              ))}
-              <button
-                type="button"
-                className="text-xs text-navy/60 hover:text-navy underline mt-1"
-                onClick={() => { setReminderPreset('custom'); setShowCustomReminders(!showCustomReminders); }}
-              >
-                {t("reminderCustomize") || "Customize"}
-              </button>
-              {showCustomReminders && reminderPreset === 'custom' && (
-                <div className="space-y-2 mt-2">
-                  {[
-                    { key: "confirmation", label: t("reminderConfirmation") || "Confirmation email now" },
-                    { key: "sevenDays", label: t("reminderSevenDays") || "7 days before deadline" },
-                    { key: "threeDays", label: t("reminderThreeDays") || "3 days before deadline" },
-                    { key: "oneDay", label: t("reminderOneDay") || "1 day before deadline" },
-                    { key: "halfway", label: t("reminderHalfway") || "Halfway reminder" },
-                    { key: "daily", label: t("reminderDaily") || "Daily reminder" },
-                  ].map(({ key, label }) => (
-                    <label key={key} className="flex items-center gap-2 text-xs text-muted cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={reminderPrefs.includes(key)}
-                        onChange={(e) => {
-                          if (e.target.checked) setReminderPrefs(p => [...p, key]);
-                          else setReminderPrefs(p => p.filter(x => x !== key));
-                        }}
-                        className="rounded border-navy/20"
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              )}
-              <p className="text-[10px] text-muted mt-2">{t("reminderNote") || "We only send what you choose. Unsubscribe anytime."}</p>
-            </div>
+            <p
+              className="mt-2 rounded-lg border border-gold/20 bg-gold/5 px-3 py-2 text-xs leading-relaxed text-muted"
+              dir={locale === "he" ? "rtl" : "ltr"}
+            >
+              {hasDeadline
+                ? (t("reminderPlanNote") || "We'll send a confirmation now, a midpoint reminder, and a final reminder one week before the deadline.")
+                : (t("reminderPlanNoDeadline") || "We'll send a confirmation now. This memorial has no deadline, so no later reminders will be scheduled.")}
+            </p>
           )}
         </div>
       )}
@@ -213,13 +160,13 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const t = useTranslations("memorial");
   const locale = useLocale();
   const { user } = useAuth();
+  const [pageLoadedAt] = useState(() => Date.now());
   const [portions, setPortions] = useState(initialPortions);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedPortion, setSelectedPortion] = useState<Portion | null>(null);
   const [claimerName, setClaimerName] = useState("");
   const [claimerEmail, setClaimerEmail] = useState("");
-  const [reminderPrefs, setReminderPrefs] = useState<string[]>([]);
   const [reportOpen, setReportOpen] = useState(false);
   const [completing] = useState(false);
   const [bulkClaimScope, setBulkClaimScope] = useState<{ scope: string; scopeId: string; scopeName: string } | null>(null);
@@ -233,8 +180,6 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const [contactSending, setContactSending] = useState(false);
   const [chizukMessage, setChizukMessage] = useState<{ he: string; en: string; es: string; fr: string } | null>(null);
   const [reminderEnabled, setReminderEnabled] = useState(false);
-  const [reminderPreset, setReminderPreset] = useState<'confirmation' | 'light' | 'daily' | 'weekly' | 'custom'>('light');
-  const [showCustomReminders, setShowCustomReminders] = useState(false);
   const [showEmailSection, setShowEmailSection] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [claimerCustomText, setClaimerCustomText] = useState("");
@@ -257,13 +202,20 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
 
   function getResolvedReminderPrefs(): string[] {
     if (!claimerEmail || !reminderEnabled) return [];
-    switch (reminderPreset) {
-      case 'confirmation': return ['confirmation'];
-      case 'light': return ['confirmation', 'halfway', 'sevenDays', 'oneDay'];
-      case 'daily': return ['confirmation', 'daily'];
-      case 'weekly': return ['confirmation', 'weeklyDigest'];
-      case 'custom': return reminderPrefs;
-    }
+    return [...CLAIM_REMINDER_PREFS];
+  }
+
+  function getProjectReminderDeadline(): number | null {
+    const deadline = project.completionTargetDate;
+    return typeof deadline === "number" && deadline > pageLoadedAt ? deadline : null;
+  }
+
+  function validateReminderEmail(): boolean {
+    const email = claimerEmail.trim();
+    if (!reminderEnabled || !email) return true;
+    if (/^[^\s@<>]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email) && !email.includes("..")) return true;
+    toast.error(locale === "he" ? "כתובת האימייל אינה תקינה" : "Please enter a valid email address");
+    return false;
   }
 
   const totalPortions = portions.length;
@@ -333,9 +285,6 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     setClaimerEmail(user?.email || "");
     setClaimerCustomText("");
     setReminderEnabled(false);
-    setReminderPreset('light');
-    setShowCustomReminders(false);
-    setReminderPrefs([]);
     setShowEmailSection(Boolean(user?.email));
     setSubmitting(false);
     setConfirmDialogOpen(true);
@@ -354,6 +303,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       toast.error(t("nameRequired") || "Please enter your name");
       return;
     }
+    if (!validateReminderEmail()) return;
     setSubmitting(true);
     setClaimingId(selectedPortion.id);
     let claimSucceeded = false;
@@ -373,6 +323,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           idToken,
           claimerEmail: claimerEmail || undefined,
           reminderPreferences: resolvedPrefs.length > 0 ? resolvedPrefs : undefined,
+          durationEndDate: getProjectReminderDeadline() ?? undefined,
           specificItem: (selectedPortion as Portion & { isFreeText?: boolean }).isFreeText && claimerCustomText.trim() ? claimerCustomText.trim() : undefined,
           locale,
         }),
@@ -500,9 +451,6 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     setClaimerName(user?.displayName || "");
     setClaimerEmail(user?.email || "");
     setReminderEnabled(false);
-    setReminderPreset('light');
-    setShowCustomReminders(false);
-    setReminderPrefs([]);
     setShowEmailSection(Boolean(user?.email));
     setBulkClaimScope({ scope, scopeId, scopeName });
   }
@@ -514,9 +462,6 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     setClaimerName(user?.displayName || "");
     setClaimerEmail(user?.email || "");
     setReminderEnabled(false);
-    setReminderPreset('light');
-    setShowCustomReminders(false);
-    setReminderPrefs([]);
     setShowEmailSection(Boolean(user?.email));
     setSubmitting(false);
     setMultiClaimDialogOpen(true);
@@ -528,6 +473,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       toast.error(t("nameRequired") || "Please enter your name");
       return;
     }
+    if (!validateReminderEmail()) return;
     setSubmitting(true);
     try {
       const idToken = await auth.currentUser?.getIdToken().catch(() => null);
@@ -542,6 +488,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           idToken,
           claimerEmail: claimerEmail || undefined,
           reminderPreferences: resolvedPrefs.length > 0 ? resolvedPrefs : undefined,
+          durationEndDate: getProjectReminderDeadline() ?? undefined,
           locale,
         }),
       });
@@ -582,6 +529,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       toast.error(t("nameRequired") || "Please enter your name");
       return;
     }
+    if (!validateReminderEmail()) return;
     setBulkClaiming(true);
     try {
       const idToken = await auth.currentUser?.getIdToken().catch((e) => {
@@ -600,6 +548,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           idToken,
           claimerEmail: claimerEmail || undefined,
           reminderPreferences: resolvedPrefs.length > 0 ? resolvedPrefs : undefined,
+          durationEndDate: getProjectReminderDeadline() ?? undefined,
           locale,
         }),
       });
@@ -621,9 +570,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     showEmailSection, setShowEmailSection,
     claimerEmail, setClaimerEmail,
     reminderEnabled, setReminderEnabled,
-    reminderPreset, setReminderPreset,
-    showCustomReminders, setShowCustomReminders,
-    reminderPrefs, setReminderPrefs,
+    hasDeadline: Boolean(getProjectReminderDeadline()),
   };
 
   return (
@@ -775,7 +722,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 const tClaimed = portions.filter(p => p.trackType === "tehillim" && p.status !== "available").length;
                 const kTotal = portions.filter(p => p.trackType === "kabalos").reduce((s, p) => s + (p.currentClaimerCount || 0), 0);
                 if (mClaimed > 0) parts.push(`${mClaimed} ${locale === "he" ? "משניות" : "Mishnayos"}`);
-                if (tClaimed > 0) parts.push(`${tClaimed} ${locale === "he" ? "פרקי תהלים" : "Tehillim"}`);
+                if (tClaimed > 0) parts.push(`${tClaimed} ${locale === "he" ? "פרקי תהילים" : "Tehillim"}`);
                 if (kTotal > 0) parts.push(`${kTotal} ${locale === "he" ? "קבלות" : "Kabalos"}`);
                 if ((project.participantCount || 0) > 0) parts.push(`${project.participantCount} ${locale === "he" ? "משתתפים" : "participants"}`);
                 if (parts.length === 0 && claimed > 0) parts.push(`${claimed} ${locale === "he" ? "חלקים בלימוד" : "portions taken"}`);
@@ -1133,6 +1080,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 {locale === "he" ? "כל הקבלות הן בלי נדר" : "All commitments are bli neder"}
               </p>
             )}
+            {selectedPortion?.trackType === "tehillim" && <TehillimOneTimeNote locale={locale} />}
             <div>
               <label className="text-sm font-medium text-navy mb-1 block">{t("yourName")}</label>
               <Input
@@ -1181,6 +1129,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {selectedTrack === "tehillim" && <TehillimOneTimeNote locale={locale} bulk />}
             <div>
               <label className="text-sm font-medium text-navy mb-1 block">{t("yourName")}</label>
               <Input
@@ -1235,6 +1184,9 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {(bulkClaimScope?.scope === "whole_tehillim" || bulkClaimScope?.scope === "tehillim_book") && (
+              <TehillimOneTimeNote locale={locale} bulk />
+            )}
             <div>
               <label className="text-sm font-medium text-navy mb-1 block">{t("yourName")}</label>
               <Input
@@ -1405,5 +1357,22 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
 
       <ReportModal slug={project.slug} open={reportOpen} onOpenChange={setReportOpen} />
     </div>
+  );
+}
+
+function TehillimOneTimeNote({ locale, bulk = false }: { locale: string; bulk?: boolean }) {
+  return (
+    <p
+      className="rounded-lg border border-gold/20 bg-gold/5 px-3 py-2 text-xs leading-relaxed text-gold-deep"
+      dir={locale === "he" ? "rtl" : "ltr"}
+    >
+      {locale === "he"
+        ? bulk
+          ? "חלוקת תהילים היא התחייבות חד־פעמית: אומרים את הפרקים שנבחרו לעילוי הנשמה, ואז אפשר לסמן אותם כנלמדו."
+          : "פרק תהילים הוא התחייבות חד־פעמית: אומרים את הפרק לעילוי הנשמה, ואז אפשר לסמן אותו כנלמד."
+        : bulk
+          ? "Tehillim is a one-time commitment: say the selected chapters l'iluy nishmas, then mark them learned."
+          : "A Tehillim chapter is a one-time commitment: say the chapter l'iluy nishmas, then mark it learned."}
+    </p>
   );
 }
