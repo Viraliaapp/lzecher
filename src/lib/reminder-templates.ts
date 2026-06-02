@@ -40,7 +40,7 @@ function emailWrapper(
   unsubscribeText?: string
 ): string {
   const isHebrew = locale === "he";
-  const brandName = isHebrew ? "לזכרו" : "Lzecher";
+  const brandName = isHebrew ? "לזכר" : "Lzecher";
   const siteText = isHebrew ? "כניסה לאתר" : "lzecher.com";
   const fontStack = isHebrew
     ? "Arial,'Noto Sans Hebrew','Segoe UI',sans-serif"

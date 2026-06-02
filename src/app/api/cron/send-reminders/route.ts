@@ -94,7 +94,7 @@ async function processEmail(
     }
 
     const { error } = await resend.emails.send({
-      from: lzecherEmailFrom(locale === "he" ? "לזכרו" : "Lzecher"),
+      from: lzecherEmailFrom(locale === "he" ? "לזכר" : "Lzecher"),
       to: data.toEmail,
       subject: email.subject,
       html: email.body,

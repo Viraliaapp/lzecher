@@ -92,8 +92,11 @@ assert(
     createRoute.includes("completionTargetForPurpose") &&
     createRoute.includes("dateOfPassingGregorian") &&
     createRoute.includes("language: normalizedLocale") &&
-    createRoute.includes("allowAnonymous: true"),
-  "Project create route must validate purpose/tracks, store canonical dates, save creator locale, and keep participation open without exposing the old anonymous toggle"
+    createRoute.includes("allowAnonymous: true") &&
+    createRoute.includes('typeof memorialWallConsent !== "boolean"') &&
+    createRoute.includes("memorialWallConsentAt: now") &&
+    createRoute.includes("memorialWallConsentByUid: uid"),
+  "Project create route must validate purpose/tracks, store canonical dates, save creator locale, require memorial wall consent, and keep participation open without exposing the old anonymous toggle"
 );
 
 const createPage = read("src/app/[locale]/(app)/create/page.tsx");
@@ -103,9 +106,12 @@ assert(
     createPage.includes('key: "yahrzeit"') &&
     createPage.includes("launchChecklistTitle") &&
     createPage.includes("showPassword") &&
+    createPage.includes("memorialWallConsent !== null") &&
+    createPage.includes("memorialWallConsentTitle") &&
+    createPage.includes("memorialWallConsentStorage") &&
     !createPage.includes("setAllowAnonymous") &&
     !createPage.includes('t("allowAnonymous")'),
-  "Create wizard must use the new purpose flow, keep yahrzeit, show launch/password polish, and remove the anonymous setting"
+  "Create wizard must use the new purpose flow, keep yahrzeit, show launch/password polish, require memorial wall consent, and remove the anonymous setting"
 );
 
 const projectPurpose = read("src/lib/project-purpose.ts");
@@ -200,7 +206,7 @@ assert(
   "Reminder emails must include a signed one-click mark-learned link"
 );
 assert(
-  cronReminderRoute.includes('lzecherEmailFrom(locale === "he" ? "לזכרו" : "Lzecher")') &&
+  cronReminderRoute.includes('lzecherEmailFrom(locale === "he" ? "לזכר" : "Lzecher")') &&
     cronReminderRoute.includes("RESEND_CHUNK_SIZE") &&
     cronReminderRoute.includes("RESEND_CHUNK_PAUSE_MS") &&
     cronReminderRoute.includes("isPermanentEmailError") &&
@@ -657,9 +663,9 @@ assert(
 
 const magicLinkRoute = read("src/app/api/send-magic-link/route.ts");
 assert(
-  magicLinkRoute.includes('he: "כניסה לחשבון באתר לזכרו"') &&
+  magicLinkRoute.includes('he: "כניסה לחשבון באתר לזכר"') &&
     magicLinkRoute.includes('he: "כניסה לחשבון"') &&
-    magicLinkRoute.includes('const brandName = isHebrew ? "לזכרו" : "Lzecher"') &&
+    magicLinkRoute.includes('const brandName = isHebrew ? "לזכר" : "Lzecher"') &&
     magicLinkRoute.includes("lzecherEmailFrom(brandName)") &&
     !magicLinkRoute.includes("התחברות ל-Lzecher") &&
     !magicLinkRoute.includes("התחבר ל-Lzecher"),
@@ -670,7 +676,7 @@ const trackHierarchy = read("src/components/memorial/TrackHierarchy.tsx");
 assert(
   trackHierarchy.includes("border-gold/50 bg-gold/10") &&
     trackHierarchy.includes("נלקח: ") &&
-    trackHierarchy.includes("border-emerald-300 bg-emerald-50/90"),
+    trackHierarchy.includes("border-[#B99145]/45 bg-[#FFFAF0]"),
   "Taken and learned portion cards should have visibly distinct status styling and Hebrew date labels"
 );
 
@@ -684,7 +690,7 @@ assert(
 
 const contactRoute = read("src/app/api/memorials/[slug]/contact/route.ts");
 assert(
-  contactRoute.includes('lzecherEmailFrom("לזכרו")') &&
+  contactRoute.includes('lzecherEmailFrom("לזכר")') &&
     contactRoute.includes("if (error)") &&
     contactRoute.includes('reason: "resend_error"') &&
     contactRoute.includes("delivered: false"),

@@ -37,6 +37,7 @@ const EDITABLE_FIELDS = new Set([
   "completionTargetType",
   "repeatingSetEnabled",
   "showLeaderboard",
+  "memorialWallConsent",
   "startedByText",
   "startedByVisible",
   "announcement",
@@ -115,6 +116,14 @@ export async function POST(
     }
     if (typeof cleanedUpdates.announcement === "string" && cleanedUpdates.announcement.trim()) {
       cleanedUpdates.announcementAt = Date.now();
+    }
+    if ("memorialWallConsent" in cleanedUpdates) {
+      if (typeof cleanedUpdates.memorialWallConsent !== "boolean" && cleanedUpdates.memorialWallConsent !== null) {
+        return NextResponse.json({ error: "memorialWallConsent must be true, false, or null" }, { status: 400 });
+      }
+      cleanedUpdates.memorialWallConsentAt = Date.now();
+      cleanedUpdates.memorialWallConsentByUid = decoded.uid;
+      cleanedUpdates.memorialWallConsentByEmail = decoded.email || null;
     }
 
     // ── Track changes ───────────────────────────────────────────────────────

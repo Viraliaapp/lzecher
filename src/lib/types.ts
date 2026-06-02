@@ -47,6 +47,14 @@ export interface MemorialProject {
   startedByText?: string | null;
   startedByVisible?: boolean;
 
+  // ── Future central memorial wall consent ──
+  // If true, the creator agreed that the honoree name + petirah date may appear
+  // in a future central memorial wall. This does not publish a wall by itself.
+  memorialWallConsent?: boolean | null;
+  memorialWallConsentAt?: number | null;
+  memorialWallConsentByUid?: string | null;
+  memorialWallConsentByEmail?: string | null;
+
   // ── Admin: pinned announcement + lock ──
   announcement?: string | null; // highlighted note pinned to the memorial page
   announcementAt?: number | null;

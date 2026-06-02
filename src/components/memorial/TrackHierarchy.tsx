@@ -209,7 +209,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onB
               onClick={() => { setExpandedSeder(isExpanded ? null : seder); setExpandedMasechta(null); }}
               className={cn(
                 "p-4 rounded-xl border-2 text-start transition-all",
-                isExpanded ? "border-gold bg-gold/5" : isFullyTaken ? "border-emerald-200 bg-emerald-50/80 shadow-sm" : "border-navy/5 bg-white hover:border-navy/10 hover:shadow-sm"
+                isExpanded ? "border-gold bg-gold/5" : isFullyTaken ? "border-[#B99145]/45 bg-[#FFFAF0] shadow-sm" : "border-navy/5 bg-white hover:border-navy/10 hover:shadow-sm"
               )}
             >
               <div className="flex items-center justify-between mb-2">
@@ -258,7 +258,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onB
                     onClick={() => setExpandedMasechta(isExp ? null : name)}
                     className={cn(
                       "p-3 rounded-lg border text-start transition-all text-sm",
-                      isExp ? "border-gold bg-white shadow-sm" : isFullyTaken ? "border-emerald-200 bg-emerald-50/80 shadow-sm" : "border-navy/5 bg-white hover:border-navy/10"
+                      isExp ? "border-gold bg-white shadow-sm" : isFullyTaken ? "border-[#B99145]/45 bg-[#FFFAF0] shadow-sm" : "border-navy/5 bg-white hover:border-navy/10"
                     )}
                   >
                     <p className="font-medium text-navy truncate">{displayName}</p>
@@ -424,7 +424,7 @@ function TehillimHierarchy({ portions, onClaim, onComplete, onBulkComplete, onMu
                 onClick={() => setExpandedBook(isExp ? null : i)}
                 className={cn(
                   "w-full p-4 rounded-xl border-2 text-start transition-all",
-                  isExp ? "border-gold bg-gold/5" : isFullyTaken ? "border-emerald-200 bg-emerald-50/80 shadow-sm" : "border-navy/5 bg-white hover:border-navy/10"
+                  isExp ? "border-gold bg-gold/5" : isFullyTaken ? "border-[#B99145]/45 bg-[#FFFAF0] shadow-sm" : "border-navy/5 bg-white hover:border-navy/10"
                 )}
               >
                 <div className="flex justify-between items-center">
@@ -577,7 +577,7 @@ function ShnayimMikraHierarchy({ portions, onClaim, onComplete, claimingId, comp
               onClick={() => setExpandedBook(isExp ? null : eng)}
               className={cn(
                 "w-full p-4 rounded-xl border-2 text-start transition-all",
-                isExp ? "border-gold bg-gold/5" : isFullyTaken ? "border-emerald-200 bg-emerald-50/80 shadow-sm" : "border-navy/5 bg-white hover:border-navy/10"
+                isExp ? "border-gold bg-gold/5" : isFullyTaken ? "border-[#B99145]/45 bg-[#FFFAF0] shadow-sm" : "border-navy/5 bg-white hover:border-navy/10"
               )}
             >
               <div className="flex justify-between items-center">
@@ -747,7 +747,7 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
   return (
     <Card className={cn(
       "relative transition-all overflow-hidden border-2",
-      isDone && "border-emerald-300 bg-emerald-50/90 shadow-sm",
+      isDone && "border-[#B99145]/45 bg-[#FFFAF0] shadow-sm",
       isAvailable && !multiSelectMode && "hover:shadow-sm hover:-translate-y-0.5 cursor-pointer",
       isTaken && "border-gold/50 bg-gold/10 shadow-sm",
       isAvailable && "border-navy/5 bg-white",
@@ -758,7 +758,7 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
           className={cn(
             "absolute inset-y-0 w-1.5",
             locale === "he" ? "right-0" : "left-0",
-            isDone ? "bg-emerald-500" : "bg-gold"
+            isDone ? "bg-[#B99145]" : "bg-gold"
           )}
         />
       )}
@@ -781,7 +781,7 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
             </span>
           )}
           {isDone && (
-            <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+            <span className="shrink-0 rounded-full border border-[#B99145]/30 bg-gold/20 px-2 py-0.5 text-[10px] font-bold text-[#6D5426]">
               {locale === "he" ? "נלמד" : "Learned"}
             </span>
           )}
@@ -794,7 +794,7 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
               onClick={(e) => e.stopPropagation()}
             />
           )}
-          {isDone && <Check className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />}
+          {isDone && <Check className="h-4 w-4 text-[#B99145] shrink-0 mt-0.5" />}
         </div>
 
         {/* Bottom: action or status */}
@@ -863,12 +863,12 @@ function PortionCard({ portion, onClaim, onComplete, claimingId, compact, locale
           <div className="mt-auto space-y-1">
             <div className="flex items-center gap-1.5">
               <VictorySeal size={18} />
-              <p className="text-[10px] text-emerald-700 font-medium">
+              <p className="text-[10px] text-[#6D5426] font-medium">
                 {locale === "he" ? "נלמד" : locale === "es" ? "Completado" : locale === "fr" ? "Terminé" : "Learned"}
               </p>
             </div>
             {(p as Portion & { completedAt?: number }).completedAt && (
-              <p className="text-[10px] text-emerald-600" dir={locale === "he" ? "rtl" : "ltr"}>
+              <p className="text-[10px] text-gold-deep" dir={locale === "he" ? "rtl" : "ltr"}>
                 {toHebrewCalendarDate((p as Portion & { completedAt?: number }).completedAt!, locale)}
               </p>
             )}
@@ -961,7 +961,7 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
             const pct = isComplete ? 100 : Math.round(g.portions.filter(p => p.status !== "available").length / g.portions.length * 100);
             return (
               <div key={g.setNumber} className="flex-1 rounded-full overflow-hidden bg-navy/10">
-                <div className={cn("h-full transition-all", isComplete ? "bg-emerald-500" : "bg-gold")} style={{ width: `${pct}%` }} />
+                <div className={cn("h-full transition-all", isComplete ? "bg-[#B99145]" : "bg-gold")} style={{ width: `${pct}%` }} />
               </div>
             );
           })}
@@ -980,7 +980,7 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
         return (
           <div key={setNumber} className={cn(
             "rounded-xl border-2 overflow-hidden transition-all",
-            isActive && !isComplete ? "border-gold bg-gold/5" : isComplete ? "border-emerald-200 bg-emerald-50/30" : "border-navy/10 bg-white"
+            isActive && !isComplete ? "border-gold bg-gold/5" : isComplete ? "border-[#B99145]/35 bg-[#FFFAF0]" : "border-navy/10 bg-white"
           )}>
             {/* Set header */}
             <button
@@ -997,7 +997,7 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
                   </span>
                 )}
                 {isComplete && (
-                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                  <span className="text-xs border border-[#B99145]/25 bg-gold/20 text-[#6D5426] px-2 py-0.5 rounded-full font-medium">
                     {locale === "he" ? "✓ הושלם" : "✓ Complete"}
                   </span>
                 )}
@@ -1005,7 +1005,7 @@ function SetGroupedWrapper({ portions, trackType, onClaim, onComplete, onBulkCom
               <div className="flex items-center gap-3 shrink-0">
                 <div className="hidden sm:flex items-center gap-2">
                   <div className="w-20 h-1.5 bg-navy/10 rounded-full overflow-hidden">
-                    <div className={cn("h-full rounded-full", isComplete ? "bg-emerald-500" : "bg-gold")} style={{ width: `${setPct}%` }} />
+                    <div className={cn("h-full rounded-full", isComplete ? "bg-[#B99145]" : "bg-gold")} style={{ width: `${setPct}%` }} />
                   </div>
                   <span className="text-xs text-muted w-8 text-right">{setPct}%</span>
                 </div>

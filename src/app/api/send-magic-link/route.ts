@@ -10,7 +10,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const SUBJECTS: Record<string, string> = {
   en: "Sign in to Lzecher",
-  he: "כניסה לחשבון באתר לזכרו",
+  he: "כניסה לחשבון באתר לזכר",
   es: "Iniciar sesion en Lzecher",
   fr: "Connexion a Lzecher",
 };
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     const tagline = TAGLINE[safeLocale] || TAGLINE.en;
     const dir = safeLocale === "he" ? "rtl" : "ltr";
     const isHebrew = safeLocale === "he";
-    const brandName = isHebrew ? "לזכרו" : "Lzecher";
+    const brandName = isHebrew ? "לזכר" : "Lzecher";
     const fontStack = isHebrew
       ? "Arial,'Noto Sans Hebrew','Segoe UI',sans-serif"
       : "Georgia,'Times New Roman',serif";

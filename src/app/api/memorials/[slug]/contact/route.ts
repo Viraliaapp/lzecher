@@ -64,7 +64,7 @@ export async function POST(
     const locale = project.language || "he";
 
     const subject = locale === "he"
-      ? `הודעה חדשה דרך לזכרו — הנצחת ${honoree}`
+      ? `הודעה חדשה דרך לזכר — הנצחת ${honoree}`
       : `New message via Lzecher — ${honoree}`;
 
     const replyInfo = senderEmail?.trim()
@@ -78,7 +78,7 @@ export async function POST(
 <body style="font-family:Arial,sans-serif;background:#FAF6EC;margin:0;padding:20px">
   <div style="max-width:520px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
     <div style="background:#0F1B2D;padding:20px 24px">
-      <p style="color:#C9A961;font-size:18px;font-weight:bold;margin:0">לזכרו</p>
+      <p style="color:#C9A961;font-size:18px;font-weight:bold;margin:0">לזכר</p>
     </div>
     <div style="padding:24px">
       <h2 style="color:#0F1B2D;margin:0 0 16px">הודעה חדשה להנצחת ${honoree}</h2>
@@ -87,14 +87,14 @@ export async function POST(
       </div>
       ${replyInfo}
       <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
-      <p style="font-size:12px;color:#888;margin:0">ההודעה נשלחה דרך לזכרו. כתובת האימייל של השולח לא נחשפת אם לא צוינה.</p>
+      <p style="font-size:12px;color:#888;margin:0">ההודעה נשלחה דרך לזכר. כתובת האימייל של השולח לא נחשפת אם לא צוינה.</p>
     </div>
   </div>
 </body>
 </html>`;
 
     const { error } = await resend.emails.send({
-      from: lzecherEmailFrom("לזכרו"),
+      from: lzecherEmailFrom("לזכר"),
       to: creatorEmail,
       subject,
       html,

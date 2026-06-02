@@ -57,6 +57,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
   const [removePassword, setRemovePassword] = useState(false);
   const [startedByText, setStartedByText] = useState("");
   const [startedByVisible, setStartedByVisible] = useState(false);
+  const [memorialWallConsent, setMemorialWallConsent] = useState<boolean | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [customDedication, setCustomDedication] = useState("");
   const [locked, setLocked] = useState(false);
@@ -106,6 +107,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         setPasswordCurrentlySet(Boolean(data.isPasswordProtected));
         setStartedByText(data.startedByText || "");
         setStartedByVisible(Boolean(data.startedByVisible));
+        setMemorialWallConsent(typeof data.memorialWallConsent === "boolean" ? data.memorialWallConsent : null);
         setAnnouncement(data.announcement || "");
         setCustomDedication(data.customDedication || "");
         setLocked(Boolean(data.locked));
@@ -146,6 +148,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         familyMessage: familyMessage || null,
         shareMessage: shareMessage.trim() || null,
         isPublic, repeatingSetEnabled, showLeaderboard,
+        ...(memorialWallConsent !== null ? { memorialWallConsent } : {}),
         startedByText: startedByText.trim() || null,
         startedByVisible,
         announcement: announcement.trim() || null,
@@ -344,6 +347,36 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
               placeholder="הנוסח שכפתור השיתוף הציבורי ישתמש בו. אפשר להשאיר {link} במקום שבו הקישור אמור להופיע."
             />
             <p className="text-xs text-muted mt-1">כפתור השיתוף בדף ההנצחה ישתמש בנוסח הזה. אם לא תכתבו {"{link}"}, הקישור יתווסף בסוף.</p>
+          </div>
+
+          <div className="rounded-xl border border-gold/25 bg-cream/50 p-4" dir="rtl">
+            <p className="font-medium text-navy">הצגת הנפטר/ת בקיר ההנצחה הכללי</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted">
+              האם תרצו ששם הנפטר/ת ותאריך הפטירה יופיעו בעתיד בלוח הזיכרון המרכזי של האתר, כך שגולשים אחרים יוכלו להיכנס וללמוד לעילוי נשמתם?
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {[
+                { value: true, label: "כן, אפשר להציג בעתיד" },
+                { value: false, label: "לא, להשאיר רק בדף שלי" },
+              ].map((option) => (
+                <button
+                  key={String(option.value)}
+                  type="button"
+                  onClick={() => setMemorialWallConsent(option.value)}
+                  className={cn(
+                    "rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all",
+                    memorialWallConsent === option.value
+                      ? "border-gold bg-gold/10 text-navy"
+                      : "border-navy/10 text-muted hover:border-navy/20"
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-muted">
+              הבחירה נשמרת עם פרטי היוצר לצורך תיעוד הסכמה בלבד. אין עדיין פרסום חדש בלוח מרכזי.
+            </p>
           </div>
 
           {/* Tracks */}

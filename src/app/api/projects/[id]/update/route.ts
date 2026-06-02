@@ -20,6 +20,7 @@ const EDITABLE_FIELDS = new Set([
   "biography", "familyMessage", "shareMessage", "isPublic",
   "photoURL", "projectType", "completionTargetDate", "completionTargetType",
   "repeatingSetEnabled", "showLeaderboard",
+  "memorialWallConsent",
   // password protection + attribution + admin display
   "startedByText", "startedByVisible", "announcement", "locked", "customDedication",
 ]);
@@ -100,6 +101,14 @@ export async function POST(
     // Stamp announcement time when an announcement is (re)set.
     if (typeof cleanedUpdates.announcement === "string" && cleanedUpdates.announcement.trim()) {
       cleanedUpdates.announcementAt = Date.now();
+    }
+    if ("memorialWallConsent" in cleanedUpdates) {
+      if (typeof cleanedUpdates.memorialWallConsent !== "boolean" && cleanedUpdates.memorialWallConsent !== null) {
+        return NextResponse.json({ error: "memorialWallConsent must be true, false, or null" }, { status: 400 });
+      }
+      cleanedUpdates.memorialWallConsentAt = Date.now();
+      cleanedUpdates.memorialWallConsentByUid = decoded.uid;
+      cleanedUpdates.memorialWallConsentByEmail = decoded.email || null;
     }
 
     let newTracks: TrackType[] = Array.isArray(currentData.tracks) ? [...currentData.tracks] : [];

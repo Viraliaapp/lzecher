@@ -41,6 +41,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
   const [shareMessage, setShareMessage] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(true);
+  const [memorialWallConsent, setMemorialWallConsent] = useState<boolean | null>(null);
 
   const [originalTracks, setOriginalTracks] = useState<TrackType[]>([]);
   const [selectedTracks, setSelectedTracks] = useState<TrackType[]>([]);
@@ -84,6 +85,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
         setShareMessage(data.shareMessage || "");
         setIsPublic(data.isPublic !== false);
         setShowLeaderboard(data.showLeaderboard !== false);
+        setMemorialWallConsent(typeof data.memorialWallConsent === "boolean" ? data.memorialWallConsent : null);
         const tracks = Array.isArray(data.tracks) ? data.tracks : [];
         setOriginalTracks(tracks);
         setSelectedTracks(tracks);
@@ -126,6 +128,7 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
         shareMessage: shareMessage.trim() || null,
         isPublic,
         showLeaderboard,
+        ...(memorialWallConsent !== null ? { memorialWallConsent } : {}),
       };
       const trackChanges: { add?: TrackType[]; remove?: TrackType[]; confirmDestructive?: string } = {};
       const added = selectedTracks.filter((t) => !originalTracks.includes(t));
@@ -278,6 +281,37 @@ export default function AdminEditProjectPage({ params }: { params: Promise<{ loc
             <p className="text-xs text-muted mt-1" dir={locale === "he" ? "rtl" : "ltr"}>
               {locale === "he" ? "אם לא מופיע {link}, הקישור יתווסף בסוף." : "If {link} is not included, the link is appended at the end."}
             </p>
+          </div>
+
+          <div className="rounded-xl border border-gold/25 bg-cream/50 p-4" dir={locale === "he" ? "rtl" : "ltr"}>
+            <p className="font-medium text-navy">
+              {locale === "he" ? "הצגת הנפטר/ת בקיר ההנצחה הכללי" : "Central memorial wall consent"}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted">
+              {locale === "he"
+                ? "האם המשפחה הסכימה ששם הנפטר/ת ותאריך הפטירה יופיעו בעתיד בלוח הזיכרון המרכזי של האתר?"
+                : "Whether the family agreed that the honoree name and petirah date may appear in a future central memorial wall."}
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {[
+                { value: true, label: locale === "he" ? "כן, אפשר להציג בעתיד" : "Yes, may show later" },
+                { value: false, label: locale === "he" ? "לא, להשאיר רק בדף זה" : "No, keep only on this page" },
+              ].map((option) => (
+                <button
+                  key={String(option.value)}
+                  type="button"
+                  onClick={() => setMemorialWallConsent(option.value)}
+                  className={
+                    "rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all " +
+                    (memorialWallConsent === option.value
+                      ? "border-gold bg-gold/10 text-navy"
+                      : "border-navy/10 text-muted hover:border-navy/20")
+                  }
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div>

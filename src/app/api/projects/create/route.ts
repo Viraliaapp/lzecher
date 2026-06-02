@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
       password,
       startedByText,
       startedByVisible,
+      memorialWallConsent,
       locale,
     } = body;
 
@@ -119,6 +120,9 @@ export async function POST(request: NextRequest) {
     const normalizedDatePreference = normalizeDatePreference(datePreference);
     const normalizedLocale = normalizeLocale(locale);
     const normalizedGender = normalizeGender(gender);
+    if (typeof memorialWallConsent !== "boolean") {
+      return NextResponse.json({ error: "Memorial wall consent answer is required" }, { status: 400 });
+    }
     const nameEnglishClean = textOrNull(nameEnglish, 120);
     const familyNameEnglishClean = textOrNull(familyNameEnglish, 120);
     const fatherNameHebrewClean = textOrNull(fatherNameHebrew, 120);
@@ -163,6 +167,7 @@ export async function POST(request: NextRequest) {
     }
     const pwFields = pw ? hashPassword(pw) : { passwordHash: null, passwordSalt: null };
     const completionTarget = completionTargetForPurpose(normalizedProjectType, normalizedDateOfPassing);
+    const now = Date.now();
 
     const projectRef = db.collection("lzecher_projects").doc();
     const projectData = {
@@ -170,8 +175,8 @@ export async function POST(request: NextRequest) {
       slug,
       createdBy: uid,
       createdByEmail: email || null,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
       nameHebrew: nameHebrewClean,
       familyNameHebrew: familyNameHebrewClean,
       nameEnglish: nameEnglishClean,
@@ -195,6 +200,10 @@ export async function POST(request: NextRequest) {
       passwordSalt: pwFields.passwordSalt,
       startedByText: startedByTextClean,
       startedByVisible: Boolean(startedByTextClean && startedByVisible),
+      memorialWallConsent,
+      memorialWallConsentAt: now,
+      memorialWallConsentByUid: uid,
+      memorialWallConsentByEmail: email || null,
       allowAnonymous: true,
       showLeaderboard: true,
       status: "active",

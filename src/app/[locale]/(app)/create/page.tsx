@@ -120,6 +120,7 @@ export default function CreateMemorialPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [startedByText, setStartedByText] = useState("");
   const [startedByVisible, setStartedByVisible] = useState(false);
+  const [memorialWallConsent, setMemorialWallConsent] = useState<boolean | null>(null);
   const [shareTemplateKey, setShareTemplateKey] = useState<TemplateKey>("shiva");
   const [shareMessage, setShareMessage] = useState("");
   const [shareMessageTouched, setShareMessageTouched] = useState(false);
@@ -200,6 +201,7 @@ export default function CreateMemorialPage() {
         password: password.trim() || undefined,
         startedByText: startedByText.trim() || null,
         startedByVisible,
+        memorialWallConsent,
         tracks: selectedTracks,
         projectType,
         locale,
@@ -244,7 +246,7 @@ export default function CreateMemorialPage() {
       case 4:
         return selectedTracks.length > 0;
       case 5:
-        return true; // sharing defaults are fine
+        return memorialWallConsent !== null;
       default:
         return true;
     }
@@ -832,6 +834,46 @@ export default function CreateMemorialPage() {
               )}
             </div>
 
+            {/* Future memorial wall consent */}
+            <div className="rounded-xl border border-gold/25 bg-cream/50 p-4">
+              <div className="mb-3">
+                <p className="font-medium text-navy" dir={locale === "he" ? "rtl" : "ltr"}>
+                  {t("memorialWallConsentTitle")}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted" dir={locale === "he" ? "rtl" : "ltr"}>
+                  {t("memorialWallConsentDesc")}
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[
+                  { value: true, label: t("memorialWallConsentYes") },
+                  { value: false, label: t("memorialWallConsentNo") },
+                ].map((option) => (
+                  <button
+                    key={String(option.value)}
+                    type="button"
+                    onClick={() => setMemorialWallConsent(option.value)}
+                    className={cn(
+                      "rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all",
+                      memorialWallConsent === option.value
+                        ? "border-gold bg-gold/10 text-navy"
+                        : "border-navy/10 text-muted hover:border-navy/20"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              {memorialWallConsent === null && (
+                <p className="mt-2 text-xs text-gold-deep" dir={locale === "he" ? "rtl" : "ltr"}>
+                  {t("memorialWallConsentRequired")}
+                </p>
+              )}
+              <p className="mt-2 text-[11px] leading-relaxed text-muted" dir={locale === "he" ? "rtl" : "ltr"}>
+                {t("memorialWallConsentStorage")}
+              </p>
+            </div>
+
             {/* Family message */}
             <div>
               <div className="mb-1 flex items-center justify-between gap-3">
@@ -861,7 +903,7 @@ export default function CreateMemorialPage() {
                 <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
                 {t("back")}
               </Button>
-              <Button onClick={() => setStep(6)}>
+              <Button onClick={() => setStep(6)} disabled={!canProceed()}>
                 {t("next")}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </Button>
@@ -896,16 +938,14 @@ export default function CreateMemorialPage() {
               editLabel={t("edit")}
             >
               <p className="font-heading text-navy" dir="rtl">
-                {nameHebrew} {familyNameHebrew} {honorific}
+                {formatHebrewHonoreeName(
+                  { nameHebrew, familyNameHebrew, fatherNameHebrew, motherNameHebrew, gender, honorific },
+                  { includeParents: true, includeHonorific: true }
+                )}
               </p>
               {(nameEnglish || familyNameEnglish) && (
                 <p className="text-sm text-muted">
                   {`${nameEnglish} ${familyNameEnglish}`.trim()}
-                </p>
-              )}
-              {fatherNameHebrew && (
-                <p className="text-xs text-muted" dir="rtl">
-                  {gender === "male" ? "בן" : "בת"} {fatherNameHebrew}
                 </p>
               )}
             </ReviewSection>
@@ -967,6 +1007,9 @@ export default function CreateMemorialPage() {
                   <Badge variant="default">{t("startedByLabel")}</Badge>
                 )}
                 <Badge variant="secondary">{t("shareMessageReview")}</Badge>
+                <Badge variant={memorialWallConsent ? "success" : "secondary"}>
+                  {memorialWallConsent ? t("memorialWallConsentReviewYes") : t("memorialWallConsentReviewNo")}
+                </Badge>
               </div>
             </ReviewSection>
 
