@@ -36,6 +36,7 @@ import { computeProgress, cyclesLabel } from "@/lib/progress";
 import { Leaderboard } from "@/components/activity/Leaderboard";
 import { ActivityBubbles } from "@/components/activity/ActivityBubbles";
 import { fillShareMessage } from "@/lib/share-templates";
+import { formatHebrewHonoreeName } from "@/lib/honoree-name";
 
 const TRACK_EMOJI: Record<TrackType, string> = {
   mishnayos: "📖",
@@ -307,12 +308,11 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   const honorific = (project as MemorialProject & { honorific?: string }).honorific ||
     (project.gender === "female" ? "ע״ה" : "ז״ל");
 
-  const hebrewFirstLast = `${project.nameHebrew} ${project.familyNameHebrew || ""}`.trim();
-  const fullName = project.fatherNameHebrew
-    ? `${hebrewFirstLast} ${project.gender === "male" ? "בן" : "בת"} ${project.fatherNameHebrew}`
-    : hebrewFirstLast;
-
-  const displayNameWithHonorific = `${fullName} ${honorific}`;
+  const hebrewFirstLast = formatHebrewHonoreeName(project, { includeParents: true });
+  const displayNameWithHonorific = formatHebrewHonoreeName(
+    { ...project, honorific },
+    { includeParents: true, includeHonorific: true }
+  );
 
   const dateDisplay = (() => {
     const pref = (project as MemorialProject & { datePreference?: string }).datePreference || "both";
@@ -494,20 +494,6 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
     } catch {
       toast.error(locale === "he" ? "לא ניתן להעתיק" : "Copy failed");
     }
-  }
-
-  async function nativeShare(kind: "link" | "text") {
-    const url = getShareUrl();
-    const text = kind === "link" ? undefined : getFullShareText();
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share(kind === "link" ? { url } : { text });
-        return;
-      } catch {
-        return;
-      }
-    }
-    await copyShare(kind);
   }
 
   function handleBulkClaim(scope: string, scopeId: string, scopeName: string) {
@@ -1092,7 +1078,11 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                       color: isActive ? "rgba(201,162,75,0.85)" : "#C9A961",
                     }}
                   >
-                    {t("trackTileCta")}
+                    {track === "kabalos" && locale === "he"
+                      ? "לחצו לבחור קבלה"
+                      : track === "kabalos"
+                        ? "Click to choose a kabbalah"
+                        : t("trackTileCta")}
                   </p>
                 </button>
               );
@@ -1348,21 +1338,22 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            <Button variant="outline" className="w-full justify-between" onClick={() => nativeShare("link")}>
-              <span>{locale === "he" ? "קישור בלבד" : "Link only"}</span>
-              {copiedShareKind === "link" ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+            <Button variant="outline" className="w-full justify-between" onClick={() => copyShare("link")}>
+              <span>{locale === "he" ? "העתק קישור בלבד" : "Copy link only"}</span>
+              {copiedShareKind === "link" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>
-            <Button className="w-full justify-between" onClick={() => nativeShare("text")}>
-              <span>{locale === "he" ? "נוסח עם קישור" : "Text with link"}</span>
+            <Button className="w-full justify-between" onClick={() => copyShare("text")}>
+              <span>{locale === "he" ? "העתק נוסח שיתוף עם הקישור" : "Copy message with link"}</span>
               {copiedShareKind === "text" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>
             <div className="rounded-lg border border-navy/10 bg-cream/50 p-3">
               <p className="text-xs font-medium text-navy" dir={locale === "he" ? "rtl" : "ltr"}>
-                {locale === "he" ? "תצוגה מקדימה" : "Preview"}
+                {locale === "he" ? "הנוסח שיועתק" : "Message preview"}
               </p>
               <pre
                 dir={locale === "he" ? "rtl" : "ltr"}
-                className="mt-2 max-h-44 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-muted"
+                className="mt-2 max-h-44 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-relaxed text-muted"
+                style={{ unicodeBidi: "plaintext" }}
               >
                 {getFullShareText()}
               </pre>

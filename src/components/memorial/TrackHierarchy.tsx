@@ -192,8 +192,6 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onB
     return { masechtotInSeder: groups, hebrewMasechtaNames: hebrewNames };
   }, [expandedSeder, sedarim]);
 
-  const totalAvailable = portions.filter((p: Portion) => p.status === "available").length;
-
   return (
     <div className="space-y-3 mt-4">
       {/* Level 1: Sedarim */}
@@ -238,7 +236,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onB
             className="overflow-hidden"
           >
             {/* Take entire Seder button */}
-            {onBulkClaim && expandedSeder && (
+            {onBulkClaim && expandedSeder && sedarim[expandedSeder]?.some((p) => p.status === "available") && (
               <div className="p-3 bg-cream-warm rounded-t-xl">
                 <button
                   onClick={() => onBulkClaim("seder", expandedSeder, locale === "he" ? `סדר ${SEDER_HEBREW[expandedSeder]}` : `Seder ${expandedSeder}`)}
@@ -311,7 +309,7 @@ function MishnayosHierarchy({ portions, onClaim, onComplete, onBulkComplete, onB
                       </button>
                     )}
                     {/* Multi-select toggle — inside expanded masechta */}
-                    {onMultiClaim && totalAvailable > 0 && !multiSelectMode && (
+                    {onMultiClaim && (masechtotInSeder[expandedMasechta] as Portion[]).some(p => p.status === "available") && !multiSelectMode && (
                       <button
                         onClick={() => setMultiSelectMode(true)}
                         className="text-xs text-navy/60 hover:text-navy underline underline-offset-2 transition-colors mb-2 block"
@@ -408,8 +406,6 @@ function TehillimHierarchy({ portions, onClaim, onComplete, onBulkComplete, onMu
     exitCompleteSelectMode();
   }
 
-  const totalAvailable = portions.filter((p: Portion) => p.status === "available").length;
-
   return (
     <div className="space-y-3 mt-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -445,7 +441,7 @@ function TehillimHierarchy({ portions, onClaim, onComplete, onBulkComplete, onMu
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                     <div className="p-3 mt-1 bg-cream-warm rounded-xl">
                       {/* Multi-select toggle — inside expanded book */}
-                      {onMultiClaim && totalAvailable > 0 && !multiSelectMode && !completeSelectMode && (
+                      {onMultiClaim && bp.some((p: Portion) => p.status === "available") && !multiSelectMode && !completeSelectMode && (
                         <button
                           onClick={() => setMultiSelectMode(true)}
                           className="text-xs text-navy/60 hover:text-navy underline underline-offset-2 transition-colors mb-2 block"

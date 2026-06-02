@@ -34,6 +34,7 @@ import type { TrackType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 import { SHARE_TEMPLATES, fillTemplateForDraft, type TemplateKey } from "@/lib/share-templates";
+import { formatHebrewHonoreeName } from "@/lib/honoree-name";
 import {
   DEFAULT_PROJECT_TYPE,
   TRACKS_BY_PURPOSE,
@@ -124,7 +125,10 @@ export default function CreateMemorialPage() {
   const [shareMessageTouched, setShareMessageTouched] = useState(false);
 
   const shareLocale = (["he", "en", "es", "fr"].includes(locale) ? locale : "he") as "he" | "en" | "es" | "fr";
-  const honoreeForShare = `${nameHebrew} ${familyNameHebrew}`.trim() || t("shareHonoreeFallback");
+  const honoreeForShare = formatHebrewHonoreeName(
+    { nameHebrew, familyNameHebrew, fatherNameHebrew, motherNameHebrew, gender, honorific },
+    { includeParents: true, includeHonorific: false, fallback: t("shareHonoreeFallback") }
+  );
 
   const buildShareDraft = useCallback((templateKey: TemplateKey) => {
     const template = SHARE_TEMPLATES.find((item) => item.key === templateKey) || SHARE_TEMPLATES[0];
@@ -251,7 +255,10 @@ export default function CreateMemorialPage() {
     const memorialUrl = typeof window !== "undefined"
       ? `${window.location.origin}/${locale}/memorial/${createdSlug}`
       : `/${locale}/memorial/${createdSlug}`;
-    const honoree = `${nameHebrew} ${familyNameHebrew}`.trim();
+    const honoree = formatHebrewHonoreeName(
+      { nameHebrew, familyNameHebrew, fatherNameHebrew, motherNameHebrew, gender, honorific },
+      { includeParents: true, includeHonorific: false }
+    );
 
     return (
       <div className="mx-auto max-w-lg px-4 sm:px-6 py-16">

@@ -32,6 +32,7 @@ import { TRACK_CONFIGS } from "@/lib/track-config";
 import { toHebrewCalendarDate } from "@/lib/hebrew-date";
 import { learningLabel } from "@/lib/learning-label";
 import { friendlyEmailError } from "@/lib/email-config";
+import { formatHebrewHonoreeName } from "@/lib/honoree-name";
 
 type Filter = "all" | "active" | "hidden" | "reported";
 
@@ -579,7 +580,7 @@ export default function AdminPage() {
                 </p>
               )}
               <ShareTemplates
-                honoree={`${shareProject.nameHebrew} ${shareProject.familyNameHebrew || ""}`.trim()}
+                honoree={formatHebrewHonoreeName(shareProject, { includeParents: true })}
                 url={`${typeof window !== "undefined" ? window.location.origin : ""}/${locale}/memorial/${shareProject.slug}`}
                 preferredText={shareProject.shareMessage}
               />

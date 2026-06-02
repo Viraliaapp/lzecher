@@ -17,6 +17,7 @@ import { toHebrewNumeral } from "@/lib/hebrew-numerals";
 import { toHebrewCalendarDate } from "@/lib/hebrew-date";
 import { learningLabel } from "@/lib/learning-label";
 import { cyclesLabel, progressFromProject } from "@/lib/progress";
+import { formatHebrewHonoreeName } from "@/lib/honoree-name";
 import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -891,7 +892,7 @@ export default function DashboardPage() {
                 </p>
               )}
               <ShareTemplates
-                honoree={`${shareProject.nameHebrew} ${shareProject.familyNameHebrew || ""}`.trim()}
+                honoree={formatHebrewHonoreeName(shareProject, { includeParents: true })}
                 url={`${typeof window !== "undefined" ? window.location.origin : ""}/${locale}/memorial/${shareProject.slug}`}
                 preferredText={shareProject.shareMessage}
               />

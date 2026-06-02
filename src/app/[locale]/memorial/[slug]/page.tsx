@@ -6,6 +6,7 @@ import { MemorialPageClient } from "@/components/memorial/MemorialPageClient";
 import { PasswordGate } from "@/components/memorial/PasswordGate";
 import { hasProjectAccess } from "@/lib/project-access";
 import { isProtected } from "@/lib/password";
+import { formatHebrewHonoreeName } from "@/lib/honoree-name";
 import type { MemorialProject, Portion } from "@/lib/types";
 import type { Metadata } from "next";
 
@@ -50,13 +51,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const project = await getProjectBySlug(slug);
   if (!project) return { title: "Memorial · Lzecher" };
 
-  const hebrewDisplay = `${project.nameHebrew} ${project.familyNameHebrew || ""}`.trim();
+  const hebrewDisplay = formatHebrewHonoreeName(project, { includeParents: true });
+  const hebrewDisplayWithHonorific = formatHebrewHonoreeName(project, { includeParents: true, includeHonorific: true });
   const englishDisplay = `${project.nameEnglish || project.nameHebrew} ${project.familyNameEnglish || ""}`.trim();
   const title = locale === "he"
-    ? `${hebrewDisplay} · לזכר`
+    ? `${hebrewDisplayWithHonorific} · לזכר`
     : `${englishDisplay || hebrewDisplay} · Lzecher`;
   const description = locale === "he"
-    ? `הצטרפו ללימוד תורה לעילוי נשמת ${hebrewDisplay}.`
+    ? `הצטרפו ללימוד תורה לעילוי נשמת ${hebrewDisplayWithHonorific}.`
     : `Honor the memory of ${project.nameHebrew}${project.nameEnglish ? ` (${project.nameEnglish})` : ""} through communal Torah learning.`;
 
   return {
@@ -85,7 +87,7 @@ export default async function MemorialPage({ params }: Props) {
   // Protected projects: do NOT fetch or ship full detail (portions/tribute) until
   // the device cookie proves the password was entered. Card-level info only.
   if (isProtected(project) && !(await hasProjectAccess(project.id))) {
-    const hebrewName = `${project.nameHebrew} ${project.familyNameHebrew || ""}`.trim();
+    const hebrewName = formatHebrewHonoreeName(project, { includeParents: true });
     const englishName = `${project.nameEnglish || ""} ${project.familyNameEnglish || ""}`.trim();
     const hebrewDate = (project as MemorialProject & { dateOfPassingHebrew?: string }).dateOfPassingHebrew;
     return (
@@ -120,10 +122,10 @@ export default async function MemorialPage({ params }: Props) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: `${project.nameHebrew} - ${locale === "he" ? "דף הנצחה" : "Memorial Page"}`,
+    name: `${formatHebrewHonoreeName(project, { includeParents: true })} - ${locale === "he" ? "דף הנצחה" : "Memorial Page"}`,
     description: locale === "he"
-      ? `לימוד תורה לעילוי נשמת ${project.nameHebrew}`
-      : `Torah learning dedicated l'iluy nishmas ${project.nameHebrew}`,
+      ? `לימוד תורה לעילוי נשמת ${formatHebrewHonoreeName(project, { includeParents: true, includeHonorific: true })}`
+      : `Torah learning dedicated l'iluy nishmas ${formatHebrewHonoreeName(project, { includeParents: true })}`,
     url: `${BASE_URL}/${locale}/memorial/${project.slug}`,
     inLanguage: locale,
   };
