@@ -176,15 +176,22 @@ export function TehillimReaderDialog({
           <main className={cn("flex min-h-0 flex-col", darkReader ? "bg-[#080D17]" : "bg-white")} dir="rtl" lang="he">
             <div className={cn("shrink-0 border-b px-4 py-2.5 sm:px-7 sm:py-3", darkReader ? "border-cream/10" : "border-navy/10")}>
               <div className="flex items-center justify-between gap-3">
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className={cn("font-heading text-xl font-black sm:text-2xl", darkReader ? "text-cream" : "text-navy")}>{chapterLabel}</p>
                   {chapterData && (
-                    <p className={cn("mt-0.5 text-xs", darkReader ? "text-cream/55" : "text-muted")}>
-                      {chapterData.verseCount} {isHebrew ? "פסוקים" : "verses"} · טקסט מנוקד
-                    </p>
+                    <div className={cn("mt-0.5 max-w-[230px] text-xs leading-relaxed sm:max-w-2xl", darkReader ? "text-cream/55" : "text-muted")}>
+                      <p>
+                        {chapterData.verseCount} {isHebrew ? "פסוקים" : "verses"}
+                      </p>
+                      <p className="mt-0.5">
+                        {isHebrew
+                          ? "באמירת פרק התהילים מוסיפים זכות לעילוי הנשמה."
+                          : "Reading this Tehillim chapter adds merit for the neshama."}
+                      </p>
+                    </div>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5" dir={isHebrew ? "rtl" : "ltr"}>
+                <div className="flex shrink-0 items-center gap-1.5" dir={isHebrew ? "rtl" : "ltr"}>
                   <button
                     type="button"
                     onClick={() => setDarkReader((v) => !v)}
@@ -262,34 +269,37 @@ export function TehillimReaderDialog({
             "shrink-0 border-t px-3 py-2.5 sm:col-span-2 sm:flex-row sm:justify-between sm:px-6 sm:py-4",
             darkReader ? "border-cream/10 bg-[#07101D]" : "border-navy/10 bg-cream"
           )}>
-            <Button
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              disabled={completing || takingNext}
-              className={cn(darkReader ? "text-cream/70 hover:bg-cream/10 hover:text-cream" : "text-navy/70")}
-            >
-              {isHebrew ? "אקרא אחר כך" : "Read later"}
-            </Button>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto]" dir={isHebrew ? "rtl" : "ltr"}>
               <Button
                 variant="outline"
-                onClick={onCompleteAndNext}
+                onClick={() => onOpenChange(false)}
+                disabled={completing || takingNext}
+                className={cn(
+                  "border-gold/35 bg-transparent",
+                  darkReader ? "text-cream/75 hover:bg-cream/10 hover:text-cream" : "text-navy/70 hover:bg-gold/10"
+                )}
+              >
+                {isHebrew ? "אקרא אחר כך" : "Read later"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={onComplete}
                 disabled={loading || !!loadError || completing || takingNext}
                 className={cn(
                   "border-gold/40",
                   darkReader ? "bg-transparent text-cream hover:bg-cream/10 hover:text-cream" : "text-navy hover:bg-gold/10"
                 )}
               >
-                {takingNext ? <Spinner className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
-                {isHebrew ? "סיימתי — רוצה פרק נוסף" : "Done, take another"}
+                {completing ? <Spinner className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                {isHebrew ? "סיימתי" : "Finished"}
               </Button>
               <Button
-                onClick={onComplete}
+                onClick={onCompleteAndNext}
                 disabled={loading || !!loadError || completing || takingNext}
                 className="bg-gold text-navy hover:bg-gold/90"
               >
-                {completing ? <Spinner className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                {isHebrew ? "סיימתי — סמן כנלמד" : "Done — mark learned"}
+                {takingNext ? <Spinner className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
+                {isHebrew ? "פרק נוסף" : "Another chapter"}
               </Button>
             </div>
           </DialogFooter>
