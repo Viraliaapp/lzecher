@@ -980,6 +980,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [loadingProject, setLoadingProject] = useState(false);
   const [openingProjectId, setOpeningProjectId] = useState<string | null>(null);
   const [recomputingProject, setRecomputingProject] = useState(false);
+  const [resettingProjectClaims, setResettingProjectClaims] = useState(false);
   const [savingProjectControls, setSavingProjectControls] = useState(false);
   const [projectAnnouncement, setProjectAnnouncement] = useState("");
   const [projectDedication, setProjectDedication] = useState("");
@@ -1207,6 +1208,39 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   async function recomputeSelectedProject() {
     if (!selectedProjectId) return;
     await recomputeProject(selectedProjectId);
+  }
+
+  async function resetSelectedProjectClaims() {
+    if (!selectedProjectId) return;
+    const typed = window.prompt(label(
+      locale,
+      'פעולה זו מאפסת את כל חלוקת הלימוד בפרויקט הזה בלבד. להמשך הקלידו "אפס".',
+      'This resets all learning assignments for this project only. Type "reset" to continue.'
+    ));
+    if (typed !== "אפס" && typed !== "reset") {
+      toast.error(label(locale, "האישור לא תאם", "Confirmation did not match"));
+      return;
+    }
+    setResettingProjectClaims(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch(`/api/projects/${selectedProjectId}/reset-claims`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, confirmation: typed }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || label(locale, "לא ניתן לאפס חלוקת לימוד", "Could not reset learning assignments"));
+        return;
+      }
+      toast.success(label(locale, "חלוקת הלימוד אופסה", "Learning assignments reset"));
+      await Promise.all([loadOverview(), loadProjectDetail(selectedProjectId)]);
+    } catch {
+      toast.error(label(locale, "לא ניתן לאפס חלוקת לימוד", "Could not reset learning assignments"));
+    } finally {
+      setResettingProjectClaims(false);
+    }
   }
 
   async function updateProjectControls(updates: Record<string, unknown>) {
@@ -2727,6 +2761,37 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                             </p>
                           </div>
                           {savingProjectControls && <Spinner className="h-4 w-4" />}
+                        </div>
+                        <div className="mb-3 grid gap-2 sm:grid-cols-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateProjectControls({
+                              locked: !((projectDetail?.project?.locked ?? selectedProject.locked) === true),
+                            })}
+                            disabled={savingProjectControls}
+                          >
+                            {(projectDetail?.project?.locked ?? selectedProject.locked) === true ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                            {(projectDetail?.project?.locked ?? selectedProject.locked) === true
+                              ? label(locale, "פתח הצטרפות", "Open joining")
+                              : label(locale, "סגור הצטרפות", "Close joining")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={resetSelectedProjectClaims}
+                            disabled={resettingProjectClaims}
+                            className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                          >
+                            {resettingProjectClaims ? <Spinner className="h-4 w-4" /> : <RotateCw className="h-4 w-4" />}
+                            {label(locale, "אפס חלוקת לימוד", "Reset learning")}
+                          </Button>
+                          <Link href={`/admin/projects/${selectedProject.id}/edit` as never}>
+                            <Button size="sm" variant="outline" className="w-full">
+                              <Pencil className="h-4 w-4" />
+                              {label(locale, "עריכת פרטים", "Edit details")}
+                            </Button>
+                          </Link>
                         </div>
                         <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
                           <div>

@@ -81,7 +81,8 @@ export interface MemorialProject {
 
   // Canonical progress (written by recomputeProjectProgress, read by card + hero).
   // See src/lib/progress.ts — single source of truth, can't drift.
-  progressPct?: number; // 0–100 taken % of current active set (TM only)
+  progressPct?: number; // cumulative taken % of TM sets: 150 means one-and-a-half sets
+  progressTotalPct?: number; // explicit cumulative alias for newer docs
   completedProgressPct?: number; // 0–100 completed % of current active set (TM only)
   completedCycles?: number; // number of fully-taken TM sets ("מחזורים")
 

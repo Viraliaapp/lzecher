@@ -147,6 +147,13 @@ function publicProjectSummary(data: FirebaseFirestore.DocumentData, id: string) 
   const claimedPortions = Number(data.claimedPortions || 0);
   const completedPortions = Number(data.completedPortions || 0);
   const isPasswordProtected = Boolean(data.passwordHash);
+  const completedCycles = Number(data.completedCycles || 0);
+  const storedProgress = Number(data.progressPct || 0);
+  const progressPct = typeof data.progressTotalPct === "number"
+    ? Number(data.progressTotalPct)
+    : completedCycles > 0 && storedProgress <= 100
+      ? (completedCycles * 100) + storedProgress
+      : storedProgress;
   if (!data.slug) issues.push("missing_slug");
   if (!data.createdBy) issues.push("missing_creator_uid");
   if (!Array.isArray(data.tracks) || data.tracks.length === 0) issues.push("no_tracks");
@@ -180,9 +187,9 @@ function publicProjectSummary(data: FirebaseFirestore.DocumentData, id: string) 
     claimedPortions,
     completedPortions,
     participantCount: Number(data.participantCount || 0),
-    progressPct: Number(data.progressPct || 0),
+    progressPct,
     completedProgressPct: Number(data.completedProgressPct || 0),
-    completedCycles: Number(data.completedCycles || 0),
+    completedCycles,
     reportsCount: Number(data.reportsCount || 0),
     topMatmidim: Array.isArray(data.topMatmidim) ? data.topMatmidim.slice(0, 5) : [],
     issues,

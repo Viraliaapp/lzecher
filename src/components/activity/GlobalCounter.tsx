@@ -21,10 +21,7 @@ interface GlobalStats {
 
 const POLL_MS = 60000;
 
-export function GlobalCounter() {
-  const t = useTranslations("globalCounter");
-  const locale = useLocale();
-  const { settings, loaded } = useSiteSettings();
+function useGlobalStats() {
   const [stats, setStats] = useState<GlobalStats | null>(null);
 
   useEffect(() => {
@@ -52,6 +49,15 @@ export function GlobalCounter() {
     return () => { alive = false; clearInterval(iv); };
   }, []);
 
+  return stats;
+}
+
+export function GlobalCounter() {
+  const t = useTranslations("globalCounter");
+  const locale = useLocale();
+  const { settings, loaded } = useSiteSettings();
+  const stats = useGlobalStats();
+
   // Nothing tracked yet, or not loaded — render nothing rather than zeros.
   if (!loaded || !settings.featureFlags.globalCounter || !stats) return null;
 
@@ -59,8 +65,9 @@ export function GlobalCounter() {
     { key: "mishnayos", n: stats.mishnayos, label: t("mishnayos") },
     { key: "tehillim", n: stats.tehillim, label: t("tehillim") },
     { key: "kabalos", n: stats.kabalos, label: t("kabalos") },
+    { key: "shnayim_mikra", n: stats.shnayim_mikra, label: locale === "he" ? "שניים מקרא" : "Shnayim Mikra" },
   ].filter((item) => item.n > 0);
-  if (stats.siteViews + learningItems.reduce((sum, item) => sum + item.n, 0) === 0) return null;
+  if (learningItems.reduce((sum, item) => sum + item.n, 0) === 0) return null;
 
   return (
     <section className="relative z-10 border-y border-gold/25 bg-white shadow-[0_12px_28px_rgba(7,22,42,0.07)]">
@@ -72,31 +79,40 @@ export function GlobalCounter() {
           {t("heading")}
         </span>
         <span className="hidden h-7 w-px bg-navy/10 sm:block" aria-hidden="true" />
-        <div className="flex items-baseline gap-2">
-          <span className="font-heading text-4xl font-black leading-none text-gold sm:text-5xl">
-            {fmtNum(stats.siteViews, locale)}
-          </span>
-          <span className="text-sm font-medium text-muted sm:text-base">
-            {t("siteViews")}
-          </span>
-        </div>
         {learningItems.length > 0 && (
-          <>
-            <span className="hidden h-7 w-px bg-navy/10 sm:block" aria-hidden="true" />
-            <div className="grid w-full max-w-xs grid-cols-3 gap-1.5 sm:w-auto sm:max-w-none sm:flex sm:items-baseline sm:gap-4">
-              {learningItems.map((item) => (
-                <div key={item.key} className="min-w-0 rounded-lg bg-cream/45 px-2 py-1.5 sm:bg-transparent sm:px-0 sm:py-0">
-                  <span className="block font-heading text-lg font-black leading-none text-gold-deep sm:inline sm:text-xl">
-                    {fmtNum(item.n, locale)}
-                  </span>
-                  <span className="mt-0.5 block truncate text-[11px] font-medium text-muted sm:ms-1 sm:mt-0 sm:inline sm:text-xs">
-                    {item.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </>
+          <div className="grid w-full max-w-sm grid-cols-2 gap-1.5 sm:w-auto sm:max-w-none sm:flex sm:items-baseline sm:gap-4">
+            {learningItems.map((item) => (
+              <div key={item.key} className="min-w-0 rounded-lg bg-cream/45 px-2 py-1.5 sm:bg-transparent sm:px-0 sm:py-0">
+                <span className="block font-heading text-lg font-black leading-none text-gold-deep sm:inline sm:text-xl">
+                  {fmtNum(item.n, locale)}
+                </span>
+                <span className="mt-0.5 block truncate text-[11px] font-medium text-muted sm:ms-1 sm:mt-0 sm:inline sm:text-xs">
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
+      </div>
+    </section>
+  );
+}
+
+export function SiteViewsCounter() {
+  const t = useTranslations("globalCounter");
+  const locale = useLocale();
+  const { settings, loaded } = useSiteSettings();
+  const stats = useGlobalStats();
+
+  if (!loaded || !settings.featureFlags.globalCounter || !stats?.siteViews) return null;
+
+  return (
+    <section className="bg-cream px-4 pb-7 pt-1 text-center" dir={locale === "he" ? "rtl" : "ltr"}>
+      <div className="mx-auto inline-flex items-baseline gap-2 rounded-full border border-gold/20 bg-white/75 px-4 py-2 text-xs text-muted shadow-sm">
+        <span className="font-heading text-base font-black leading-none text-gold-deep">
+          {fmtNum(stats.siteViews, locale)}
+        </span>
+        <span>{t("siteViews")}</span>
       </div>
     </section>
   );

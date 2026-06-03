@@ -99,6 +99,7 @@ async function getPublicMemorials(): Promise<MemorialProject[]> {
           totalSets: p.totalSets,
           claimedByTrack: p.claimedByTrack,
           progressPct: p.progressPct,
+          progressTotalPct: p.progressTotalPct,
           completedProgressPct: p.completedProgressPct,
           completedCycles: p.completedCycles,
           isPasswordProtected: Boolean(p.passwordHash),

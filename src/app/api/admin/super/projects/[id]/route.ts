@@ -111,6 +111,7 @@ function diagnostics(project: FirebaseFirestore.DocumentData, portions: Firebase
       completedPortions,
       participantCount: participants,
       progressPct: progress.pct,
+      progressTotalPct: progress.pct,
       completedProgressPct: progress.completedPct,
       completedCycles: progress.cycles,
       topMatmidim: computeTopMatmidim(portions as { claimMode?: string; status?: string; claimedByName?: string; claimerNames?: string[] }[]),

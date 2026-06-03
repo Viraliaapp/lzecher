@@ -95,6 +95,7 @@ export async function POST(
       totalPortions: setOnePortions.length,
       totalSets: 1,
       progressPct: 0,
+      progressTotalPct: 0,
       completedProgressPct: 0,
       completedCycles: 0,
       claimedByTrack: {},

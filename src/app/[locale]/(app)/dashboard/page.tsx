@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
 import { ShareTemplates } from "@/components/memorial/ShareTemplates";
 import { Spinner } from "@/components/ui/spinner";
-import { CheckCircle2, ChevronDown, ChevronRight, ClipboardCheck, Download, Mail, Plus, Search, Send, Users } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, ClipboardCheck, Download, Lock, Mail, Plus, RotateCw, Search, Send, Unlock, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { auth } from "@/lib/firebase/config";
 import type { MemorialProject, Claim } from "@/lib/types";
@@ -142,6 +142,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
   const [leaderboardVisible, setLeaderboardVisible] = useState(project.showLeaderboard !== false);
+  const [projectLocked, setProjectLocked] = useState(project.locked === true);
   const [participantSearch, setParticipantSearch] = useState("");
   const [participantStatus, setParticipantStatus] = useState<"all" | "active" | "completed" | "expired">("all");
 
@@ -202,6 +203,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
       claim.userName || "",
       claim.userEmail || "",
       claim.reference || "",
+      learningLabel(locale, claim.reference, claim.trackType) || "",
       claim.trackType || "",
       claim.status || "",
     ].some((value) => String(value).toLowerCase().includes(query));
@@ -340,6 +342,68 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
     }
   }
 
+  async function updateProjectLocked(next: boolean) {
+    const previous = projectLocked;
+    setProjectLocked(next);
+    setSaving(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch(`/api/projects/${project.id}/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, updates: { locked: next } }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setProjectLocked(previous);
+        toast.error(data.error || (locale === "he" ? "לא ניתן לעדכן את מצב ההצטרפות" : "Could not update project access"));
+        return;
+      }
+      toast.success(next
+        ? (locale === "he" ? "הפרויקט נסגר להצטרפות חדשה" : "Project closed to new participants")
+        : (locale === "he" ? "הפרויקט נפתח להצטרפות חדשה" : "Project reopened to new participants"));
+    } catch {
+      setProjectLocked(previous);
+      toast.error(locale === "he" ? "לא ניתן לעדכן את מצב ההצטרפות" : "Could not update project access");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function resetShownClaims() {
+    const targets = filteredClaims.filter((claim) => claim.id);
+    if (!targets.length) return;
+    const confirmed = window.confirm(locale === "he"
+      ? `לאפס ${targets.length} רשומות שמוצגות עכשיו? השתמשו בחיפוש או בסינון כדי לאפס רק פרק, מסכת או סדר מסוים.`
+      : `Reset the ${targets.length} entries currently shown? Use search/filter first to target only a chapter, tractate, or group.`);
+    if (!confirmed) return;
+    setSaving(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      let resetCount = 0;
+      const resetIds = new Set<string>();
+      for (const claim of targets) {
+        const res = await fetch(`/api/projects/${project.id}/claims/${claim.id}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        });
+        if (res.ok) {
+          resetCount++;
+          resetIds.add(claim.id);
+        }
+      }
+      setClaims((prev) => prev.filter((claim) => !resetIds.has(claim.id)));
+      toast.success(locale === "he"
+        ? `${resetCount} רשומות אופסו`
+        : `${resetCount} entries reset`);
+    } catch {
+      toast.error(locale === "he" ? "לא ניתן לאפס את הרשומות" : "Could not reset entries");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div
       style={{ borderRadius: "16px", overflow: "hidden", boxShadow: "0 4px 16px rgba(15,27,45,0.08)", border: "1px solid rgba(232,223,200,0.6)", transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
@@ -374,7 +438,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
           <strong>{pct}%</strong>
         </div>
         <div style={{ height: "4px", borderRadius: "2px", background: "rgba(15,27,45,0.07)", overflow: "hidden", marginBottom: "8px" }}>
-          <div style={{ height: "100%", width: `${pct}%`, background: "#C9A961", borderRadius: "2px", transition: "width 0.4s ease" }} />
+          <div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: "#C9A961", borderRadius: "2px", transition: "width 0.4s ease" }} />
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "10px", color: "#5B7A52", marginBottom: "3px" }}>
           <span>{locale === "he" ? "נלמדו בפועל" : "Already learned"}</span>
@@ -442,6 +506,25 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
         <div style={{ width: "1px", background: "rgba(232,223,200,0.7)" }} />
         <Link href={`/edit/${project.id}` as never} style={{ flex: 1, display: "block" }}>
           <button className="dashboard-action-btn">✎ {t("actionEdit")}</button>
+        </Link>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", background: "#FFFDF8", borderTop: "1px solid rgba(232,223,200,0.7)", padding: "10px 12px" }} dir={locale === "he" ? "rtl" : "ltr"}>
+        <button
+          type="button"
+          onClick={() => updateProjectLocked(!projectLocked)}
+          disabled={saving}
+          className="dashboard-tool-btn"
+          style={{ justifyContent: "center", minHeight: "38px" }}
+        >
+          {projectLocked ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+          {projectLocked
+            ? (locale === "he" ? "פתח הצטרפות" : "Open joining")
+            : (locale === "he" ? "סגור הצטרפות" : "Close joining")}
+        </button>
+        <Link href={`/edit/${project.id}#reset-learning` as never} className="dashboard-tool-btn" style={{ justifyContent: "center", minHeight: "38px" }}>
+          <RotateCw className="h-3.5 w-3.5" />
+          {locale === "he" ? "איפוס וניהול" : "Reset & manage"}
         </Link>
       </div>
 
@@ -552,6 +635,28 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                     <option value="expired">{locale === "he" ? "עבר הזמן" : "Expired"}</option>
                   </select>
                 </div>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px", padding: "8px", borderRadius: "10px", background: "rgba(201,169,97,0.08)", border: "1px solid rgba(201,169,97,0.18)" }}
+                  dir={locale === "he" ? "rtl" : "ltr"}
+                >
+                  <p style={{ margin: 0, fontSize: "11px", color: "#8B7355", lineHeight: 1.4 }}>
+                    {locale === "he"
+                      ? "רוצים לאפס פרק, מסכת או סדר? חפשו או סננו קודם, ואז אפסו רק את הרשומות שמוצגות."
+                      : "Need to reset a chapter, tractate, or group? Search/filter first, then reset only the entries shown."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={resetShownClaims}
+                    disabled={saving || filteredClaims.length === 0}
+                    className="dashboard-tool-btn"
+                    style={{ justifyContent: "center", minHeight: "32px", color: "#9A6B18", borderColor: "rgba(201,169,97,0.28)" }}
+                  >
+                    <RotateCw className="h-3.5 w-3.5" />
+                    {locale === "he"
+                      ? `אפס את המוצגים (${filteredClaims.length})`
+                      : `Reset shown (${filteredClaims.length})`}
+                  </button>
+                </div>
               </div>
             )}
             {!loadingClaims && claims.length === 0 && (
@@ -602,13 +707,17 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                     </>
                   ) : (
                     <>
-                      <button onClick={() => { setEditingId(cl.id); setEditName(cl.userName); }} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer" }}>✎</button>
+                      <button onClick={() => { setEditingId(cl.id); setEditName(cl.userName); }} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>
+                        {locale === "he" ? "ערוך שם" : "Edit"}
+                      </button>
                       {cl.userEmail && (
                         <button onClick={() => emailParticipant(cl)} disabled={saving} title={locale === "he" ? "שלח תזכורת באימייל" : "Email reminder"} style={{ fontSize: "11px", color: "#5B7A52", background: "none", border: "none", cursor: "pointer" }}>
                           <Send className="h-3 w-3" />
                         </button>
                       )}
-                      <button onClick={() => removeClaim(cl.id)} disabled={saving} style={{ fontSize: "11px", color: "#cc4444", background: "none", border: "none", cursor: "pointer" }}>✕</button>
+                      <button onClick={() => removeClaim(cl.id)} disabled={saving} style={{ fontSize: "11px", color: "#9A3B32", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>
+                        {locale === "he" ? "אפס חלק" : "Reset"}
+                      </button>
                     </>
                   )}
                 </div>

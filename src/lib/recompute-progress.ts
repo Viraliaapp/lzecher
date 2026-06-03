@@ -23,6 +23,7 @@ export interface RecomputedStats {
   completedPortions: number;
   totalSets: number;
   progressPct: number;
+  progressTotalPct: number;
   completedProgressPct: number;
   completedCycles: number;
   claimedByTrack: Record<string, number>;
@@ -122,6 +123,7 @@ export async function recomputeProjectProgress(
     completedPortions,
     totalSets,
     progressPct: prog.pct,
+    progressTotalPct: prog.pct,
     completedProgressPct: prog.completedPct,
     completedCycles: prog.cycles,
     claimedByTrack,

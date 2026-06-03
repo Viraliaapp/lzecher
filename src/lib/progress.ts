@@ -5,13 +5,13 @@
  * memorial HERO so they can never drift (the recurring stale-stats bug).
  *
  * Definition (per product decision):
- *   - Percentage is ALWAYS 0–100: the progress of the CURRENT active set
- *     (Tehillim + Mishnayos only; Kabalos / Daf Yomi / Shnayim Mikra are excluded
- *     from the percentage entirely).
+ *   - The "taken" percentage is cumulative across completed Mishnayos/Tehillim
+ *     sets. One full set is 100%, one-and-a-half sets is 150%, three sets is
+ *     300%, with no upper limit. Kabalos / Daf Yomi / Shnayim Mikra are excluded
+ *     from this percentage entirely.
  *   - `cycles` = how many full sets have already been completed ("מחזורים").
  *     Shown as a badge next to the percentage; hidden when 0.
- *   - Both the gold "taken" bar (pct) and the green "completed" bar (completedPct)
- *     are normalized to the current set, so neither ever exceeds 100%.
+ *   - Visual bars still cap at 100%; the number is what carries the extra rounds.
  *
  * The HERO computes from live portions via computeProgress(). The CARD reads the
  * denormalized fields written by recomputeProjectProgress() (server) via
@@ -19,11 +19,11 @@
  */
 
 export interface ProgressStats {
-  /** 0–100: taken % of the current active set (TM only) */
+  /** cumulative taken % of TM sets: 0, 75, 150, 300, ... */
   pct: number;
   /** 0–100: completed % of the current active set (TM only) */
   completedPct: number;
-  /** number of fully-taken TM sets behind the current one ("cycles completed") */
+  /** number of fully-taken TM sets ("cycles completed") */
   cycles: number;
   /** whether this project has any Tehillim/Mishnayos track (else pct is meaningless) */
   hasTM: boolean;
@@ -63,18 +63,16 @@ export function computeProgress(portions: PortionLike[]): ProgressStats {
     }
   }
 
-  // When every set is fully taken (transient — the next set auto-opens on the next
-  // claim), keep the headline at 100% of the last set and don't also count that same
-  // set in the cycles badge (avoids "100% · N cycles" double-count).
-  const cycles = foundActive ? fullSets : Math.max(0, fullSets - 1);
+  const cycles = fullSets;
 
   const cs = tm.filter((p) => setOf(p) === currentSet);
   const csLen = cs.length;
   const csTaken = cs.filter((p) => p.status !== "available").length;
   const csCompleted = cs.filter((p) => p.status === "completed").length;
+  const activeSetPct = csLen > 0 ? Math.round((csTaken / csLen) * 100) : 0;
 
   return {
-    pct: csLen > 0 ? Math.round((csTaken / csLen) * 100) : 0,
+    pct: (fullSets * 100) + (foundActive ? activeSetPct : 0),
     completedPct: csLen > 0 ? Math.round((csCompleted / csLen) * 100) : 0,
     cycles,
     hasTM: true,
@@ -88,6 +86,7 @@ export function computeProgress(portions: PortionLike[]): ProgressStats {
  */
 export function progressFromProject(p: {
   progressPct?: number;
+  progressTotalPct?: number;
   completedProgressPct?: number;
   completedCycles?: number;
   totalPortions?: number;
@@ -95,11 +94,23 @@ export function progressFromProject(p: {
   tracks?: string[];
 }): ProgressStats {
   const hasTM = (p.tracks || []).some(isTM);
-  if (typeof p.progressPct === "number") {
+  if (typeof p.progressTotalPct === "number") {
     return {
-      pct: p.progressPct,
+      pct: p.progressTotalPct,
       completedPct: p.completedProgressPct ?? 0,
       cycles: p.completedCycles ?? 0,
+      hasTM,
+    };
+  }
+  if (typeof p.progressPct === "number") {
+    const cycles = p.completedCycles ?? 0;
+    const pct = cycles > 0 && p.progressPct <= 100
+      ? (cycles * 100) + p.progressPct
+      : p.progressPct;
+    return {
+      pct,
+      completedPct: p.completedProgressPct ?? 0,
+      cycles,
       hasTM,
     };
   }

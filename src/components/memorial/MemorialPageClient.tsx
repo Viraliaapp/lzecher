@@ -39,6 +39,7 @@ import { ActivityBubbles } from "@/components/activity/ActivityBubbles";
 import { fillShareMessage } from "@/lib/share-templates";
 import { formatHebrewHonoreeName } from "@/lib/honoree-name";
 import { getTehillimChapterNumberFromPortion } from "@/lib/tehillim-ref";
+import { learningLabel } from "@/lib/learning-label";
 
 const TRACK_EMOJI: Record<TrackType, string> = {
   mishnayos: "📖",
@@ -244,7 +245,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   }, [portions]);
   const bonusRoundText = heroProgress.cycles > 0
     ? locale === "he"
-      ? `${setLabel(heroProgress.cycles, locale)} הושלם במלואו · עכשיו ${setLabel(activeSetNumber, locale)} (תוספת זכות)`
+      ? `${heroProgress.cycles === 1 ? "מחזור אחד הושלם" : `${heroProgress.cycles} מחזורים הושלמו`} · עכשיו ${setLabel(activeSetNumber, locale)} (תוספת זכות)`
       : locale === "es"
         ? `${setLabel(heroProgress.cycles, locale)} completed · now ${setLabel(activeSetNumber, locale)}`
         : locale === "fr"
@@ -284,19 +285,28 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   })();
 
   function openClaimDialog(portion: Portion) {
+    const isTehillim = portion.trackType === "tehillim";
     setSelectedPortion(portion);
     setMultiClaimPortionIds([]);
     setClaimerName(user?.displayName || "");
-    setClaimerEmail(user?.email || "");
+    setClaimerEmail(isTehillim ? "" : (user?.email || ""));
     setClaimerCustomText("");
     setReminderEnabled(false);
-    setShowEmailSection(Boolean(user?.email));
+    setShowEmailSection(isTehillim ? false : Boolean(user?.email));
     setSubmitting(false);
     setConfirmDialogOpen(true);
   }
 
   function handleClaimClick(portion: Portion) {
     openClaimDialog(portion);
+  }
+
+  function claimReferenceLabel(portion?: Portion | null) {
+    if (!portion) return "";
+    if (locale === "he") {
+      return learningLabel(locale, portion.reference || portion.displayName, portion.trackType) || portion.displayNameHebrew || portion.displayName;
+    }
+    return portion.displayName || learningLabel(locale, portion.reference, portion.trackType);
   }
 
   async function confirmClaim() {
@@ -308,7 +318,8 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       toast.error(t("nameRequired") || "Please enter your name");
       return;
     }
-    if (!validateReminderEmail()) return;
+    const allowReminders = selectedPortion.trackType !== "tehillim";
+    if (allowReminders && !validateReminderEmail()) return;
     setSubmitting(true);
     setClaimingId(selectedPortion.id);
     let claimSucceeded = false;
@@ -317,7 +328,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
         console.warn("[claim] could not get id token:", e);
         return null;
       });
-      const resolvedPrefs = getResolvedReminderPrefs();
+      const resolvedPrefs = allowReminders ? getResolvedReminderPrefs() : [];
       const res = await fetch("/api/claims", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -326,9 +337,9 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           projectId: project.id,
           claimerName: claimerName.trim(),
           idToken,
-          claimerEmail: claimerEmail || undefined,
+          claimerEmail: allowReminders && claimerEmail ? claimerEmail : undefined,
           reminderPreferences: resolvedPrefs.length > 0 ? resolvedPrefs : undefined,
-          durationEndDate: getProjectReminderDeadline() ?? undefined,
+          durationEndDate: allowReminders ? (getProjectReminderDeadline() ?? undefined) : undefined,
           specificItem: (selectedPortion as Portion & { isFreeText?: boolean }).isFreeText && claimerCustomText.trim() ? claimerCustomText.trim() : undefined,
           locale,
         }),
@@ -570,21 +581,23 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
   }
 
   function handleBulkClaim(scope: string, scopeId: string, scopeName: string) {
+    const isTehillim = scope === "whole_tehillim" || scope === "tehillim_book";
     setClaimerName(user?.displayName || "");
-    setClaimerEmail(user?.email || "");
+    setClaimerEmail(isTehillim ? "" : (user?.email || ""));
     setReminderEnabled(false);
-    setShowEmailSection(Boolean(user?.email));
+    setShowEmailSection(isTehillim ? false : Boolean(user?.email));
     setBulkClaimScope({ scope, scopeId, scopeName });
   }
 
   // Multi-select handler — opens one modal for all selected portions
   function handleMultiClaim(portionIds: string[]) {
+    const isTehillim = selectedTrack === "tehillim";
     setMultiClaimPortionIds(portionIds);
     setSelectedPortion(null);
     setClaimerName(user?.displayName || "");
-    setClaimerEmail(user?.email || "");
+    setClaimerEmail(isTehillim ? "" : (user?.email || ""));
     setReminderEnabled(false);
-    setShowEmailSection(Boolean(user?.email));
+    setShowEmailSection(isTehillim ? false : Boolean(user?.email));
     setSubmitting(false);
     setMultiClaimDialogOpen(true);
   }
@@ -595,11 +608,12 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       toast.error(t("nameRequired") || "Please enter your name");
       return;
     }
-    if (!validateReminderEmail()) return;
+    const allowReminders = selectedTrack !== "tehillim";
+    if (allowReminders && !validateReminderEmail()) return;
     setSubmitting(true);
     try {
       const idToken = await auth.currentUser?.getIdToken().catch(() => null);
-      const resolvedPrefs = getResolvedReminderPrefs();
+      const resolvedPrefs = allowReminders ? getResolvedReminderPrefs() : [];
       const res = await fetch("/api/claims/multi", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -608,9 +622,9 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           projectId: project.id,
           claimerName: claimerName.trim(),
           idToken,
-          claimerEmail: claimerEmail || undefined,
+          claimerEmail: allowReminders && claimerEmail ? claimerEmail : undefined,
           reminderPreferences: resolvedPrefs.length > 0 ? resolvedPrefs : undefined,
-          durationEndDate: getProjectReminderDeadline() ?? undefined,
+          durationEndDate: allowReminders ? (getProjectReminderDeadline() ?? undefined) : undefined,
           locale,
         }),
       });
@@ -651,14 +665,15 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
       toast.error(t("nameRequired") || "Please enter your name");
       return;
     }
-    if (!validateReminderEmail()) return;
+    const allowReminders = bulkClaimScope.scope !== "whole_tehillim" && bulkClaimScope.scope !== "tehillim_book";
+    if (allowReminders && !validateReminderEmail()) return;
     setBulkClaiming(true);
     try {
       const idToken = await auth.currentUser?.getIdToken().catch((e) => {
         console.warn("[bulk-claim] could not get id token:", e);
         return null;
       });
-      const resolvedPrefs = getResolvedReminderPrefs();
+      const resolvedPrefs = allowReminders ? getResolvedReminderPrefs() : [];
       const res = await fetch("/api/claims/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -668,9 +683,9 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           scopeId: bulkClaimScope.scopeId,
           claimerName: claimerName.trim(),
           idToken,
-          claimerEmail: claimerEmail || undefined,
+          claimerEmail: allowReminders && claimerEmail ? claimerEmail : undefined,
           reminderPreferences: resolvedPrefs.length > 0 ? resolvedPrefs : undefined,
-          durationEndDate: getProjectReminderDeadline() ?? undefined,
+          durationEndDate: allowReminders ? (getProjectReminderDeadline() ?? undefined) : undefined,
           locale,
         }),
       });
@@ -1194,7 +1209,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
           <DialogHeader>
             <DialogTitle>{t("confirmClaim")}</DialogTitle>
             <DialogDescription>
-              {t("confirmClaimDesc", { reference: selectedPortion?.displayName || "" })}
+              {t("confirmClaimDesc", { reference: claimReferenceLabel(selectedPortion) })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -1225,7 +1240,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 />
               </div>
             )}
-            <ReminderSection {...reminderSectionProps} />
+            {selectedPortion?.trackType !== "tehillim" && <ReminderSection {...reminderSectionProps} />}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmDialogOpen(false)} disabled={submitting}>{t("cancel")}</Button>
@@ -1262,7 +1277,7 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 autoFocus
               />
             </div>
-            <ReminderSection {...reminderSectionProps} />
+            {selectedTrack !== "tehillim" && <ReminderSection {...reminderSectionProps} />}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setMultiClaimDialogOpen(false)} disabled={submitting}>{t("cancel")}</Button>
@@ -1319,7 +1334,9 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
                 autoFocus
               />
             </div>
-            <ReminderSection {...reminderSectionProps} />
+            {bulkClaimScope?.scope !== "whole_tehillim" && bulkClaimScope?.scope !== "tehillim_book" && (
+              <ReminderSection {...reminderSectionProps} />
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setBulkClaimScope(null)} disabled={bulkClaiming}>{t("cancel")}</Button>
@@ -1501,17 +1518,22 @@ export function MemorialPageClient({ project, portions: initialPortions }: Props
 
 function TehillimOneTimeNote({ locale, bulk = false }: { locale: string; bulk?: boolean }) {
   return (
-    <p
-      className="rounded-lg border border-gold/20 bg-gold/5 px-3 py-2 text-xs leading-relaxed text-gold-deep"
+    <div
+      className="rounded-xl border border-gold/25 bg-gold/5 px-3 py-2.5 text-sm leading-relaxed text-navy"
       dir={locale === "he" ? "rtl" : "ltr"}
     >
-      {locale === "he"
-        ? bulk
-          ? "חלוקת תהילים היא התחייבות חד־פעמית: אומרים את הפרקים שנבחרו לעילוי הנשמה, ואז אפשר לסמן אותם כנלמדו."
-          : "פרק תהילים הוא התחייבות חד־פעמית: אומרים את הפרק לעילוי הנשמה, ואז אפשר לסמן אותו כנלמד."
-        : bulk
-          ? "Tehillim is a one-time commitment: say the selected chapters l'iluy nishmas, then mark them learned."
-          : "A Tehillim chapter is a one-time commitment: say the chapter l'iluy nishmas, then mark it learned."}
-    </p>
+      <p className="mb-1 font-heading font-bold text-gold-deep">
+        {locale === "he" ? "קריאה ישירה לעילוי נשמה" : "Direct Tehillim reading"}
+      </p>
+      <p className="text-xs text-muted">
+        {locale === "he"
+          ? bulk
+            ? "בחרו את הפרקים, אמרו אותם בנחת לעילוי הנשמה, וסמנו כנלמד בסיום. אין צורך בתזכורות."
+            : "בחרו פרק, אמרו אותו בנחת לעילוי הנשמה, וסמנו כנלמד בסיום. אין צורך בתזכורות."
+          : bulk
+            ? "Choose the chapters, say them l'iluy nishmas, and mark them learned when finished. No reminders are needed."
+            : "Choose the chapter, say it l'iluy nishmas, and mark it learned when finished. No reminders are needed."}
+      </p>
+    </div>
   );
 }

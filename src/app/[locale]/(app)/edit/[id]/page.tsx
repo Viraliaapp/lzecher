@@ -494,7 +494,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
       </Card>
 
       {/* Reset Claims */}
-      <Card className="border-amber-200">
+      <Card id="reset-learning" className="border-amber-200">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>

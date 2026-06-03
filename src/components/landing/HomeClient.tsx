@@ -10,7 +10,7 @@ import { Check, Grid2X2, List, Search, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import type { MemorialProject, TrackType } from "@/lib/types";
 import { progressFromProject, cyclesLabel } from "@/lib/progress";
-import { GlobalCounter } from "@/components/activity/GlobalCounter";
+import { GlobalCounter, SiteViewsCounter } from "@/components/activity/GlobalCounter";
 import { ActivityBubbles } from "@/components/activity/ActivityBubbles";
 
 interface HomeClientProps {
@@ -282,7 +282,7 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
                             style={{ height: "5px", borderRadius: "3px", background: "rgba(15,27,45,0.08)", overflow: "hidden" }}
                           >
                             <div
-                              style={{ height: "100%", width: `${pct}%`, background: "#C9A961", borderRadius: "3px", transition: "width 0.6s ease" }}
+                              style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: "#C9A961", borderRadius: "3px", transition: "width 0.6s ease" }}
                             />
                           </div>
                         </div>
@@ -386,7 +386,7 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
                               <span className="font-heading text-lg font-bold text-gold-deep">{pct}%</span>
                             </div>
                             <div className="h-2 overflow-hidden rounded-full bg-navy/10">
-                              <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${pct}%` }} />
+                              <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.min(100, pct)}%` }} />
                             </div>
                             <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-muted">
                               <span>{(m.participantCount || 0).toLocaleString()} {locale === "he" ? "משתתפים" : "participants"}</span>
@@ -406,6 +406,7 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
           )}
         </div>
       </section>
+      <SiteViewsCounter />
     </main>
   );
 }
