@@ -6,7 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { YahrzeitCandle } from "@/components/brand/YahrzeitCandle";
-import { Check, ChevronDown, Grid2X2, List, Search, Lock } from "lucide-react";
+import { Check, Grid2X2, List, Search, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import type { MemorialProject, TrackType } from "@/lib/types";
 import { progressFromProject, cyclesLabel } from "@/lib/progress";
@@ -31,51 +31,49 @@ function trackLabel(track: TrackType, locale: string): string {
 }
 
 function FamilyDedication() {
-  const [isOpen, setIsOpen] = useState(true);
-  const names = [
-    'ר\' רפאל הכהן בן ר\' יצחק ז"ל',
-    'מרת ריבה רבקה בת ר\' חיים ע"ה',
-    'ר\' יצחק בן ר\' ניסים ז"ל',
-    'מרת רות בת ר\' ליאו אליעזר ע"ה',
-    'מרת עירית בת ר\' יצחק ע"ה',
-    "וכל זקנינו וקרובינו",
+  const nameColumns = [
+    ['ר\' רפאל הכהן בן ר\' יצחק ז"ל', 'מרת ריבה רבקה בת ר\' חיים ע"ה'],
+    ['ר\' יצחק בן ר\' ניסים ז"ל', 'מרת רות בת ר\' ליאו אליעזר ע"ה'],
+    ['מרת עירית בת ר\' יצחק ע"ה', "וכל זקנינו וקרובינו"],
   ];
+  const names = nameColumns.flat();
   const dedicationLine = names.join(" • ");
 
   return (
-    <section className="relative bg-cream px-4 pb-5 sm:px-6" dir="rtl" aria-label={`לעילוי נשמת ${dedicationLine}`}>
+    <section
+      className="border-y border-gold/20 bg-navy px-4 py-3 text-cream sm:px-6 sm:py-4"
+      dir="rtl"
+      aria-label={`לעילוי נשמת ${dedicationLine}`}
+      title={`לעילוי נשמת ${dedicationLine} ת.נ.צ.ב.ה`}
+    >
       <div
-        className="relative z-10 mx-auto -mt-7 max-w-3xl overflow-hidden rounded-2xl border border-gold/35 bg-[#121820] text-cream shadow-[0_20px_45px_rgba(13,27,45,0.22)] sm:-mt-9"
-        title={`לעילוי נשמת ${dedicationLine} ת.נ.צ.ב.ה`}
+        className="mx-auto flex max-w-5xl flex-col items-center gap-3 text-center sm:flex-row sm:gap-6 sm:text-right"
       >
-        <button
-          type="button"
-          className="flex w-full items-center gap-3 px-4 py-3 text-right transition hover:bg-white/[0.03] focus:outline-none focus:ring-2 focus:ring-gold/45 focus:ring-inset sm:px-5"
-          onClick={() => setIsOpen((open) => !open)}
-          aria-expanded={isOpen}
-          aria-controls="family-dedication-body"
-          aria-label={isOpen ? "הסתרת הקדשה" : "פתיחת הקדשה"}
-        >
+        <div className="flex shrink-0 items-center justify-center gap-2.5">
           <span className="relative h-7 w-4 shrink-0 drop-shadow-[0_6px_14px_rgba(201,166,91,0.34)]" aria-hidden="true">
             <span className="absolute left-1/2 top-0 h-3.5 w-2.5 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(circle_at_50%_62%,#fff7bf_0_20%,#e9c66a_45%,#b98a35_70%,transparent_73%)] shadow-[0_0_12px_rgba(218,176,82,0.48)]" />
             <span className="absolute left-1/2 top-3.5 h-1.5 w-px -translate-x-1/2 rounded-full bg-[#6e5531]" />
             <span className="absolute bottom-0 left-1/2 h-[18px] w-3 -translate-x-1/2 rounded-sm border border-gold/25 bg-gradient-to-b from-[#fff9e7] to-[#f5ead0]" />
           </span>
-          <span className="shrink-0 font-heading text-base font-bold text-cream">לזכר נשמת</span>
-          <span className="min-w-0 flex-1 truncate text-sm text-cream/58">{"ר' רפאל הכהן, מרת ריבה רבקה ועוד"}</span>
-          <ChevronDown className={`h-4 w-4 shrink-0 text-gold transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden="true" />
-        </button>
+          <p className="font-heading text-sm font-bold text-cream sm:text-base">לזכר נשמת</p>
+        </div>
 
-        {isOpen && (
-          <div id="family-dedication-body" className="border-t border-gold/20 px-5 pb-5 pt-3 sm:px-7">
-            <ul className="space-y-1.5 text-center font-serif text-[15px] leading-7 text-cream/90 sm:grid sm:grid-cols-2 sm:gap-x-8 sm:space-y-0 sm:text-right">
-              {names.map((name) => (
-                <li key={name}>{name}</li>
+        <div className="grid w-full min-w-0 grid-cols-3 gap-3 sm:flex-1 sm:gap-6">
+          {nameColumns.map((column, index) => (
+            <ul
+              key={index}
+              className="min-w-0 space-y-1 text-center font-serif text-[11px] leading-4 text-cream/88 sm:text-[13px] sm:leading-6"
+            >
+              {column.map((name) => (
+                <li key={name} className="break-words">
+                  {name}
+                </li>
               ))}
             </ul>
-            <p className="mt-3 text-center font-heading text-xs font-bold tracking-[0.12em] text-gold">ת.נ.צ.ב.ה</p>
-          </div>
-        )}
+          ))}
+        </div>
+
+        <p className="shrink-0 font-heading text-[10px] font-bold tracking-[0.12em] text-gold sm:text-[11px]">ת.נ.צ.ב.ה</p>
       </div>
     </section>
   );
