@@ -1523,13 +1523,13 @@ function TehillimOneTimeNote({ locale, bulk = false }: { locale: string; bulk?: 
       dir={locale === "he" ? "rtl" : "ltr"}
     >
       <p className="mb-1 font-heading font-bold text-gold-deep">
-        {locale === "he" ? "קריאה ישירה לעילוי נשמה" : "Direct Tehillim reading"}
+        {locale === "he" ? "פותחים את הפרק כאן באתר" : "Read the chapter on this site"}
       </p>
       <p className="text-xs text-muted">
         {locale === "he"
           ? bulk
-            ? "בחרו את הפרקים, אמרו אותם בנחת לעילוי הנשמה, וסמנו כנלמד בסיום. אין צורך בתזכורות."
-            : "בחרו פרק, אמרו אותו בנחת לעילוי הנשמה, וסמנו כנלמד בסיום. אין צורך בתזכורות."
+            ? "בחרו את הפרקים, פתחו אותם בתוך לזכר, קראו בנחת לעילוי הנשמה, וסמנו כנלמד בסיום."
+            : "בחרו פרק, פתחו אותו בתוך לזכר, קראו בנחת לעילוי הנשמה, וסמנו כנלמד בסיום."
           : bulk
             ? "Choose the chapters, say them l'iluy nishmas, and mark them learned when finished. No reminders are needed."
             : "Choose the chapter, say it l'iluy nishmas, and mark it learned when finished. No reminders are needed."}

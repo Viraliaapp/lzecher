@@ -412,11 +412,11 @@ function TehillimHierarchy({ portions, onClaim, onComplete, onReadTehillim, onBu
     <div className="space-y-3 mt-4">
       <div className="rounded-xl border border-gold/25 bg-gold/5 px-4 py-3" dir={locale === "he" ? "rtl" : "ltr"}>
         <p className="font-heading text-sm font-bold text-gold-deep">
-          {locale === "he" ? "קריאה ישירה לעילוי נשמה" : "Direct Tehillim reading"}
+          {locale === "he" ? "פותחים את הפרק כאן באתר" : "Read the chapter on this site"}
         </p>
         <p className="mt-1 text-xs leading-relaxed text-muted">
           {locale === "he"
-            ? "בחרו פרק תהילים, קראו אותו עכשיו בנחת אם אפשר, ואז סמנו כנלמד. זו קריאה חד־פעמית וקלה להצטרפות."
+            ? "בחרו פרק תהילים, פתחו אותו מיד בתוך לזכר, קראו בנחת לעילוי הנשמה, ואז סמנו כנלמד."
             : "Choose a Tehillim chapter, read it now if you can, then mark it learned. This is a simple one-time reading."}
         </p>
       </div>

@@ -2,7 +2,6 @@ import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { HomeClient } from "@/components/landing/HomeClient";
-import { SeoLearningSection } from "@/components/landing/SeoLearningSection";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { getHomeKeywords, getHomeStructuredData } from "@/lib/seo-content";
 import type { MemorialProject } from "@/lib/types";
@@ -132,7 +131,6 @@ export default async function HomePage({
       />
       <Navbar />
       <HomeClient memorials={memorials} />
-      <SeoLearningSection locale={locale} />
       <Footer />
     </>
   );
