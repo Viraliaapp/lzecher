@@ -68,6 +68,7 @@ export function GlobalCounter() {
     { key: "shnayim_mikra", n: stats.shnayim_mikra, label: locale === "he" ? "שניים מקרא" : "Shnayim Mikra" },
   ].filter((item) => item.n > 0);
   if (learningItems.reduce((sum, item) => sum + item.n, 0) === 0) return null;
+  const mobileColumns = learningItems.length === 4 ? 2 : Math.min(learningItems.length, 3);
 
   return (
     <section className="relative z-10 border-y border-gold/25 bg-white shadow-[0_12px_28px_rgba(7,22,42,0.07)]">
@@ -80,7 +81,10 @@ export function GlobalCounter() {
         </span>
         <span className="hidden h-7 w-px bg-navy/10 sm:block" aria-hidden="true" />
         {learningItems.length > 0 && (
-          <div className="grid w-full max-w-sm grid-cols-2 gap-1.5 sm:w-auto sm:max-w-none sm:flex sm:items-baseline sm:gap-4">
+          <div
+            className="grid w-full max-w-md gap-2 sm:w-auto sm:max-w-none sm:flex sm:items-baseline sm:gap-4"
+            style={{ gridTemplateColumns: `repeat(${mobileColumns}, minmax(0, 1fr))` }}
+          >
             {learningItems.map((item) => (
               <div key={item.key} className="min-w-0 rounded-lg bg-cream/45 px-2 py-1.5 sm:bg-transparent sm:px-0 sm:py-0">
                 <span className="block font-heading text-lg font-black leading-none text-gold-deep sm:inline sm:text-xl">
