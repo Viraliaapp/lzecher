@@ -2,7 +2,9 @@ import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { HomeClient } from "@/components/landing/HomeClient";
+import { SeoLearningSection } from "@/components/landing/SeoLearningSection";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { getHomeKeywords, getHomeStructuredData } from "@/lib/seo-content";
 import type { MemorialProject } from "@/lib/types";
 import type { Metadata } from "next";
 
@@ -46,6 +48,7 @@ export async function generateMetadata({
   return {
     title: meta.title,
     description: meta.description,
+    keywords: getHomeKeywords(locale),
     alternates: localizedAlternates(locale),
     openGraph: {
       title: meta.title,
@@ -67,11 +70,13 @@ async function getPublicMemorials(): Promise<MemorialProject[]> {
       .where("status", "==", "active")
       .limit(200)
       .get();
-    // All active projects are now VISIBLE in the directory (card-level info only).
-    // Password protection (if any) gates opening the full memorial, not the card.
-    // IMPORTANT: project only card-safe fields to the client — never ship the password
-    // hash/salt or full tribute/bio detail to the browser from the directory.
     return snap.docs
+      .filter((d) => {
+        const p = d.data();
+        // Keep protected or intentionally hidden projects out of public discovery.
+        // Shared links still work; this only controls homepage/search exposure.
+        return !p.passwordHash && p.isPublic !== false;
+      })
       .map((d) => {
         const p = d.data();
         const card: MemorialProject = {
@@ -108,29 +113,15 @@ async function getPublicMemorials(): Promise<MemorialProject[]> {
   }
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const memorials = await getPublicMemorials();
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        name: "Lzecher",
-        url: BASE_URL,
-        description:
-          "A free multilingual memorial learning platform for organizing communal Torah study l'iluy nishmas.",
-        sameAs: [],
-      },
-      {
-        "@type": "WebSite",
-        name: "Lzecher",
-        alternateName: "לזכר",
-        url: BASE_URL,
-        inLanguage: ["he", "en", "es", "fr"],
-      },
-    ],
-  };
+  const jsonLd = getHomeStructuredData(locale, memorials.length);
 
   return (
     <>
@@ -140,6 +131,7 @@ export default async function HomePage() {
       />
       <Navbar />
       <HomeClient memorials={memorials} />
+      <SeoLearningSection locale={locale} />
       <Footer />
     </>
   );

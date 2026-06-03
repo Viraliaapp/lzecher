@@ -51,6 +51,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const project = await getProjectBySlug(slug);
   if (!project) return { title: "Memorial · Lzecher" };
 
+  const shouldIndex = project.status === "active" && !isProtected(project) && project.isPublic !== false;
+  if (!shouldIndex) {
+    const title = locale === "he" ? "דף הנצחה מוגן · לזכר" : "Protected memorial · Lzecher";
+    const description = locale === "he"
+      ? "דף הנצחה זה אינו מיועד לאינדוקס ציבורי."
+      : "This memorial page is not intended for public indexing.";
+    return {
+      title,
+      description,
+      alternates: localizedAlternates(locale, slug),
+      robots: {
+        index: false,
+        follow: false,
+        googleBot: {
+          index: false,
+          follow: false,
+          noarchive: true,
+          nosnippet: true,
+        },
+      },
+    };
+  }
+
   const hebrewDisplay = formatHebrewHonoreeName(project, { includeParents: true });
   const hebrewDisplayWithHonorific = formatHebrewHonoreeName(project, { includeParents: true, includeHonorific: true });
   const englishDisplay = `${project.nameEnglish || project.nameHebrew} ${project.familyNameEnglish || ""}`.trim();
@@ -64,6 +87,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    keywords: locale === "he"
+      ? [
+          "לזכר",
+          "לעילוי נשמה",
+          "דף הנצחה",
+          "לימוד תורה לעילוי נשמה",
+          "משניות לעילוי נשמה",
+          "תהילים לעילוי נשמה",
+          hebrewDisplay,
+        ]
+      : [
+          "Lzecher",
+          "memorial learning",
+          "l'iluy nishmas",
+          "Mishnayos",
+          "Tehillim",
+          englishDisplay || hebrewDisplay,
+        ],
     alternates: localizedAlternates(locale, slug),
     openGraph: { title, description, url: `${BASE_URL}/${locale}/memorial/${slug}`, type: "article", locale: locale === "he" ? "he_IL" : locale },
     twitter: { card: "summary_large_image", title, description },
@@ -121,24 +162,59 @@ export default async function MemorialPage({ params }: Props) {
 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebPage",
-    name: `${formatHebrewHonoreeName(project, { includeParents: true })} - ${locale === "he" ? "דף הנצחה" : "Memorial Page"}`,
-    description: locale === "he"
-      ? `לימוד תורה לעילוי נשמת ${formatHebrewHonoreeName(project, { includeParents: true, includeHonorific: true })}`
-      : `Torah learning dedicated l'iluy nishmas ${formatHebrewHonoreeName(project, { includeParents: true })}`,
-    url: `${BASE_URL}/${locale}/memorial/${project.slug}`,
-    inLanguage: locale,
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": `${BASE_URL}/${locale}/memorial/${project.slug}#webpage`,
+        name: `${formatHebrewHonoreeName(project, { includeParents: true })} - ${locale === "he" ? "דף הנצחה" : "Memorial Page"}`,
+        description: locale === "he"
+          ? `לימוד תורה לעילוי נשמת ${formatHebrewHonoreeName(project, { includeParents: true, includeHonorific: true })}`
+          : `Torah learning dedicated l'iluy nishmas ${formatHebrewHonoreeName(project, { includeParents: true })}`,
+        url: `${BASE_URL}/${locale}/memorial/${project.slug}`,
+        inLanguage: locale,
+        isPartOf: {
+          "@type": "WebSite",
+          "@id": `${BASE_URL}/#website`,
+          name: "Lzecher",
+          alternateName: "לזכר",
+          url: BASE_URL,
+        },
+        datePublished: project.createdAt ? new Date(project.createdAt).toISOString() : undefined,
+        dateModified: project.updatedAt ? new Date(project.updatedAt).toISOString() : undefined,
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${BASE_URL}/${locale}/memorial/${project.slug}#breadcrumbs`,
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: locale === "he" ? "דף הבית" : "Home",
+            item: `${BASE_URL}/${locale}`,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: locale === "he" ? "דף הנצחה" : "Memorial",
+            item: `${BASE_URL}/${locale}/memorial/${project.slug}`,
+          },
+        ],
+      },
+    ],
   };
+  const shouldIndex = project.status === "active" && !isProtected(project) && project.isPublic !== false;
   const { passwordHash, passwordSalt, ...safeProject } = project;
   void passwordHash;
   void passwordSalt;
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      {shouldIndex && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
       <Navbar />
       <MemorialPageClient
         project={{ ...safeProject, isPasswordProtected: isProtected(project) } as MemorialProject}

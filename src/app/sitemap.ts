@@ -50,8 +50,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     for (const doc of snap.docs) {
       const data = doc.data();
-      // Do not list password-protected projects' detail in the sitemap.
-      if (data.passwordHash) continue;
+      // Do not list protected or hidden projects in public search discovery.
+      if (data.passwordHash || data.isPublic === false) continue;
       for (const locale of LOCALES) {
         entries.push({
           url: `${BASE_URL}/${locale}/memorial/${data.slug}`,
