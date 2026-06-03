@@ -39,24 +39,22 @@ function FamilyDedication() {
     'מרת עירית בת ר\' יצחק ע"ה',
     "וכל זקנינו וקרובינו",
   ];
+  const dedicationLine = names.join(" • ");
 
   return (
-    <section className="border-b border-gold/20 bg-cream px-4 py-3 sm:px-6 sm:py-4" dir="rtl">
-      <div className="mx-auto flex max-w-3xl items-start justify-center gap-4 border-y border-gold/25 py-3 text-center sm:gap-6">
-        <div className="relative mt-2 h-11 w-7 shrink-0 drop-shadow-[0_10px_18px_rgba(201,166,91,0.26)]" aria-hidden="true">
-          <span className="absolute left-1/2 top-0 h-5 w-3.5 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(circle_at_50%_62%,#fff7bf_0_22%,#e9c66a_46%,#b98a35_72%,transparent_74%)] shadow-[0_0_18px_rgba(218,176,82,0.48)]" />
-          <span className="absolute left-1/2 top-5 h-2 w-px -translate-x-1/2 rounded-full bg-[#6e5531]" />
-          <span className="absolute bottom-0 left-1/2 h-7 w-4 -translate-x-1/2 rounded-md border border-gold/25 bg-gradient-to-b from-[#fff9e7] to-[#f5ead0]" />
+    <section className="border-b border-gold/15 bg-white px-4 pb-3 pt-0 sm:px-6" dir="rtl" aria-label={`לעילוי נשמת ${dedicationLine}`}>
+      <div
+        className="mx-auto flex max-w-3xl items-center justify-center gap-2 overflow-hidden text-center text-[11.5px] leading-5 text-muted sm:text-xs"
+        title={`לעילוי נשמת ${dedicationLine} ת.נ.צ.ב.ה`}
+      >
+        <div className="relative h-6 w-3.5 shrink-0 drop-shadow-[0_5px_10px_rgba(201,166,91,0.22)]" aria-hidden="true">
+          <span className="absolute left-1/2 top-0 h-3 w-2 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(circle_at_50%_62%,#fff7bf_0_20%,#e9c66a_45%,#b98a35_70%,transparent_73%)] shadow-[0_0_10px_rgba(218,176,82,0.42)]" />
+          <span className="absolute left-1/2 top-3 h-1.5 w-px -translate-x-1/2 rounded-full bg-[#6e5531]" />
+          <span className="absolute bottom-0 left-1/2 h-4 w-2.5 -translate-x-1/2 rounded-sm border border-gold/20 bg-gradient-to-b from-[#fff9e7] to-[#f5ead0]" />
         </div>
-        <div className="min-w-0">
-          <p className="font-heading text-sm font-bold text-navy sm:text-base">לזכר נשמת</p>
-          <div className="mt-1.5 space-y-0.5 text-[13px] leading-5 text-navy sm:text-sm">
-            {names.map((name) => (
-              <p key={name}>{name}</p>
-            ))}
-          </div>
-          <p className="mt-1.5 font-heading text-xs font-bold tracking-[0.12em] text-gold-deep">ת.נ.צ.ב.ה</p>
-        </div>
+        <span className="shrink-0 font-heading font-bold text-gold-deep">{"לע\"נ"}</span>
+        <span className="min-w-0 truncate text-navy/62">{dedicationLine}</span>
+        <span className="shrink-0 font-heading text-[10px] font-bold tracking-[0.12em] text-gold-deep sm:text-[11px]">ת.נ.צ.ב.ה</span>
       </div>
     </section>
   );
