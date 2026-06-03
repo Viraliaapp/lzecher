@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { requireSuperAdmin } from "@/lib/auth-roles";
+import { requireAdmin } from "@/lib/auth-roles";
 
 const MAX_RANGE_DAYS = 90;
 const DEFAULT_RANGE_DAYS = 30;
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    await requireSuperAdmin(idToken);
+    await requireAdmin(idToken, "stats");
 
     const rangeDays = clampDays(rangeDaysInput);
     const endAt = Date.now();

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { requireSuperAdmin } from "@/lib/auth-roles";
+import { requireAdmin } from "@/lib/auth-roles";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 
 export async function POST(
@@ -13,7 +13,7 @@ export async function POST(
     if (!idToken) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    const decoded = await requireSuperAdmin(idToken);
+    const decoded = await requireAdmin(idToken, "projects");
     if (confirmProjectId !== id) {
       return NextResponse.json(
         { error: "Confirm this single project ID before recomputing stats." },

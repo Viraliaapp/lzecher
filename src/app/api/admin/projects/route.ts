@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { requireAdmin } from "@/lib/auth-roles";
+import { hasAdminPermission, requireAdmin } from "@/lib/auth-roles";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,15 +9,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const admin = await requireAdmin(idToken, "projects");
+    const admin = await requireAdmin(idToken);
+    const canViewProjects = hasAdminPermission(admin, "projects");
 
     const db = getAdminDb();
-    const snap = await db
-      .collection("lzecher_projects")
-      .orderBy("createdAt", "desc")
-      .get();
+    const snap = canViewProjects
+      ? await db
+          .collection("lzecher_projects")
+          .orderBy("createdAt", "desc")
+          .get()
+      : null;
 
-    const projects = snap.docs.map((doc) => {
+    const projects = snap ? snap.docs.map((doc) => {
       const data = doc.data();
       const { passwordHash, passwordSalt, ...safe } = data;
       void passwordSalt;
@@ -26,7 +29,7 @@ export async function POST(request: NextRequest) {
         ...safe,
         isPasswordProtected: Boolean(passwordHash),
       };
-    });
+    }) : [];
 
     return NextResponse.json({
       projects,

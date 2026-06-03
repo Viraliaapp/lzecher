@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { requireSuperAdmin } from "@/lib/auth-roles";
+import { hasAdminPermission, requireAdmin } from "@/lib/auth-roles";
 import { DEFAULT_SITE_SETTINGS, sanitizeSiteSettings } from "@/lib/site-settings";
 
 const RECENT_LIMIT = 50;
@@ -286,7 +286,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    await requireSuperAdmin(idToken);
+    const decoded = await requireAdmin(idToken);
+    const rolePermissions = Array.isArray(decoded.lzecherPermissions) ? decoded.lzecherPermissions : [];
+    const canStats = hasAdminPermission(decoded, "stats");
+    const canProjects = hasAdminPermission(decoded, "projects");
+    const canFeedback = hasAdminPermission(decoded, "feedback");
+    const canReports = hasAdminPermission(decoded, "reports");
+    const canUsers = hasAdminPermission(decoded, "users");
+    const canSettings = hasAdminPermission(decoded, "settings");
 
     const db = getAdminDb();
     const projectsRef = db.collection("lzecher_projects");
@@ -500,6 +507,19 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
+      role: {
+        isAdmin: Boolean(decoded.isAdmin || decoded.isSuperAdmin),
+        isSuperAdmin: Boolean(decoded.isSuperAdmin),
+        permissions: rolePermissions,
+        access: {
+          stats: canStats,
+          projects: canProjects,
+          feedback: canFeedback,
+          reports: canReports,
+          users: canUsers,
+          settings: canSettings,
+        },
+      },
       stats: {
         totalProjects,
         activeProjects,
@@ -534,7 +554,7 @@ export async function POST(request: NextRequest) {
         siteViewsThisWeek: siteViews.thisWeek,
         siteViewsThisMonth: siteViews.thisMonth,
       },
-      healthChecks: [
+      healthChecks: canStats || canProjects ? [
         {
           key: "firebase_scope",
           status: "pass",
@@ -569,25 +589,36 @@ export async function POST(request: NextRequest) {
           detail: `${pendingReminderEmails} pending, ${failedReminderEmails} failed, ${sentReminderEmails} sent reminder email(s).`,
           count: failedReminderEmails,
         },
-      ],
-      projectSummaries,
-      userSummaries: publicUserSummaries,
-      recentFeedback: feedbackSnap.docs.map((doc) => publicFeedback(doc.data(), doc.id)),
-      recentClaims,
-      adminUsers: Array.from(adminUsers.values()).sort((a, b) => Number(b.isSuperAdmin) - Number(a.isSuperAdmin)),
-      recentReports: reportsSnap
+      ] : [],
+      projectSummaries: canProjects ? projectSummaries : [],
+      userSummaries: canUsers ? publicUserSummaries : [],
+      recentFeedback: canFeedback ? feedbackSnap.docs.map((doc) => publicFeedback(doc.data(), doc.id)) : [],
+      recentClaims: canStats || canProjects ? recentClaims : [],
+      adminUsers: decoded.isSuperAdmin
+        ? Array.from(adminUsers.values()).sort((a, b) => Number(b.isSuperAdmin) - Number(a.isSuperAdmin))
+        : [],
+      recentReports: canReports && reportsSnap
         ? reportsSnap.docs.map((doc) => publicReport(doc.data(), doc.id))
         : [],
-      recentContacts: contactsSnap
+      recentContacts: canFeedback && contactsSnap
         ? contactsSnap.docs.map((doc) => publicContactMessage(doc.data(), doc.id))
         : [],
-      recentScheduledEmails: scheduledEmailsSnap
+      recentScheduledEmails: canStats && scheduledEmailsSnap
         ? scheduledEmailsSnap.docs.map((doc) => publicScheduledEmail(doc.data(), doc.id))
         : [],
-      recentAudit: Array.from(auditById.values())
-        .sort((a, b) => b.at - a.at)
-        .slice(0, RECENT_LIMIT),
-      siteViews,
+      recentAudit: decoded.isSuperAdmin
+        ? Array.from(auditById.values())
+            .sort((a, b) => b.at - a.at)
+            .slice(0, RECENT_LIMIT)
+        : [],
+      siteViews: canStats ? siteViews : {
+        today: 0,
+        thisWeek: 0,
+        thisMonth: 0,
+        byLocale: {},
+        byRoute: {},
+        topProjects: [],
+      },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

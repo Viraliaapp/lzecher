@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { requireSuperAdmin } from "@/lib/auth-roles";
+import { requireAdmin } from "@/lib/auth-roles";
 
 const VALID_STATUS = new Set(["new", "open", "resolved", "archived"]);
 const VALID_PRIORITY = new Set(["low", "normal", "high", "urgent"]);
@@ -31,7 +31,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid contact priority" }, { status: 400 });
     }
 
-    const decoded = await requireSuperAdmin(idToken);
+    const decoded = await requireAdmin(idToken, "feedback");
     const db = getAdminDb();
     const ref = db.collection("lzecher_contact_messages").doc(id);
     const snap = await ref.get();

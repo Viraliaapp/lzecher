@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { requireSuperAdmin } from "@/lib/auth-roles";
+import { requireAdmin } from "@/lib/auth-roles";
 import { computeProgress } from "@/lib/progress";
 import { computeTopMatmidim } from "@/lib/recompute-progress";
 
@@ -129,7 +129,7 @@ export async function POST(
     if (!idToken) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    await requireSuperAdmin(idToken);
+    await requireAdmin(idToken, "projects");
 
     const db = getAdminDb();
     const projectSnap = await db.collection("lzecher_projects").doc(id).get();

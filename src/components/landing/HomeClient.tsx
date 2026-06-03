@@ -30,6 +30,38 @@ function trackLabel(track: TrackType, locale: string): string {
   return map?.[locale as keyof typeof map] ?? map?.en ?? track;
 }
 
+function FamilyDedication() {
+  const names = [
+    'ר\' רפאל הכהן בן ר\' יצחק ז"ל',
+    'מרת ריבה רבקה בת ר\' חיים ע"ה',
+    'ר\' יצחק בן ר\' ניסים ז"ל',
+    'מרת רות בת ר\' ליאו אליעזר ע"ה',
+    'מרת עירית בת ר\' יצחק ע"ה',
+    "וכל זקנינו וקרובינו",
+  ];
+
+  return (
+    <section className="border-b border-gold/20 bg-cream px-4 py-3 sm:px-6 sm:py-4" dir="rtl">
+      <div className="mx-auto flex max-w-3xl items-start justify-center gap-4 border-y border-gold/25 py-3 text-center sm:gap-6">
+        <div className="relative mt-2 h-11 w-7 shrink-0 drop-shadow-[0_10px_18px_rgba(201,166,91,0.26)]" aria-hidden="true">
+          <span className="absolute left-1/2 top-0 h-5 w-3.5 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(circle_at_50%_62%,#fff7bf_0_22%,#e9c66a_46%,#b98a35_72%,transparent_74%)] shadow-[0_0_18px_rgba(218,176,82,0.48)]" />
+          <span className="absolute left-1/2 top-5 h-2 w-px -translate-x-1/2 rounded-full bg-[#6e5531]" />
+          <span className="absolute bottom-0 left-1/2 h-7 w-4 -translate-x-1/2 rounded-md border border-gold/25 bg-gradient-to-b from-[#fff9e7] to-[#f5ead0]" />
+        </div>
+        <div className="min-w-0">
+          <p className="font-heading text-sm font-bold text-navy sm:text-base">לזכר נשמת</p>
+          <div className="mt-1.5 space-y-0.5 text-[13px] leading-5 text-navy sm:text-sm">
+            {names.map((name) => (
+              <p key={name}>{name}</p>
+            ))}
+          </div>
+          <p className="mt-1.5 font-heading text-xs font-bold tracking-[0.12em] text-gold-deep">ת.נ.צ.ב.ה</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function HomeClient({ memorials = [] }: HomeClientProps) {
   const t = useTranslations("landing");
   const locale = useLocale();
@@ -97,6 +129,9 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
 
       {/* ── GLOBAL LIVE COUNTER ── */}
       <GlobalCounter />
+
+      {/* ── FAMILY DEDICATION ── */}
+      <FamilyDedication />
 
       {/* ── LIVE ACTIVITY BUBBLES ── */}
       <ActivityBubbles />

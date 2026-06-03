@@ -217,6 +217,9 @@ type SuperSiteViews = {
 };
 
 type SuperOverview = {
+  role?: AdminRole & {
+    access?: Record<string, boolean>;
+  };
   stats: Record<string, number>;
   healthChecks: SuperHealthCheck[];
   projectSummaries: SuperProjectSummary[];
@@ -247,6 +250,7 @@ type AdminRole = {
   isAdmin: boolean;
   isSuperAdmin: boolean;
   permissions: string[];
+  access?: Record<string, boolean>;
 };
 
 type TranslationLocaleAudit = {
@@ -295,6 +299,7 @@ const PERMISSIONS = [
   { key: "users", he: "מנהלים", en: "Admins" },
   { key: "settings", he: "הגדרות", en: "Settings" },
 ] as const;
+const FULL_ADMIN_PERMISSIONS = ["projects", "feedback", "reports", "stats"];
 
 const SUPPORT_PRIORITIES: SupportPriority[] = ["low", "normal", "high", "urgent"];
 
@@ -451,6 +456,15 @@ export default function AdminPage() {
     return true;
   });
   const isSuperAdmin = Boolean(profile?.isSuperAdmin || adminRole?.isSuperAdmin);
+  const effectiveAdminRole: AdminRole = adminRole || {
+    isAdmin: Boolean(profile?.isAdmin || profile?.isSuperAdmin),
+    isSuperAdmin,
+    permissions: Array.isArray(profile?.permissions) ? profile.permissions : [],
+  };
+  const canOpenAdvancedPortal = Boolean(
+    effectiveAdminRole.isSuperAdmin ||
+    effectiveAdminRole.permissions.some((permission) => FULL_ADMIN_PERMISSIONS.includes(permission))
+  );
 
   if (authLoading || loading) {
     return (
@@ -473,7 +487,7 @@ export default function AdminPage() {
           <Badge variant="secondary">{projects.length}</Badge>
         </div>
 
-        {isSuperAdmin && <SuperAdminPortal locale={locale} />}
+        {canOpenAdvancedPortal && <SuperAdminPortal locale={locale} initialRole={effectiveAdminRole} />}
 
         {/* Search + Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -969,11 +983,18 @@ function projectIssueSeverity(issue: string) {
   return "info";
 }
 
-function SuperAdminPortal({ locale }: { locale: string }) {
+function preferredAdminTab(role: AdminRole) {
+  if (role.isSuperAdmin || role.permissions.includes("stats")) return "stats";
+  if (role.permissions.includes("projects")) return "projects";
+  if (role.permissions.includes("feedback") || role.permissions.includes("reports")) return "support";
+  return "stats";
+}
+
+function SuperAdminPortal({ locale, initialRole }: { locale: string; initialRole: AdminRole }) {
   const [overview, setOverview] = useState<SuperOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [superTab, setSuperTab] = useState("stats");
+  const [superTab, setSuperTab] = useState(() => preferredAdminTab(initialRole));
   const [projectSearch, setProjectSearch] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [projectDetail, setProjectDetail] = useState<SuperProjectDetail | null>(null);
@@ -987,7 +1008,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [target, setTarget] = useState("");
   const [targetIsAdmin, setTargetIsAdmin] = useState(true);
   const [targetIsSuper, setTargetIsSuper] = useState(false);
-  const [targetPermissions, setTargetPermissions] = useState<string[]>(["projects", "feedback", "reports", "stats"]);
+  const [targetPermissions, setTargetPermissions] = useState<string[]>(FULL_ADMIN_PERMISSIONS);
   const [savingUser, setSavingUser] = useState(false);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(EMPTY_SITE_SETTINGS);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -1003,6 +1024,24 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   const [userSearch, setUserSearch] = useState("");
   const [supportDrafts, setSupportDrafts] = useState<Record<string, SupportDraft>>({});
   const [savingSupportItem, setSavingSupportItem] = useState<string | null>(null);
+  const activeRole = overview?.role || initialRole;
+  const activePermissions = Array.isArray(activeRole.permissions) ? activeRole.permissions : [];
+  const activeAccess = activeRole.access || {};
+  const portalIsSuperAdmin = Boolean(activeRole.isSuperAdmin);
+  const canStats = portalIsSuperAdmin || activeAccess.stats === true || activePermissions.includes("stats");
+  const canProjects = portalIsSuperAdmin || activeAccess.projects === true || activePermissions.includes("projects");
+  const canFeedback = portalIsSuperAdmin || activeAccess.feedback === true || activePermissions.includes("feedback");
+  const canReports = portalIsSuperAdmin || activeAccess.reports === true || activePermissions.includes("reports");
+  const canUsers = portalIsSuperAdmin || activeAccess.users === true || activePermissions.includes("users");
+  const canSupport = canFeedback || canReports;
+  const availableTabs = [
+    ...(canStats ? ["stats", "analytics", "exports", "communications", "health"] : []),
+    ...(canProjects ? ["access", "projects", "integrity"] : []),
+    ...(canUsers ? ["users"] : []),
+    ...(canSupport ? ["support"] : []),
+    ...(portalIsSuperAdmin ? ["language", "audit", "control", "admins"] : []),
+  ];
+  const visibleSuperTab = availableTabs.includes(superTab) ? superTab : availableTabs[0] || superTab;
 
   async function loadOverview() {
     setRefreshing(true);
@@ -1094,9 +1133,11 @@ function SuperAdminPortal({ locale }: { locale: string }) {
   useEffect(() => {
     const kickoff = setTimeout(() => {
       void loadOverview();
-      void loadSiteSettings();
-      void loadTranslationAudit();
-      void loadAnalytics(30);
+      if (portalIsSuperAdmin) {
+        void loadSiteSettings();
+        void loadTranslationAudit();
+      }
+      if (canStats) void loadAnalytics(30);
     }, 0);
     return () => clearTimeout(kickoff);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1520,24 +1561,30 @@ function SuperAdminPortal({ locale }: { locale: string }) {
     );
   }
 
-  async function saveAdminUser() {
-    const value = target.trim();
-    if (!value) return;
+  async function saveAdminUserWith(
+    value: string,
+    nextIsAdminInput: boolean,
+    nextIsSuperInput: boolean,
+    nextPermissionsInput: string[],
+    resetForm = true
+  ) {
+    const targetValue = value.trim();
+    if (!targetValue || !portalIsSuperAdmin) return;
     setSavingUser(true);
     try {
       const idToken = await auth.currentUser?.getIdToken(true);
-      const isEmail = value.includes("@");
-      const nextIsAdmin = targetIsSuper || targetIsAdmin;
+      const isEmail = targetValue.includes("@");
+      const nextIsAdmin = nextIsSuperInput || nextIsAdminInput;
       const res = await fetch("/api/admin/super/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           idToken,
-          targetEmail: isEmail ? value : undefined,
-          targetUid: isEmail ? undefined : value,
+          targetEmail: isEmail ? targetValue : undefined,
+          targetUid: isEmail ? undefined : targetValue,
           isAdmin: nextIsAdmin,
-          isSuperAdmin: targetIsSuper,
-          permissions: nextIsAdmin ? targetPermissions : [],
+          isSuperAdmin: nextIsSuperInput,
+          permissions: nextIsAdmin ? nextPermissionsInput : [],
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -1546,15 +1593,37 @@ function SuperAdminPortal({ locale }: { locale: string }) {
         return;
       }
       toast.success(label(locale, "הרשאות המנהל עודכנו", "Admin permissions updated"));
-      setTarget("");
-      setTargetIsAdmin(true);
-      setTargetIsSuper(false);
+      if (resetForm) {
+        setTarget("");
+        setTargetIsAdmin(true);
+        setTargetIsSuper(false);
+        setTargetPermissions(FULL_ADMIN_PERMISSIONS);
+      }
       await loadOverview();
     } catch {
       toast.error(label(locale, "לא ניתן לעדכן מנהל", "Could not update admin user"));
     } finally {
       setSavingUser(false);
     }
+  }
+
+  async function saveAdminUser() {
+    await saveAdminUserWith(target, targetIsAdmin, targetIsSuper, targetPermissions);
+  }
+
+  async function removeAdminUser(admin: AdminUserSummary) {
+    if (!portalIsSuperAdmin) return;
+    if (admin.uid === auth.currentUser?.uid) {
+      toast.error(label(locale, "אי אפשר להסיר את עצמך מכאן", "You cannot remove yourself here"));
+      return;
+    }
+    const ok = window.confirm(label(
+      locale,
+      `להסיר את גישת המנהל של ${admin.email || admin.uid}?`,
+      `Remove admin access for ${admin.email || admin.uid}?`
+    ));
+    if (!ok) return;
+    await saveAdminUserWith(admin.email || admin.uid, false, false, [], false);
   }
 
   function updateFeatureFlag(key: keyof SiteSettings["featureFlags"], value: boolean) {
@@ -2025,7 +2094,17 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => { void loadOverview(); void loadSiteSettings(); void loadAnalytics(); }} disabled={refreshing || loadingAnalytics} className="border-cream/25 bg-transparent text-cream hover:bg-cream/10">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void loadOverview();
+                if (portalIsSuperAdmin) void loadSiteSettings();
+                if (canStats) void loadAnalytics();
+              }}
+              disabled={refreshing || loadingAnalytics}
+              className="border-cream/25 bg-transparent text-cream hover:bg-cream/10"
+            >
               {refreshing ? <Spinner className="h-4 w-4" /> : <RotateCw className="h-4 w-4" />}
               {label(locale, "רענן", "Refresh")}
             </Button>
@@ -2038,22 +2117,22 @@ function SuperAdminPortal({ locale }: { locale: string }) {
             <Spinner className="h-6 w-6" />
           </div>
         ) : (
-          <Tabs value={superTab} onValueChange={setSuperTab} dir={locale === "he" ? "rtl" : "ltr"}>
+          <Tabs value={visibleSuperTab} onValueChange={setSuperTab} dir={locale === "he" ? "rtl" : "ltr"}>
             <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
-              <TabsTrigger value="stats"><BarChart3 className="h-4 w-4" /> {label(locale, "נתונים", "Stats")}</TabsTrigger>
-              <TabsTrigger value="analytics"><TrendingUp className="h-4 w-4" /> {label(locale, "מגמות", "Analytics")}</TabsTrigger>
-              <TabsTrigger value="exports"><Download className="h-4 w-4" /> {label(locale, "ייצוא", "Exports")}</TabsTrigger>
-              <TabsTrigger value="access"><Lock className="h-4 w-4" /> {label(locale, "גישה", "Access")}</TabsTrigger>
-              <TabsTrigger value="projects"><ClipboardList className="h-4 w-4" /> {label(locale, "פרויקטים", "Projects")}</TabsTrigger>
-              <TabsTrigger value="users"><Users className="h-4 w-4" /> {label(locale, "משתמשים", "Users")}</TabsTrigger>
-              <TabsTrigger value="support"><Inbox className="h-4 w-4" /> {label(locale, "תמיכה", "Support")}</TabsTrigger>
-              <TabsTrigger value="communications"><Mail className="h-4 w-4" /> {label(locale, "תזכורות", "Reminders")}</TabsTrigger>
-              <TabsTrigger value="integrity"><ShieldCheck className="h-4 w-4" /> {label(locale, "תקינות", "Integrity")}</TabsTrigger>
-              <TabsTrigger value="language"><Languages className="h-4 w-4" /> {label(locale, "שפה", "Language")}</TabsTrigger>
-              <TabsTrigger value="health"><Wrench className="h-4 w-4" /> {label(locale, "בדיקות", "Health")}</TabsTrigger>
-              <TabsTrigger value="audit"><History className="h-4 w-4" /> {label(locale, "יומן", "Audit")}</TabsTrigger>
-              <TabsTrigger value="control"><Settings className="h-4 w-4" /> {label(locale, "בקרה", "Control")}</TabsTrigger>
-              <TabsTrigger value="admins"><UserPlus className="h-4 w-4" /> {label(locale, "מנהלים", "Admins")}</TabsTrigger>
+              {canStats && <TabsTrigger value="stats"><BarChart3 className="h-4 w-4" /> {label(locale, "נתונים", "Stats")}</TabsTrigger>}
+              {canStats && <TabsTrigger value="analytics"><TrendingUp className="h-4 w-4" /> {label(locale, "מגמות", "Analytics")}</TabsTrigger>}
+              {canStats && <TabsTrigger value="exports"><Download className="h-4 w-4" /> {label(locale, "ייצוא", "Exports")}</TabsTrigger>}
+              {canProjects && <TabsTrigger value="access"><Lock className="h-4 w-4" /> {label(locale, "גישה", "Access")}</TabsTrigger>}
+              {canProjects && <TabsTrigger value="projects"><ClipboardList className="h-4 w-4" /> {label(locale, "פרויקטים", "Projects")}</TabsTrigger>}
+              {canUsers && <TabsTrigger value="users"><Users className="h-4 w-4" /> {label(locale, "משתמשים", "Users")}</TabsTrigger>}
+              {canSupport && <TabsTrigger value="support"><Inbox className="h-4 w-4" /> {label(locale, "תמיכה", "Support")}</TabsTrigger>}
+              {canStats && <TabsTrigger value="communications"><Mail className="h-4 w-4" /> {label(locale, "תזכורות", "Reminders")}</TabsTrigger>}
+              {canProjects && <TabsTrigger value="integrity"><ShieldCheck className="h-4 w-4" /> {label(locale, "תקינות", "Integrity")}</TabsTrigger>}
+              {portalIsSuperAdmin && <TabsTrigger value="language"><Languages className="h-4 w-4" /> {label(locale, "שפה", "Language")}</TabsTrigger>}
+              {canStats && <TabsTrigger value="health"><Wrench className="h-4 w-4" /> {label(locale, "בדיקות", "Health")}</TabsTrigger>}
+              {portalIsSuperAdmin && <TabsTrigger value="audit"><History className="h-4 w-4" /> {label(locale, "יומן", "Audit")}</TabsTrigger>}
+              {portalIsSuperAdmin && <TabsTrigger value="control"><Settings className="h-4 w-4" /> {label(locale, "בקרה", "Control")}</TabsTrigger>}
+              {portalIsSuperAdmin && <TabsTrigger value="admins"><UserPlus className="h-4 w-4" /> {label(locale, "מנהלים", "Admins")}</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="stats">
@@ -2592,7 +2671,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                               <p className="text-xs text-muted">{project.slug || project.id}</p>
                             </div>
                             <div className="flex shrink-0 flex-wrap gap-1">
-                              {project.slug && (
+                              {project.slug && (portalIsSuperAdmin || !project.isPasswordProtected) && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -2720,7 +2799,7 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                           <p className="text-xs text-muted">{selectedProject.slug} · {selectedProject.createdByEmail || selectedProject.createdBy}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {selectedProject.slug && (
+                          {selectedProject.slug && (portalIsSuperAdmin || !selectedProject.isPasswordProtected) && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -3708,6 +3787,33 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                           ? admin.permissions.join(", ")
                           : label(locale, "אין הרשאות מפורשות", "No explicit permissions")}
                       </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setTarget(admin.email || admin.uid);
+                            setTargetIsAdmin(admin.isAdmin || admin.isSuperAdmin);
+                            setTargetIsSuper(admin.isSuperAdmin);
+                            setTargetPermissions(admin.permissions.length ? admin.permissions : FULL_ADMIN_PERMISSIONS);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          {label(locale, "ערוך הרשאות", "Edit permissions")}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeAdminUser(admin)}
+                          disabled={savingUser || admin.uid === auth.currentUser?.uid}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {label(locale, "הסר גישה", "Remove access")}
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -3720,6 +3826,30 @@ function SuperAdminPortal({ locale }: { locale: string }) {
                     placeholder={label(locale, "אימייל או UID", "Email or UID")}
                     className="mb-3"
                   />
+                  <div className="mb-3 grid gap-2 sm:grid-cols-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setTargetIsAdmin(true);
+                        setTargetIsSuper(false);
+                        setTargetPermissions(FULL_ADMIN_PERMISSIONS);
+                      }}
+                    >
+                      <Shield className="h-4 w-4" />
+                      {label(locale, "מנהל מלא, לא ראשי", "Full admin, not super")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setTargetPermissions(PERMISSIONS.map((permission) => permission.key))}
+                      disabled={!targetIsAdmin && !targetIsSuper}
+                    >
+                      {label(locale, "בחר כל ההרשאות", "Select all permissions")}
+                    </Button>
+                  </div>
                   <label className="mb-3 flex items-center justify-between gap-3 text-sm text-navy">
                     <span>{label(locale, "גישת מנהל", "Admin access")}</span>
                     <Switch

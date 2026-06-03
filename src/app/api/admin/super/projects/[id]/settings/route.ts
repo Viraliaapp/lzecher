@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { requireSuperAdmin } from "@/lib/auth-roles";
+import { requireAdmin } from "@/lib/auth-roles";
 
 const VALID_STATUSES = new Set(["active", "completed", "archived", "pending_moderation", "hidden"]);
 const BOOLEAN_FIELDS = new Set([
@@ -47,7 +47,7 @@ export async function POST(
       return NextResponse.json({ error: "No updates provided" }, { status: 400 });
     }
 
-    const decoded = await requireSuperAdmin(idToken);
+    const decoded = await requireAdmin(idToken, "projects");
     const db = getAdminDb();
     const projectRef = db.collection("lzecher_projects").doc(id);
     const projectSnap = await projectRef.get();
