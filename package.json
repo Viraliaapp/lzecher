@@ -17,7 +17,8 @@
     "typecheck": "tsc --noEmit",
     "test:audit": "tsx --test scripts/audit/commitment-regression.test.ts scripts/audit/route-regression.test.ts",
     "audit:deployed-baseline": "tsx --test scripts/audit/deployed-baseline.test.ts",
-    "test:audit-ui": "node scripts/audit/local-ui-regression.mjs"
+    "test:audit-ui": "node scripts/audit/local-ui-regression.mjs",
+    "test:audit-emulator": "node scripts/audit/run-firebase-emulator.mjs"
   },
   "dependencies": {
     "@hebcal/core": "^6.3.3",
