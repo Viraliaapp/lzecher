@@ -20,7 +20,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "halachicGuidance" });
   return {
-    title: `${t("title")} · Lzecher`,
+    title: t("title"),
     description: t("subtitle"),
     alternates: { canonical: `https://lzecher.com/${locale}/halachic-guidance` },
   };

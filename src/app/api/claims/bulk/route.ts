@@ -1,3 +1,7 @@
+import { reserveClaims } from "@/lib/claim-writes";
+import { ClaimError } from "@/lib/claim-management";
+import { parseClaimInput } from "@/lib/claim-input";
+import { hasProjectAccess } from "@/lib/project-access";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -10,7 +14,7 @@ import { normalizeEmailAddress } from "@/lib/email-validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = parseClaimInput(await request.json().catch(() => null));
     const { projectId, scope, scopeId, claimerName, idToken, claimerEmail, reminderPreferences, locale: claimLocale } = body;
     const locale = (typeof claimLocale === "string" && ["en", "he", "es", "fr"].includes(claimLocale)) ? claimLocale : "en";
     const sanitizedReminderPreferences = sanitizeReminderPreferences(reminderPreferences);
@@ -19,6 +23,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    const scopes = ["shas", "seder", "masechta", "whole_tehillim", "tehillim_book"];
+    if (typeof scope !== "string" || !scopes.includes(scope) ||
+      (["seder", "masechta", "tehillim_book"].includes(scope) && (typeof scopeId !== "string" || !scopeId.trim())) ||
+      (scope === "tehillim_book" && !["1", "2", "3", "4", "5"].includes(String(scopeId)))) {
+      throw new ClaimError(400, "Invalid scope or scope ID");
+    }
     // Auth first so we can skip rate limit for verified users
     let uid = "anonymous";
     let email: string | null = null;
@@ -29,7 +39,7 @@ export async function POST(request: NextRequest) {
         uid = decoded.uid;
         email = decoded.email || null;
       } catch {
-        // treat as anonymous
+        throw new ClaimError(401, "Invalid token; sign in again");
       }
     }
 
@@ -115,92 +125,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "All portions already taken", alreadyTaken }, { status: 409 });
     }
 
-    // Create parent claim
     const parentClaimRef = db.collection("lzecher_claims").doc();
-    const portionIds = availablePortions.map(d => d.id);
-
-    await parentClaimRef.set({
-      id: parentClaimRef.id,
-      projectId,
-      trackType: firstPortion.trackType,
-      scope,
-      scopeId: scopeId || scope,
-      isParent: true,
-      portionIds,
-      userId: uid,
-      userName: claimerName.trim(),
-      userEmail: email,
-      locale,
-      claimedAt: now,
-      status: "active",
-      duration: "oneTime",
-      durationEndDate: reminderEndDate,
+    const reserved = await reserveClaims(db, projectId, availablePortions.map(d => d.id), {
+      userId: uid, userName: claimerName.trim(), userEmail: email, locale,
+      claimedAt: now, status: "active", duration: "oneTime", durationEndDate: reminderEndDate,
       reminderPreferences: sanitizedReminderPreferences,
-    });
-
-    // Batch update portions and create child claims.
-    // Each portion uses up to two writes (portion update + child claim), so 200 keeps
-    // each Firestore batch safely under the 500-write limit.
-    const BATCH_SIZE = 200;
-    for (let i = 0; i < availablePortions.length; i += BATCH_SIZE) {
-      const chunk = availablePortions.slice(i, i + BATCH_SIZE);
-      const batch = db.batch();
-
-      for (const portionDoc of chunk) {
-        const portionData = portionDoc.data();
-
-        if (claimMode === "exclusive") {
-          batch.update(portionDoc.ref, {
-            status: "claimed",
-            claimedBy: uid,
-            claimedByName: claimerName.trim(),
-            claimedAt: now,
-            claimedByParentClaimId: parentClaimRef.id,
-          });
-        } else {
-          batch.update(portionDoc.ref, {
-            currentClaimerCount: (portionData.currentClaimerCount || 0) + 1,
-          });
-        }
-
-        // Create child claim
-        const childRef = db.collection("lzecher_claims").doc();
-        batch.set(childRef, {
-          id: childRef.id,
-          projectId,
-          portionId: portionDoc.id,
-          trackType: portionData.trackType,
-          reference: portionData.reference,
-          userId: uid,
-          userName: claimerName.trim(),
-          userEmail: email,
-          locale,
-          claimedAt: now,
-          status: "active",
-          scope: "single",
-          isParent: false,
-          parentClaimId: parentClaimRef.id,
-          duration: "oneTime",
-          durationEndDate: reminderEndDate,
-        });
-      }
-
-      await batch.commit();
-    }
-
-    // Update project stats
-    const projectSnap = await projectRef.get();
-    let projectSlug: string | null = null;
-    let honoreeName: string | undefined;
-    if (projectSnap.exists) {
-      const proj = projectSnap.data()!;
-      projectSlug = proj.slug || null;
-      honoreeName = `${proj.nameHebrew || ""} ${proj.familyNameHebrew || ""}`.trim() || undefined;
-      await projectRef.update({
-        claimedPortions: (proj.claimedPortions || 0) + availablePortions.length,
-        participantCount: (proj.participantCount || 0) + 1,
-      });
-    }
+    }, { access: await hasProjectAccess(projectId), parentId: parentClaimRef.id,
+      parent: { trackType: firstPortion.trackType, scope, scopeId: scopeId || scope } });
+    const claimedCount = reserved.length;
+    if (!claimedCount) return NextResponse.json({ error: "All portions already taken", alreadyTaken: portions.length }, { status: 409 });
+    const projectSlug = projectData.slug || null;
+    const honoreeName = `${projectData.nameHebrew || ""} ${projectData.familyNameHebrew || ""}`.trim() || undefined;
 
     // Queue reminders for the parent claim (one set per bulk action, not per child)
     if (email && sanitizedReminderPreferences.length > 0) {
@@ -220,7 +155,7 @@ export async function POST(request: NextRequest) {
             scope,
             scopeId,
             firstPortion.trackType,
-            availablePortions.length
+            claimedCount
           ),
           trackType: firstPortion.trackType,
         });
@@ -236,11 +171,9 @@ export async function POST(request: NextRequest) {
         const projSnap2 = await db.collection("lzecher_projects").doc(projectId).get();
         const projData2 = projSnap2.data();
         if (projData2) {
-          // Bulk claims only target one scope at a time (one seder/masechta), so
-          // all claimed portions belong to the same set. Use the first portion's setNumber.
-          const sn = (firstPortion.setNumber as number | undefined) || 1;
-          const claimedIds = new Set<string>(availablePortions.map(d => d.id));
-          await maybeOpenNextSet(db, projectId, tt, sn, claimedIds, projData2);
+          const sets = new Set(reserved.map(p => Number(p.data.setNumber) || 1));
+          const claimedIds = new Set(reserved.map(p => p.id));
+          for (const sn of sets) await maybeOpenNextSet(db, projectId, tt, sn, claimedIds, projData2);
         }
       }
     } catch (setErr) {
@@ -258,11 +191,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       parentClaimId: parentClaimRef.id,
-      claimedCount: availablePortions.length,
-      alreadyTakenCount: alreadyTaken,
+      claimedCount,
+      alreadyTakenCount: portions.length - claimedCount,
       totalPortions: portions.length,
     });
   } catch (err) {
+    if (err instanceof ClaimError) return NextResponse.json({ error: err.message }, { status: err.status });
     console.error("Bulk claim error:", err);
     return NextResponse.json({ error: "Failed to reserve the selected learning" }, { status: 500 });
   }

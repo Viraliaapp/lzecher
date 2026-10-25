@@ -1,3 +1,6 @@
+import type { Metadata } from "next";
+import { getLocale } from "next-intl/server";
+export const metadata: Metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" };
 import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -9,11 +12,13 @@ import { CheckCircle } from "lucide-react";
 export default async function ConfirmCompletePage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; name?: string }>;
+  searchParams: Promise<{ status?: string; name?: string; token?: string }>;
 }) {
   const params = await searchParams;
   const status = params.status || "success";
   const name = params.name || "";
+  const locale = await getLocale();
+  const t = await getTranslations("memorial");
 
   return (
     <>
@@ -25,6 +30,15 @@ export default async function ConfirmCompletePage({
               <YahrzeitCandle size="md" />
             </div>
 
+            {status === "confirm" && params.token && (
+              <form method="post" action="/api/claims/mark-complete-via-link">
+                <h1 className="font-heading text-2xl font-bold text-navy mb-4">{t("confirmLearningTitle")}</h1>
+                <p className="text-muted mb-6">{t("confirmLearningPrompt")}</p>
+                <input type="hidden" name="token" value={params.token} />
+                <input type="hidden" name="locale" value={locale} />
+                <Button type="submit">{t("confirmLearningAction")}</Button>
+              </form>
+            )}
             {status === "success" && (
               <>
                 <div className="flex justify-center mb-4">

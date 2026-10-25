@@ -49,7 +49,7 @@ async function getProjectBySlug(slug: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, slug } = await params;
   const project = await getProjectBySlug(slug);
-  if (!project) return { title: "Memorial · Lzecher" };
+  if (!project) return { title: "Memorial" };
 
   const shouldIndex = project.status === "active" && !isProtected(project) && project.isPublic !== false;
   if (!shouldIndex) {
@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       ? "דף הנצחה זה אינו מיועד לאינדוקס ציבורי."
       : "This memorial page is not intended for public indexing.";
     return {
-      title,
+      title: { absolute: title },
       description,
       alternates: localizedAlternates(locale, slug),
       robots: {
@@ -85,7 +85,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : `Honor the memory of ${project.nameHebrew}${project.nameEnglish ? ` (${project.nameEnglish})` : ""} through communal Torah learning.`;
 
   return {
-    title,
+    title: { absolute: title },
     description,
     keywords: locale === "he"
       ? [

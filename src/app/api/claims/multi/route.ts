@@ -1,3 +1,7 @@
+import { reserveClaims } from "@/lib/claim-writes";
+import { ClaimError } from "@/lib/claim-management";
+import { parseClaimInput, documentId } from "@/lib/claim-input";
+import { hasProjectAccess } from "@/lib/project-access";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -15,7 +19,7 @@ import type * as FirebaseFirestore from "@google-cloud/firestore";
 // one name/email for all of them.
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = parseClaimInput(await request.json().catch(() => null));
     const {
       portionIds,
       projectId,
@@ -29,6 +33,9 @@ export async function POST(request: NextRequest) {
     const locale = (typeof claimLocale === "string" && ["en", "he", "es", "fr"].includes(claimLocale)) ? claimLocale : "en";
     const sanitizedReminderPreferences = sanitizeReminderPreferences(reminderPreferences);
 
+    if (!Array.isArray(portionIds) || !portionIds.every(id => documentId.safeParse(id).success)) {
+      throw new ClaimError(400, "Invalid portion IDs");
+    }
     const rawPortionIds = Array.isArray(portionIds)
       ? portionIds
         .map((id) => (typeof id === "string" ? id.trim() : ""))
@@ -56,7 +63,7 @@ export async function POST(request: NextRequest) {
         uid = decoded.uid;
         email = decoded.email || null;
       } catch {
-        // treat as anonymous
+        throw new ClaimError(401, "Invalid token; sign in again");
       }
     }
     const submittedEmail = typeof claimerEmail === "string" ? claimerEmail.trim() : "";
@@ -115,96 +122,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No available portions found", claimedCount: 0 }, { status: 409 });
     }
 
-    const claimedPortionIds = validPortions.map((portion) => portion.id);
-    const claimedPortionIdSet = new Set(claimedPortionIds);
-
-    // Parent claim gives reminder emails and dashboard actions one real claim id
-    // that represents the whole multi-select reservation.
     const parentClaimRef = db.collection("lzecher_claims").doc();
-    await parentClaimRef.set({
-      id: parentClaimRef.id,
-      projectId,
-      trackType: validPortions[0].data.trackType as TrackType,
-      scope: "multi",
-      isParent: true,
-      portionIds: claimedPortionIds,
-      userId: uid,
-      userName: claimerName.trim(),
-      userEmail: email,
-      locale,
-      claimedAt: now,
-      status: "active",
-      duration: "oneTime",
-      durationEndDate: reminderEndDate,
+    const reserved = await reserveClaims(db, projectId, validPortions.map(p => p.id), {
+      userId: uid, userName: claimerName.trim(), userEmail: email, locale,
+      claimedAt: now, status: "active", duration: "oneTime", durationEndDate: reminderEndDate,
       reminderPreferences: sanitizedReminderPreferences,
-    });
-
-    // Batch write — Firestore limit is 500 ops; each portion = 2 ops (update + claim doc)
-    const BATCH_SIZE = 200;
-    let claimedCount = 0;
-
-    for (let i = 0; i < validPortions.length; i += BATCH_SIZE) {
-      const chunk = validPortions.slice(i, i + BATCH_SIZE);
-      const batch = db.batch();
-
-      for (const portion of chunk) {
-        batch.update(portion.ref, {
-          status: "claimed",
-          claimedBy: uid,
-          claimedByName: claimerName.trim(),
-          claimedAt: now,
-          claimedByParentClaimId: parentClaimRef.id,
-        });
-
-        const claimRef = db.collection("lzecher_claims").doc();
-        batch.set(claimRef, {
-          id: claimRef.id,
-          projectId,
-          portionId: portion.id,
-          trackType: portion.data.trackType as TrackType,
-          reference: portion.data.reference,
-          userId: uid,
-          userName: claimerName.trim(),
-          userEmail: email,
-          locale,
-          claimedAt: now,
-          status: "active",
-          scope: "single",
-          isParent: false,
-          parentClaimId: parentClaimRef.id,
-          duration: "oneTime",
-          durationEndDate: reminderEndDate,
-          reminderPreferences: sanitizedReminderPreferences,
-        });
-
-        claimedCount++;
-      }
-
-      await batch.commit();
-    }
-
-    // Update project stats (including per-track counts)
-    const projectSnap = await projectRef.get();
-    let projectSlug: string | null = null;
-    if (projectSnap.exists) {
-      const proj = projectSnap.data()!;
-      projectSlug = proj.slug || null;
-      const existingByTrack = (proj.claimedByTrack as Record<string, number> | undefined) || {};
-      const deltaByTrack: Record<string, number> = {};
-      for (const p of validPortions) {
-        const tt = p.data.trackType as string;
-        deltaByTrack[tt] = (deltaByTrack[tt] || 0) + 1;
-      }
-      const newByTrack: Record<string, number> = { ...existingByTrack };
-      for (const [tt, delta] of Object.entries(deltaByTrack)) {
-        newByTrack[tt] = (newByTrack[tt] || 0) + delta;
-      }
-      await projectRef.update({
-        claimedPortions: (proj.claimedPortions || 0) + claimedCount,
-        participantCount: (proj.participantCount || 0) + 1,
-        claimedByTrack: newByTrack,
-      });
-    }
+    }, { access: await hasProjectAccess(projectId), parentId: parentClaimRef.id,
+      parent: { trackType: validPortions[0].data.trackType, scope: "multi" } });
+    const claimedCount = reserved.length;
+    if (!claimedCount) return NextResponse.json({ error: "No available portions found", claimedCount: 0 }, { status: 409 });
+    const claimedPortionIdSet = new Set(reserved.map(p => p.id));
+    const projectSlug = projectData.slug || null;
 
     // Queue reminders once for the whole multi-claim batch
     if (email && sanitizedReminderPreferences.length > 0) {
@@ -230,7 +158,7 @@ export async function POST(request: NextRequest) {
 
     // ── Repeating sets: check if any set is now complete ─────────────────────
     try {
-      const repeatableDocs = validPortions.filter(p =>
+      const repeatableDocs = reserved.filter(p =>
         p.data.trackType === "mishnayos" || p.data.trackType === "tehillim"
       );
       if (repeatableDocs.length > 0) {
@@ -267,6 +195,7 @@ export async function POST(request: NextRequest) {
       skippedCount,
     });
   } catch (err) {
+    if (err instanceof ClaimError) return NextResponse.json({ error: err.message }, { status: err.status });
     console.error("[multi-claim] error:", err);
     return NextResponse.json({ error: "Failed to reserve selected portions" }, { status: 500 });
   }

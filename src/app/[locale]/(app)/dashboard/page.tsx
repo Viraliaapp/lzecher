@@ -134,6 +134,7 @@ function SectionHeader({ title, meta, textDir }: { title: string; meta?: string;
 
 function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: () => void }) {
   const t = useTranslations("dashboard");
+  const common = useTranslations("common");
   const locale = useLocale();
   const [manageOpen, setManageOpen] = useState(false);
   const [claims, setClaims] = useState<Claim[]>([]);
@@ -222,8 +223,8 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
       if (res.ok) {
         const data = await res.json();
         setClaims(data.claims || []);
-      }
-    } catch { /* ignore */ }
+      } else { toast.error(t("claimLoadError")); }
+    } catch { toast.error(t("claimLoadError")); }
     setLoadingClaims(false);
   }
 
@@ -239,30 +240,31 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
       });
       if (res.ok) {
         setClaims(prev => prev.filter(c => c.id !== claimId));
-      }
-    } catch { /* ignore */ }
+      } else { toast.error(t("claimSaveError")); }
+    } catch { toast.error(t("claimSaveError")); }
     setSaving(false);
   }
 
   async function saveName(claimId: string) {
-    if (!editName.trim()) return;
+    if (saving || !editName.trim()) return;
+    const nextName = editName.trim();
     setSaving(true);
     try {
       const idToken = await auth.currentUser?.getIdToken();
       const res = await fetch(`/api/projects/${project.id}/claims/${claimId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken, userName: editName.trim() }),
+        body: JSON.stringify({ idToken, userName: nextName }),
       });
       if (res.ok) {
         setClaims(prev => prev.map(c =>
           c.id === claimId
-            ? { ...c, userName: editName.trim() }
+            ? { ...c, userName: nextName }
             : c
         ));
         setEditingId(null);
-      }
-    } catch { /* ignore */ }
+      } else { toast.error(t("claimSaveError")); }
+    } catch { toast.error(t("claimSaveError")); }
     setSaving(false);
   }
 
@@ -452,7 +454,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
             <strong style={{ color: "#0F1B2D" }}>{project.claimedPortions}</strong>/{project.totalPortions} {t("portionsLabel")}
           </span>
           <span style={{ color: "#8B7355" }}>
-            <strong style={{ color: "#0F1B2D" }}>{project.participantCount || 0}</strong> {t("participantsLabel")}
+            <span style={{ color: "#0F1B2D" }}>{t("participantCount", { count: project.participantCount || 0 })}</span>
           </span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "10px" }}>
@@ -565,7 +567,7 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px", marginBottom: "8px" }}>
                   <div className="dashboard-mini-stat">
                     <strong>{claims.length}</strong>
-                    <span>{locale === "he" ? "משתתפים" : "participants"}</span>
+                    <span>{t("learningEntries")}</span>
                   </div>
                   <div className="dashboard-mini-stat">
                     <strong>{claims.filter((c) => c.status === "active").length}</strong>
@@ -678,10 +680,13 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {isEditing ? (
                       <input
+                        aria-label={t("participantName")}
+                        maxLength={100}
+                        disabled={saving}
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
                         style={{ width: "100%", padding: "2px 6px", border: "1px solid #C9A961", borderRadius: "4px", fontSize: "12px" }}
-                        onKeyDown={(e) => e.key === "Enter" && saveName(cl.id)}
+                        onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) void saveName(cl.id); }}
                         autoFocus
                       />
                     ) : (
@@ -702,12 +707,12 @@ function ProjectCard({ project, onShare }: { project: MemorialProject; onShare: 
                   </div>
                   {isEditing ? (
                     <>
-                      <button onClick={() => saveName(cl.id)} disabled={saving} style={{ fontSize: "11px", color: "#5B7A52", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>✓</button>
-                      <button onClick={() => setEditingId(null)} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer" }}>✕</button>
+                      <button aria-label={common("save")} onClick={() => saveName(cl.id)} disabled={saving} style={{ fontSize: "11px", color: "#5B7A52", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>✓</button>
+                      <button aria-label={common("cancel")} onClick={() => setEditingId(null)} disabled={saving} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer" }}>✕</button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => { setEditingId(cl.id); setEditName(cl.userName); }} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>
+                      <button aria-label={common("edit")} disabled={saving} onClick={() => { setEditingId(cl.id); setEditName(cl.userName); }} style={{ fontSize: "11px", color: "#8B7355", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>
                         {locale === "he" ? "ערוך שם" : "Edit"}
                       </button>
                       {cl.userEmail && (
@@ -949,7 +954,7 @@ export default function DashboardPage() {
               />
               <div
                 className="mb-10"
-                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "18px" }}
+                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: "18px" }}
               >
                 {projects.map((project) => (
                   <ProjectCard

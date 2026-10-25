@@ -1,3 +1,6 @@
+import { completePortion } from "@/lib/claim-completion";
+import { ClaimError, claimName } from "@/lib/claim-management";
+import { hasProjectAccess } from "@/lib/project-access";
 /**
  * POST /api/claims/complete-bulk
  *
@@ -16,11 +19,11 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
 
 type Scope = "masechta" | "seder" | "shas" | "tehillim_book" | "whole_tehillim" | "all_my_claims_in_project" | "all_my_claims";
-const WRITE_CHUNK = 225; // claim update + portion update can be two writes per claim
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") throw new ClaimError(400, "Invalid completion details");
     const { projectId, scope, scopeId, idToken, completedByName } = body as {
       projectId?: string;
       scope?: Scope;
@@ -29,7 +32,12 @@ export async function POST(request: NextRequest) {
       completedByName?: string;
     };
 
-    if (!scope) return NextResponse.json({ error: "scope required" }, { status: 400 });
+    const scopes = ["masechta", "seder", "shas", "tehillim_book", "whole_tehillim", "all_my_claims_in_project", "all_my_claims"];
+    if (!scope || !scopes.includes(scope) ||
+      (["masechta", "seder", "tehillim_book"].includes(scope) && (typeof scopeId !== "string" || !scopeId.trim())) ||
+      (scope === "tehillim_book" && !["1", "2", "3", "4", "5"].includes(String(scopeId)))) {
+      throw new ClaimError(400, "Invalid scope or scope ID");
+    }
     if (scope !== "all_my_claims" && !projectId) return NextResponse.json({ error: "projectId required" }, { status: 400 });
 
     // Identity: prefer authenticated UID, fall back to name match for anon users
@@ -38,9 +46,9 @@ export async function POST(request: NextRequest) {
       try {
         const decoded = await getAdminAuth().verifyIdToken(idToken);
         uid = decoded.uid;
-      } catch {}
+      } catch { throw new ClaimError(401, "Invalid token; sign in again"); }
     }
-    const completerName = (completedByName || "").trim();
+    const completerName = completedByName ? claimName(completedByName) : "";
     if (!uid && !completerName) {
       return NextResponse.json({ error: "Sign-in or completedByName required" }, { status: 401 });
     }
@@ -120,61 +128,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ completedCount: 0, alreadyCompletedCount: 0 });
     }
 
-    const now = Date.now();
-    const projectIncrements = new Map<string, number>();
+    const changedProjects = new Set<string>();
     let completedCount = 0;
-
-    for (let i = 0; i < matching.length; i += WRITE_CHUNK) {
-      const chunk = matching.slice(i, i + WRITE_CHUNK);
-      const batch = db.batch();
-      let batchWrites = 0;
-
-      for (const d of chunk) {
-        const data = d.data();
-        const pid = data.projectId as string;
-        let portionRef: FirebaseFirestore.DocumentReference | null = null;
-        if (data.portionId && pid) {
-          portionRef = db.collection("lzecher_portions").doc(data.portionId);
-          const portionSnap = await portionRef.get();
-          if (!portionSnap.exists || portionSnap.data()!.projectId !== pid) {
-            continue;
-          }
-        }
-        batch.update(d.ref, {
-          status: "completed",
-          completedAt: now,
-          completedByName: completerName || null,
-          completedByUid: uid,
-        });
-        batchWrites++;
-        if (portionRef) {
-          batch.update(portionRef, { status: "completed", completedAt: now });
-          batchWrites++;
-        }
-        projectIncrements.set(pid, (projectIncrements.get(pid) || 0) + 1);
-        completedCount++;
-      }
-      if (batchWrites > 0) {
-        await batch.commit();
-      }
-    }
-
-    if (completedCount === 0) {
-      return NextResponse.json({ completedCount: 0, alreadyCompletedCount: 0 });
-    }
-
-    // Increment project completedPortions counters (one update per project)
-    for (const [pid, count] of projectIncrements.entries()) {
-      const pref = db.collection("lzecher_projects").doc(pid);
-      const psnap = await pref.get();
-      if (psnap.exists) {
-        await pref.update({ completedPortions: ((psnap.data()!.completedPortions || 0) as number) + count });
-      }
+    for (const doc of matching) {
+      const data = doc.data();
+      if (!data.projectId || !data.portionId) continue;
       try {
-        await recomputeProjectProgress(db, pid);
-      } catch (e) {
-        console.error("[complete-bulk] recompute failed:", e);
+        const changed = await completePortion(db, data.projectId, data.portionId,
+          { uid, name: completerName || null }, await hasProjectAccess(data.projectId), doc.id);
+        if (changed) { completedCount++; changedProjects.add(data.projectId); }
+      } catch (error) {
+        // Stale entries must never complete a replacement reservation.
+        if (error instanceof ClaimError && [400, 404, 409].includes(error.status)) continue;
+        throw error;
       }
+    }
+    for (const pid of changedProjects) {
+      try { await recomputeProjectProgress(db, pid); }
+      catch (error) { console.error("[complete-bulk] recompute failed:", error); }
     }
 
     // Chizuk — pick scenario that matches the bulk operation
@@ -202,6 +173,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (err) {
+    if (err instanceof ClaimError) return NextResponse.json({ error: err.message }, { status: err.status });
     console.error("[complete-bulk] error:", err);
     return NextResponse.json({ error: "Failed to mark complete in bulk" }, { status: 500 });
   }

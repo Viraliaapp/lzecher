@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase/config";
+import { safeAuthRedirect } from "@/lib/auth-redirect";
 
 export default function LoginPage() {
   const t = useTranslations("auth");
@@ -34,6 +35,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   const [magicSent, setMagicSent] = useState(false);
   const [completing, setCompleting] = useState(false);
 
@@ -42,18 +44,13 @@ export default function LoginPage() {
     const snap = await getDoc(ref);
     if (!snap.exists()) {
       await setDoc(ref, {
-        id: uid,
         uid,
         email: userEmail,
         displayName: null,
         photoURL: null,
         createdAt: Date.now(),
         language: locale,
-        totalClaimed: 0,
-        totalCompleted: 0,
-        projectsCreated: 0,
-        projectsContributed: [],
-      });
+      }, { merge: true });
     }
   }
 
@@ -122,23 +119,24 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
-      const redirect = searchParams.get("redirect") || "/dashboard";
-      router.push(redirect as "/dashboard");
+      router.replace(safeAuthRedirect(searchParams.get("redirect")));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading]);
 
   async function handleSendLink() {
     const trimmed = email.trim();
-    if (!trimmed) return;
+    if (!trimmed || sendingRef.current) return;
+    sendingRef.current = true;
     setSending(true);
     try {
-      await sendMagicLink(trimmed, locale);
+      await sendMagicLink(trimmed, locale, safeAuthRedirect(searchParams.get("redirect")));
       setMagicSent(true);
     } catch (err) {
       console.error("Magic link error:", err);
       toast.error(t("errorSendingLink"));
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   }
@@ -190,10 +188,12 @@ export default function LoginPage() {
                 <div>
                   <Input
                     type="email"
+                    aria-label={t("emailPlaceholder")}
                     placeholder={t("emailPlaceholder")}
                     value={email}
+                    disabled={sending}
                     onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSendLink()}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) void handleSendLink(); }}
                     autoFocus
                     autoComplete="email"
                     dir="ltr"
