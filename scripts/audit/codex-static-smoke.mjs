@@ -123,9 +123,12 @@ assert(
   "Project purpose rules must include shiva/yahrzeit and avoid fake yahrzeit target dates"
 );
 
+const claimWrites = read("src/lib/claim-writes.ts");
+const claimCompletion = read("src/lib/claim-completion.ts");
+const claimManagement = read("src/lib/claim-management.ts");
 const bulkRoute = read("src/app/api/claims/bulk/route.ts");
 assert(
-  bulkRoute.includes("const BATCH_SIZE = 200"),
+  bulkRoute.includes("reserveClaims") && claimWrites.includes("offset += 200") && claimWrites.includes("runTransaction"),
   "Bulk claims route should stay under the Firestore batch limit"
 );
 assert(
@@ -150,7 +153,7 @@ assert(
   multiClaimRoute.includes("Project not found") &&
     multiClaimRoute.includes("data.projectId !== projectId") &&
     multiClaimRoute.includes("getClaimMode") &&
-    multiClaimRoute.includes("isParent: true") &&
+    claimWrites.includes("isParent: true") &&
     multiClaimRoute.includes("parentClaimRef.id") &&
     multiClaimRoute.includes("No available portions found"),
   "Multi-claim must reject missing projects, skip portions outside the project, and queue reminders against a real parent claim"
@@ -158,43 +161,43 @@ assert(
 
 const completeBulkRoute = read("src/app/api/claims/complete-bulk/route.ts");
 assert(
-  completeBulkRoute.includes("const WRITE_CHUNK = 225"),
+  completeBulkRoute.includes("completePortion") && claimCompletion.includes("runTransaction"),
   "Bulk completion route should stay under the Firestore batch limit"
 );
 assert(
   completeBulkRoute.includes("d.data().isParent !== true") &&
     completeBulkRoute.includes("Project not found") &&
-    completeBulkRoute.includes("portionSnap.data()!.projectId !== pid") &&
+    claimCompletion.includes("portion.projectId !== projectId") &&
     completeBulkRoute.includes("completedCount"),
   "Bulk completion must skip parent claims and verify claim-to-portion project ownership"
 );
 
 const completeBatchRoute = read("src/app/api/claims/complete-batch/route.ts");
 assert(
-  completeBatchRoute.includes('collection("lzecher_claims")') &&
-    completeBatchRoute.includes('status: "completed"') &&
-    completeBatchRoute.includes("completedPortionIds") &&
-    completeBatchRoute.includes("Project not found"),
+  completeBatchRoute.includes("completePortion") &&
+    claimCompletion.includes('collection("lzecher_claims")') &&
+    claimCompletion.includes('status: "completed"') &&
+    claimCompletion.includes("Project not found"),
   "Complete-batch route must update matching claim docs for dashboard sync"
 );
 
 const completeRoute = read("src/app/api/claims/complete/route.ts");
 assert(
   completeRoute.includes("Project not found") &&
-    completeRoute.includes("portionData.projectId !== projectId") &&
-    completeRoute.includes("claimData.projectId !== projectId || claimData.portionId !== portionId") &&
-    completeRoute.includes('.where("projectId", "==", projectId)') &&
-    completeRoute.includes("completionBatch.commit()"),
+    claimCompletion.includes("portion.projectId !== projectId") &&
+    claimCompletion.includes("claim.data()!.projectId !== projectId || claim.data()!.portionId !== portionId") &&
+    claimCompletion.includes('.where("projectId", "==", projectId)') &&
+    completeRoute.includes("completePortion") && claimCompletion.includes("runTransaction"),
   "Single completion must verify project, portion, and claim ownership before writing"
 );
 
 const markCompleteViaLinkRoute = read("src/app/api/claims/mark-complete-via-link/route.ts");
 assert(
   markCompleteViaLinkRoute.includes("!claimData.projectId") &&
-    markCompleteViaLinkRoute.includes("portionData.projectId !== claimData.projectId") &&
+    claimCompletion.includes("portion.projectId !== projectId") &&
     markCompleteViaLinkRoute.includes("claimData.isParent === true") &&
     markCompleteViaLinkRoute.includes('where("parentClaimId", "==", claimRef.id)') &&
-    markCompleteViaLinkRoute.includes("commitWritesInChunks"),
+    markCompleteViaLinkRoute.includes("completePortion") && markCompleteViaLinkRoute.includes("export async function POST"),
   "Reminder completion links must verify claim-to-project and portion-to-project ownership and complete parent claim children"
 );
 
@@ -204,7 +207,7 @@ assert(
   reminderSender.includes('purpose: "mark_complete"') &&
     reminderSender.includes("markCompleteLink") &&
     reminderSender.includes("/api/claims/mark-complete-via-link"),
-  "Reminder emails must include a signed one-click mark-learned link"
+  "Reminder emails must include a signed mark-learned confirmation link"
 );
 assert(
   cronReminderRoute.includes("sendReadyReminderEmails") &&
@@ -239,11 +242,11 @@ assert(
 
 const projectClaimRoute = read("src/app/api/projects/[id]/claims/[claimId]/route.ts");
 assert(
-  projectClaimRoute.includes("portData.projectId !== projectId") &&
-    projectClaimRoute.includes("portionRefToRename") &&
-    projectClaimRoute.includes("removeOneName") &&
-    projectClaimRoute.includes("replaceOneName") &&
-    projectClaimRoute.includes("batch.commit()"),
+  projectClaimRoute.includes("manageClaim") &&
+    claimManagement.includes("data.projectId !== projectId") &&
+    claimManagement.includes("siblings.docs") &&
+    claimManagement.includes("claimerNames: names") &&
+    claimManagement.includes("runTransaction"),
   "Creator claim edit/delete routes must verify portions stay inside the selected Lzecher project and keep inclusive names in sync"
 );
 
@@ -516,7 +519,7 @@ for (const rel of [
 
 const superOverviewRoute = read("src/app/api/admin/super/overview/route.ts");
 assert(
-  superOverviewRoute.includes("requireSuperAdmin(idToken)") &&
+  superOverviewRoute.includes("requireAdmin(idToken)") &&
     superOverviewRoute.includes('collection("lzecher_projects")') &&
     superOverviewRoute.includes('collection("lzecher_admin_audit")') &&
     superOverviewRoute.includes("userSummaries") &&
@@ -532,7 +535,7 @@ assert(
 
 const superAnalyticsRoute = read("src/app/api/admin/super/analytics/route.ts");
 assert(
-  superAnalyticsRoute.includes("requireSuperAdmin(idToken)") &&
+  superAnalyticsRoute.includes("requireAdmin(idToken, \"stats\")") &&
     superAnalyticsRoute.includes('collection("lzecher_projects")') &&
     superAnalyticsRoute.includes('collection("lzecher_claims")') &&
     superAnalyticsRoute.includes('collection("lzecher_feedback")') &&
@@ -543,12 +546,12 @@ assert(
     superAnalyticsRoute.includes("data.isParent === true") &&
     superAnalyticsRoute.includes("daily: buckets") &&
     superAnalyticsRoute.includes("truncated"),
-  "Super-admin date-range analytics must require super admin, stay Lzecher-scoped, ignore parent claim summaries, and expose truncation state"
+  "Super-admin date-range analytics must require the matching admin permission, stay Lzecher-scoped, ignore parent claim summaries, and expose truncation state"
 );
 
 const superProjectDetailRoute = read("src/app/api/admin/super/projects/[id]/route.ts");
 assert(
-  superProjectDetailRoute.includes("requireSuperAdmin(idToken)") &&
+  superProjectDetailRoute.includes("requireAdmin(idToken, \"projects\")") &&
     superProjectDetailRoute.includes('collection("lzecher_projects").doc(id).get()') &&
     superProjectDetailRoute.includes("stripProject") &&
     superProjectDetailRoute.includes("passwordHash") &&
@@ -561,7 +564,7 @@ assert(
 
 const superRecomputeRoute = read("src/app/api/admin/super/projects/[id]/recompute/route.ts");
 assert(
-  superRecomputeRoute.includes("requireSuperAdmin(idToken)") &&
+  superRecomputeRoute.includes("requireAdmin(idToken, \"projects\")") &&
     superRecomputeRoute.includes("confirmProjectId !== id") &&
     superRecomputeRoute.includes("recomputeProjectProgress(db, id)") &&
     superRecomputeRoute.includes('collection("lzecher_admin_audit")') &&
@@ -571,7 +574,7 @@ assert(
 
 const superProjectSettingsRoute = read("src/app/api/admin/super/projects/[id]/settings/route.ts");
 assert(
-  superProjectSettingsRoute.includes("requireSuperAdmin(idToken)") &&
+  superProjectSettingsRoute.includes("requireAdmin(idToken, \"projects\")") &&
     superProjectSettingsRoute.includes("confirmProjectId !== id") &&
     superProjectSettingsRoute.includes('collection("lzecher_projects").doc(id)') &&
     superProjectSettingsRoute.includes('collection("lzecher_admin_audit")') &&
@@ -719,36 +722,36 @@ assert(
 
 const superReportRoute = read("src/app/api/admin/super/reports/[id]/route.ts");
 assert(
-  superReportRoute.includes("requireSuperAdmin(idToken)") &&
+  superReportRoute.includes('requireAdmin(idToken, "reports")') &&
     superReportRoute.includes('collection("lzecher_reports").doc(id)') &&
     superReportRoute.includes('collection("lzecher_admin_audit")') &&
     superReportRoute.includes('action: "super_admin_update_report"') &&
     superReportRoute.includes("internalNote") &&
     superReportRoute.includes("VALID_PRIORITY"),
-  "Super-admin report updates must require super admin, touch one Lzecher report, write support fields, and write an audit entry"
+  "Super-admin report updates must require the matching admin permission, touch one Lzecher report, write support fields, and write an audit entry"
 );
 
 const superFeedbackRoute = read("src/app/api/admin/super/feedback/[id]/route.ts");
 assert(
-  superFeedbackRoute.includes("requireSuperAdmin(idToken)") &&
+  superFeedbackRoute.includes('requireAdmin(idToken, "feedback")') &&
     superFeedbackRoute.includes('collection("lzecher_feedback").doc(id)') &&
     superFeedbackRoute.includes('collection("lzecher_admin_audit")') &&
     superFeedbackRoute.includes('action: "super_admin_update_feedback"') &&
     superFeedbackRoute.includes("internalNote") &&
     superFeedbackRoute.includes("VALID_PRIORITY"),
-  "Super-admin feedback updates must require super admin, touch one Lzecher feedback item, write support fields, and write an audit entry"
+  "Super-admin feedback updates must require the matching admin permission, touch one Lzecher feedback item, write support fields, and write an audit entry"
 );
 
 const superContactRoute = read("src/app/api/admin/super/contacts/[id]/route.ts");
 assert(
-  superContactRoute.includes("requireSuperAdmin(idToken)") &&
+  superContactRoute.includes('requireAdmin(idToken, "feedback")') &&
     superContactRoute.includes('collection("lzecher_contact_messages").doc(id)') &&
     superContactRoute.includes('collection("lzecher_admin_audit")') &&
     superContactRoute.includes('action: "super_admin_update_contact_message"') &&
     superContactRoute.includes("supportStatus") &&
     superContactRoute.includes("internalNote") &&
     superContactRoute.includes("VALID_PRIORITY"),
-  "Super-admin contact message updates must require super admin, touch one Lzecher contact message, write support fields, and write an audit entry"
+  "Super-admin contact message updates must require the matching admin permission, touch one Lzecher contact message, write support fields, and write an audit entry"
 );
 
 const superSettingsRoute = read("src/app/api/admin/super/settings/route.ts");

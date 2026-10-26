@@ -124,7 +124,8 @@
     "noResults": "לא נמצאו דפי הנצחה התואמים את החיפוש.",
     "takenLabel": "נלקחו ללימוד",
     "cardCta": "→ הצטרפו ללימוד",
-    "protectedBadge": "מוגן בסיסמה"
+    "protectedBadge": "מוגן בסיסמה",
+    "participantCount": "{count, plural, one {משתתף אחד} other {# משתתפים}}"
   },
   "auth": {
     "signInTitle": "התחברות",
@@ -212,7 +213,12 @@
     "participantsLabel": "משתתפים",
     "communityTitle": "הצטרף ללימוד הקהילתי",
     "communityDesc": "הנצחות פעילות בקהילה מחכות למשתתפים.",
-    "browseMemorials": "גלה הנצחות"
+    "browseMemorials": "גלה הנצחות",
+    "claimSaveError": "לא ניתן לשמור את ההתחייבות. נא לנסות שוב.",
+    "claimLoadError": "לא ניתן לטעון את ההתחייבויות. נא לנסות שוב.",
+    "learningEntries": "התחייבויות לימוד",
+    "participantName": "שם המשתתף",
+    "participantCount": "{count, plural, one {משתתף אחד} other {# משתתפים}}"
   },
   "create": {
     "stepOf": "שלב {current} מתוך {total}",
@@ -439,7 +445,10 @@
     "trackPickSubtitle": "בחרו את התחום שמתאים לכם",
     "trackTileCta": "לחצו לבחור פרק",
     "startedByLabel": "הוקם על ידי",
-    "announcementLabel": "הודעה"
+    "announcementLabel": "הודעה",
+    "confirmLearningTitle": "אישור הלימוד",
+    "confirmLearningPrompt": "יש לאשר את העדכון רק לאחר השלמת הלימוד המופיע בהודעת הדואר האלקטרוני.",
+    "confirmLearningAction": "אישור הלימוד"
   },
   "memorials": {
     "title": "כל ההנצחות",

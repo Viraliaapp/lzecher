@@ -124,7 +124,8 @@
     "noResults": "Aucun memorial ne correspond a votre recherche.",
     "takenLabel": "Pris pour l'etude",
     "cardCta": "→ Rejoindre l'etude",
-    "protectedBadge": "Protégé par mot de passe"
+    "protectedBadge": "Protégé par mot de passe",
+    "participantCount": "{count, plural, one {# participant} other {# participants}}"
   },
   "auth": {
     "signInTitle": "Connexion",
@@ -212,7 +213,12 @@
     "participantsLabel": "participants",
     "communityTitle": "Rejoindre l'etude communautaire",
     "communityDesc": "Des memorials actifs attendent des participants.",
-    "browseMemorials": "Voir les memorials"
+    "browseMemorials": "Voir les memorials",
+    "claimSaveError": "Impossible d’enregistrer l’engagement. Réessayez.",
+    "claimLoadError": "Impossible de charger les engagements. Réessayez.",
+    "learningEntries": "Engagements",
+    "participantName": "Nom du participant",
+    "participantCount": "{count, plural, one {# participant} other {# participants}}"
   },
   "create": {
     "stepOf": "Etape {current} sur {total}",
@@ -439,7 +445,10 @@
     "trackPickSubtitle": "Choisissez le domaine qui vous convient",
     "trackTileCta": "Cliquez pour choisir →",
     "startedByLabel": "Lancé par",
-    "announcementLabel": "Annonce"
+    "announcementLabel": "Annonce",
+    "confirmLearningTitle": "Confirmez votre étude",
+    "confirmLearningPrompt": "Enregistrez cette mise à jour uniquement si vous avez terminé l’étude indiquée dans votre e-mail.",
+    "confirmLearningAction": "Confirmer l’étude"
   },
   "memorials": {
     "title": "Tous les memoriaux",

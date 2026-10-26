@@ -1,3 +1,7 @@
+import { validateProject } from "@/lib/claim-writes";
+import { ClaimError } from "@/lib/claim-management";
+import { parseClaimInput, documentId } from "@/lib/claim-input";
+import { hasProjectAccess } from "@/lib/project-access";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -12,9 +16,9 @@ import { normalizeEmailAddress } from "@/lib/email-validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = parseClaimInput(await request.json().catch(() => null));
     const {
-      portionId,
+      portionId: rawPortionId,
       projectId,
       claimerName,
       idToken,
@@ -26,10 +30,13 @@ export async function POST(request: NextRequest) {
       claimerEmail,
       locale: claimLocale,
     } = body;
+    const parsedPortionId = documentId.safeParse(rawPortionId);
+    if (!parsedPortionId.success) throw new ClaimError(400, "Invalid portion ID");
+    const portionId = parsedPortionId.data;
     const locale = (typeof claimLocale === "string" && ["en", "he", "es", "fr"].includes(claimLocale)) ? claimLocale : "en";
     const sanitizedReminderPreferences = sanitizeReminderPreferences(reminderPreferences);
 
-    if (!portionId || !projectId || !claimerName?.trim()) {
+    if (!documentId.safeParse(portionId).success) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -50,7 +57,7 @@ export async function POST(request: NextRequest) {
         uid = decoded.uid;
         email = decoded.email || null;
       } catch {
-        // Invalid token — treat as anonymous
+        throw new ClaimError(401, "Invalid token; sign in again");
       }
     }
     const submittedEmail = typeof claimerEmail === "string" ? claimerEmail.trim() : "";
@@ -61,6 +68,7 @@ export async function POST(request: NextRequest) {
     email = normalizedSubmittedEmail || normalizeEmailAddress(email);
 
     const db = getAdminDb();
+    const access = await hasProjectAccess(projectId);
 
     // Reject missing or locked projects before touching any portion. The Firebase
     // project is shared with other apps, so every write must stay project-scoped.
@@ -116,6 +124,7 @@ export async function POST(request: NextRequest) {
         if (freshProjectSnap.data()!.locked === true) {
           return { ok: false as const, status: 423, error: "This memorial is locked. No new portions can be taken." };
         }
+        validateProject(freshProjectSnap.data(), access, uid);
         const freshPortionSnap = await transaction.get(portionRef);
         if (!freshPortionSnap.exists) {
           return { ok: false as const, status: 404, error: "Portion not found" };
@@ -132,7 +141,8 @@ export async function POST(request: NextRequest) {
           status: "claimed",
           claimedBy: uid,
           claimedByName: claimerName.trim(),
-          claimedAt: now,
+          claimedAt: now, claimId: claimRef.id, claimedByParentClaimId: null,
+          completedAt: null, completedByName: null, completedByEmail: null, completedByUid: null,
         });
         transaction.set(claimRef, {
           id: claimRef.id,
@@ -273,6 +283,7 @@ export async function POST(request: NextRequest) {
         if (freshProjectSnap.data()!.locked === true) {
           return { ok: false as const, status: 423, error: "This memorial is locked. No new portions can be taken." };
         }
+        validateProject(freshProjectSnap.data(), access, uid);
         const freshPortionSnap = await transaction.get(portionRef);
         if (!freshPortionSnap.exists) {
           return { ok: false as const, status: 404, error: "Portion not found" };
@@ -359,6 +370,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, claimId: claimRef.id, claimMode: "inclusive" });
     }
   } catch (err) {
+    if (err instanceof ClaimError) return NextResponse.json({ error: err.message }, { status: err.status });
     console.error("Claim error:", err);
     return NextResponse.json({ error: "Failed to reserve portion" }, { status: 500 });
   }

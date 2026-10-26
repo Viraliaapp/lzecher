@@ -222,12 +222,25 @@ if (clientLeakProblems.length) {
   fail("Client secret/admin boundary audit failed.", clientLeakProblems);
 }
 
+// The deployed permissioned portal intentionally opens these routes to scoped admins.
+const scopedAdminRoutes = {
+  "analytics/route.ts": "stats",
+  "contacts/[id]/route.ts": "feedback",
+  "feedback/[id]/route.ts": "feedback",
+  "projects/[id]/route.ts": "projects",
+  "projects/[id]/recompute/route.ts": "projects",
+  "projects/[id]/settings/route.ts": "projects",
+  "reports/[id]/route.ts": "reports",
+};
 const superAdminProblems = [];
 for (const rel of sourceFiles.filter((file) => file.startsWith("src/app/api/admin/super/") && file.endsWith("route.ts"))) {
   const text = read(rel);
-  if (!text.includes("requireSuperAdmin(idToken)")) {
-    superAdminProblems.push(`${rel} does not call requireSuperAdmin(idToken)`);
-  }
+  const route = rel.slice("src/app/api/admin/super/".length);
+  const permission = scopedAdminRoutes[route];
+  const guarded = route === "overview/route.ts"
+    ? text.includes("requireAdmin(idToken)") && ["stats", "projects", "feedback", "reports", "users", "settings"].every(p => text.includes(`hasAdminPermission(decoded, "${p}")`)) && text.includes("stats: canStats ?")
+    : text.includes(permission ? `requireAdmin(idToken, "${permission}")` : "requireSuperAdmin(idToken)");
+  if (!guarded) superAdminProblems.push(`${rel} lacks its required admin guard`);
   if (!text.includes("lzecher_")) {
     superAdminProblems.push(`${rel} has no visible Lzecher collection scope`);
   }

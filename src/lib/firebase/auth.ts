@@ -14,11 +14,11 @@ function setAuthCookie(present: boolean) {
     : "__session=; path=/; max-age=0; samesite=lax";
 }
 
-export async function sendMagicLink(email: string, locale: string = "en") {
+export async function sendMagicLink(email: string, locale: string = "en", redirect?: string) {
   const res = await fetch("/api/send-magic-link", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, locale }),
+    body: JSON.stringify({ email, locale, redirect }),
   });
 
   if (!res.ok) {
@@ -46,7 +46,10 @@ export async function logout() {
 }
 
 export function onAuthChange(callback: (user: User | null) => void) {
-  return onAuthStateChanged(auth, callback);
+  return onAuthStateChanged(auth, (user) => {
+    setAuthCookie(Boolean(user));
+    callback(user);
+  });
 }
 
 export type { User };

@@ -88,7 +88,7 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
 
   const filtered = memorials.filter((m) => {
     if (!search.trim()) return true;
-    const q = search.toLowerCase();
+    const q = search.trim().toLocaleLowerCase(locale);
     return (
       m.nameHebrew.toLowerCase().includes(q) ||
       (m.familyNameHebrew?.toLowerCase().includes(q) ?? false) ||
@@ -159,12 +159,14 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
           {/* Search */}
           <div className="mb-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
             <div className="relative flex-1 max-w-md w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
+              <Search aria-hidden="true" className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
               <Input
+                type="search"
+                aria-label={t("searchPlaceholder")}
                 placeholder={t("searchPlaceholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <div className="inline-flex rounded-full border border-navy/10 bg-white p-1 shadow-sm" role="group" aria-label={locale === "he" ? "בחירת תצוגה" : "Choose view"}>
@@ -351,7 +353,7 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
                             if (mC > 0) parts.push(`${mC} ${locale === "he" ? "משניות" : "Mishnayos"}`);
                             if (tC > 0) parts.push(`${tC} ${locale === "he" ? "תהילים" : "Tehillim"}`);
                             if (kC > 0) parts.push(`${kC} ${locale === "he" ? "קבלות טובות" : "Kabalos"}`);
-                            if ((m.participantCount || 0) > 0) parts.push(`${m.participantCount} ${locale === "he" ? "משתתפים" : "participants"}`);
+                            if ((m.participantCount || 0) > 0) parts.push(t("participantCount", { count: m.participantCount }));
                             if (parts.length === 0) {
                               m.tracks.forEach(track => parts.push(trackLabel(track, locale)));
                             }
@@ -441,7 +443,7 @@ export function HomeClient({ memorials = [] }: HomeClientProps) {
                               <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.min(100, pct)}%` }} />
                             </div>
                             <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-muted">
-                              <span>{(m.participantCount || 0).toLocaleString()} {locale === "he" ? "משתתפים" : "participants"}</span>
+                              <span>{t("participantCount", { count: m.participantCount || 0 })}</span>
                               {cyclesText && <span className="font-medium text-green-700">{cyclesText}</span>}
                             </div>
                           </div>

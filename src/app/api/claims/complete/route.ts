@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
-import { getClaimMode } from "@/lib/track-config";
+import { getAdminDb } from "@/lib/firebase/admin";
+import { completePortion, checkInClaim } from "@/lib/claim-completion";
+import { ClaimError, claimName } from "@/lib/claim-management";
+import { documentId } from "@/lib/claim-input";
+import { hasProjectAccess } from "@/lib/project-access";
+import { verifyToken, hasAdminPermission } from "@/lib/auth-roles";
 import { getChizukMessage } from "@/lib/chizuk-messages";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
-import type { TrackType } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
-    const { portionId, projectId, claimId, idToken, checkIn, completedByName, completedByEmail } = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") throw new ClaimError(400, "Invalid completion details");
+    const { portionId, projectId, claimId, idToken, checkIn, completedByName, completedByEmail } = body;
 
-    if (!projectId) {
+    if (!documentId.safeParse(projectId).success || (portionId && !documentId.safeParse(portionId).success) || (claimId && !documentId.safeParse(claimId).success)) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
     if (!portionId && !claimId) {
@@ -22,18 +27,17 @@ export async function POST(request: NextRequest) {
     let isAdmin = false;
     if (idToken) {
       try {
-        const auth = getAdminAuth();
-        const decoded = await auth.verifyIdToken(idToken);
+        const decoded = await verifyToken(idToken);
         uid = decoded.uid;
-        isAdmin = Boolean(decoded.isAdmin || decoded.isSuperAdmin);
+        isAdmin = hasAdminPermission(decoded, "projects");
       } catch {
-        // ignore — fall through to anon path
+        throw new ClaimError(401, "Invalid token; sign in again");
       }
     }
 
     // Anonymous completion requires a name and is rate-limited per IP.
     if (!uid) {
-      const trimmedName = (completedByName || "").trim();
+      const trimmedName = completedByName ? claimName(completedByName) : "";
       if (!trimmedName) {
         return NextResponse.json({ error: "Name required for anonymous completion" }, { status: 400 });
       }
@@ -48,7 +52,6 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getAdminDb();
-    const now = Date.now();
     const projectRef = db.collection("lzecher_projects").doc(projectId);
     const projectSnap = await projectRef.get();
     if (!projectSnap.exists) {
@@ -61,56 +64,12 @@ export async function POST(request: NextRequest) {
       if (!uid) {
         return NextResponse.json({ error: "Sign-in required to mark daily learning" }, { status: 401 });
       }
-      const claimRef = db.collection("lzecher_claims").doc(claimId);
-      const claimSnap = await claimRef.get();
-      if (!claimSnap.exists) {
-        return NextResponse.json({ error: "Claim not found" }, { status: 404 });
-      }
-      const claimData = claimSnap.data()!;
-      if (claimData.projectId !== projectId) {
-        return NextResponse.json({ error: "Learning entry does not belong to this memorial" }, { status: 400 });
-      }
-      if (claimData.userId !== uid) {
-        return NextResponse.json({ error: "This learning entry belongs to another participant" }, { status: 403 });
-      }
-      if (claimData.status !== "active") {
-        return NextResponse.json({ error: "Claim is not active" }, { status: 400 });
-      }
-
-      const progress = claimData.progress || { completed: 0, total: 0 };
-      const newCompleted = progress.completed + 1;
-      const lastCheckIn: number = claimData.lastCheckIn || 0;
-
-      const hoursSinceLast = (now - lastCheckIn) / (1000 * 60 * 60);
-      const currentStreak: number = claimData.currentStreak || 0;
-      const longestStreak: number = claimData.longestStreak || 0;
-      let newStreak = currentStreak;
-      if (lastCheckIn === 0 || hoursSinceLast <= 48) {
-        newStreak = currentStreak + 1;
-      } else {
-        newStreak = 1;
-      }
-      const newLongest = Math.max(longestStreak, newStreak);
-
-      const isFullyComplete = progress.total > 0 && newCompleted >= progress.total;
-
-      await claimRef.update({
-        "progress.completed": newCompleted,
-        lastCheckIn: now,
-        currentStreak: newStreak,
-        longestStreak: newLongest,
-        ...(isFullyComplete ? { status: "completed" } : {}),
-      });
-
+      const result = await checkInClaim(db, projectId, claimId, uid);
       const honoreeNameCheckin = `${projectData.nameHebrew} ${projectData.familyNameHebrew || ""}`.trim();
       const chizukCheckin = getChizukMessage("generic_checkin");
       return NextResponse.json({
         success: true,
-        completed: newCompleted,
-        total: progress.total,
-        currentStreak: newStreak,
-        longestStreak: newLongest,
-        claimCompleted: isFullyComplete,
+        ...result,
         chizuk: {
           he: chizukCheckin.he.replace("{name}", honoreeNameCheckin),
           en: chizukCheckin.en.replace("{name}", honoreeNameCheckin),
@@ -125,118 +84,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "portionId is required for standard completion" }, { status: 400 });
     }
 
-    const portionRef = db.collection("lzecher_portions").doc(portionId);
-    const portionSnap = await portionRef.get();
-    if (!portionSnap.exists) {
-      return NextResponse.json({ error: "Portion not found" }, { status: 404 });
-    }
-    const portionData = portionSnap.data()!;
-    if (portionData.projectId !== projectId) {
-      return NextResponse.json({ error: "Portion does not belong to this memorial" }, { status: 400 });
-    }
-
-    const trackType = portionData.trackType as TrackType;
-    const claimMode = portionData.claimMode ?? getClaimMode(trackType);
-
-    const completerName = (completedByName || "").trim() || null;
-    const completerEmail = (completedByEmail || "").trim() || null;
-
-    if (claimMode === "exclusive") {
-      if (portionData.status !== "claimed") {
-        return NextResponse.json({ error: "This portion is not currently taken" }, { status: 400 });
-      }
-      // For exclusive: the original claimer's authenticated session can mark complete
-      // OR anyone with name (anonymous completion is allowed by design — Solomon's request)
-      // Admins can override regardless.
-      const isOwner = uid !== null && portionData.claimedBy === uid;
-      if (!isOwner && !isAdmin && !completerName) {
-        return NextResponse.json({ error: "Name required to mark someone else's learning as complete" }, { status: 400 });
-      }
-
-      // Mark the claim doc as completed
-      let claimRefToComplete: FirebaseFirestore.DocumentReference | null = null;
-      if (claimId) {
-        const claimRef = db.collection("lzecher_claims").doc(claimId);
-        const claimSnap = await claimRef.get();
-        if (!claimSnap.exists) {
-          return NextResponse.json({ error: "Claim not found" }, { status: 404 });
-        }
-        const claimData = claimSnap.data()!;
-        if (claimData.projectId !== projectId || claimData.portionId !== portionId) {
-          return NextResponse.json({ error: "Learning entry does not belong to this portion" }, { status: 400 });
-        }
-        if (claimData.status !== "active") {
-          return NextResponse.json({ error: "Learning entry is not active" }, { status: 400 });
-        }
-        claimRefToComplete = claimRef;
-      } else {
-        // Find active claim by portionId
-        const claimQuery = await db
-          .collection("lzecher_claims")
-          .where("projectId", "==", projectId)
-          .where("portionId", "==", portionId)
-          .where("status", "==", "active")
-          .limit(1)
-          .get();
-        if (!claimQuery.empty) {
-          claimRefToComplete = claimQuery.docs[0].ref;
-        }
-      }
-
-      const completionBatch = db.batch();
-      completionBatch.update(portionRef, {
-        status: "completed",
-        completedAt: now,
-        completedByName: completerName || portionData.claimedByName || null,
-        completedByEmail: completerEmail,
-        completedByUid: uid,
-      });
-      if (claimRefToComplete) {
-        completionBatch.update(claimRefToComplete, {
-          status: "completed",
-          completedAt: now,
-          completedByName: completerName,
-          completedByUid: uid,
-        });
-      }
-      await completionBatch.commit();
-
-      // Update project stats
-      await projectRef.update({
-        completedPortions: (projectData.completedPortions || 0) + 1,
-      });
-    } else {
-      // Inclusive one-time completion — must reference a specific claim
-      if (!claimId) {
-        return NextResponse.json({ error: "Learning entry required for this completion" }, { status: 400 });
-      }
-      const claimRef = db.collection("lzecher_claims").doc(claimId);
-      const claimSnap = await claimRef.get();
-      if (!claimSnap.exists) {
-        return NextResponse.json({ error: "Claim not found" }, { status: 404 });
-      }
-      const claimData = claimSnap.data()!;
-      if (claimData.projectId !== projectId || claimData.portionId !== portionId) {
-        return NextResponse.json({ error: "Learning entry does not belong to this portion" }, { status: 400 });
-      }
-      if (claimData.status !== "active") {
-        return NextResponse.json({ error: "Learning entry is not active" }, { status: 400 });
-      }
-      const isOwner = uid !== null && claimData.userId === uid;
-      if (!isOwner && !isAdmin && !completerName) {
-        return NextResponse.json({ error: "Name required to mark someone else's learning as complete" }, { status: 400 });
-      }
-      await claimRef.update({
-        status: "completed",
-        completedAt: now,
-        completedByName: completerName,
-        completedByUid: uid,
-      });
-
-      await projectRef.update({
-        completedPortions: (projectData.completedPortions || 0) + 1,
-      });
-    }
+    await completePortion(db, projectId, portionId, {
+      uid, isAdmin, name: completedByName ? claimName(completedByName) : null,
+      email: typeof completedByEmail === "string" ? completedByEmail.trim() : null,
+    }, await hasProjectAccess(projectId), claimId);
 
     // Authoritative stat recompute (self-healing; can't drift). Non-fatal.
     try {
@@ -258,6 +109,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (err) {
+    if (err instanceof ClaimError) return NextResponse.json({ error: err.message }, { status: err.status });
     console.error("Complete error:", err);
     return NextResponse.json({ error: "Failed to mark as complete" }, { status: 500 });
   }

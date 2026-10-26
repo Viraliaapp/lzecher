@@ -86,10 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsub = onAuthChange((firebaseUser) => {
       clearTimeout(timeout);
       setUser(firebaseUser);
-      if (!firebaseUser) {
-        setProfile(null);
-        resolveLoading();
-      }
+      setProfile(null);
+      // Auth is ready even if Firestore/profile refresh is offline or slow.
+      resolveLoading();
     });
 
     return () => {

@@ -8,6 +8,7 @@
  * returned the full expected set size. If either guard fails, we do nothing.
  */
 import { seedSetForTrack } from "./seed-set";
+import { recomputeProjectProgress } from "./recompute-progress";
 
 // Canonical sizes come from the seed-data itself so they stay in sync.
 const EXPECTED_SET_SIZES: Record<string, number> = {
@@ -70,21 +71,19 @@ export async function maybeOpenNextSet(
   }
 
   // Check whether every portion in the current set has been claimed/taken.
-  // excludeIds are portions from the current request whose Firestore update may not
-  // yet be visible in the query above — treat them as already claimed.
-  const anyStillAvailable = portionsInCurrentSet.some(
-    (d) => !excludeIds.has(d.id) && d.data().status === "available"
-  );
+  // Only committed reservations count toward opening the next set.
+  void excludeIds; // Firestore reads are strongly consistent after the claim commits.
+  const anyStillAvailable = portionsInCurrentSet.some((d) => d.data().status === "available");
 
   if (anyStillAvailable) return result;
 
   // All portions are claimed/taken. Seed the next set — but only if it doesn't
   // exist yet (idempotency: guards against concurrent requests both seeding).
   const nextSetNumber = currentSetNumber + 1;
-  const nextSetAlreadyExists = allSnap.docs.some((d) => {
+  const nextSetAlreadyExists = allSnap.docs.filter((d) => {
     const sn = d.data().setNumber;
     return ((sn === undefined || sn === null) ? 1 : sn) === nextSetNumber;
-  });
+  }).length >= expectedSize;
 
   if (nextSetAlreadyExists) {
     console.log(
@@ -99,16 +98,9 @@ export async function maybeOpenNextSet(
       `(${newCount} portions) on project ${projectId}`
   );
 
-  await db
-    .collection("lzecher_projects")
-    .doc(projectId)
-    .update({
-      totalPortions: ((projData.totalPortions as number) || 0) + newCount,
-      totalSets: nextSetNumber,
-      updatedAt: Date.now(),
-    });
+  await recomputeProjectProgress(db, projectId);
 
-  result.newSetOpened = true;
-  result.newSetNumber = nextSetNumber;
+  result.newSetOpened = newCount > 0;
+  result.newSetNumber = newCount > 0 ? nextSetNumber : null;
   return result;
 }

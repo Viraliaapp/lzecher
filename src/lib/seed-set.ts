@@ -15,13 +15,19 @@ export async function seedSetForTrack(
 
   type PortionDoc = Record<string, unknown>;
   const items: { ref: FirebaseFirestore.DocumentReference; data: PortionDoc }[] = [];
+  const existing = await db.collection("lzecher_portions").where("projectId", "==", projectId)
+    .where("trackType", "==", trackType).get();
+  const existingReferences = new Set(existing.docs.filter(d => (d.data().setNumber || 1) === setNumber)
+    .map(d => d.data().reference));
 
   if (trackType === "mishnayos") {
     let order = (setNumber - 1) * 525; // offset order to keep sets sortable
     for (const m of MASECHTOS) {
       for (let p = 1; p <= m.perakim; p++) {
         order++;
-        const ref = db.collection("lzecher_portions").doc();
+        const reference = `${m.name} ${p}`;
+        if (existingReferences.has(reference)) continue;
+        const ref = db.collection("lzecher_portions").doc(`${projectId}_${trackType}_${setNumber}_${order}`);
         items.push({
           ref,
           data: {
@@ -46,7 +52,8 @@ export async function seedSetForTrack(
     let order = (setNumber - 1) * 150;
     for (const mz of TEHILLIM) {
       order++;
-      const ref = db.collection("lzecher_portions").doc();
+      if (existingReferences.has(`Tehillim ${mz.number}`)) continue;
+      const ref = db.collection("lzecher_portions").doc(`${projectId}_${trackType}_${setNumber}_${order}`);
       items.push({
         ref,
         data: {
@@ -66,15 +73,19 @@ export async function seedSetForTrack(
     }
   }
 
-  // Write in chunks of BATCH_CHUNK
+  // Stable IDs plus transaction reads make concurrent/partial retries safe.
+  let created = 0;
   for (let i = 0; i < items.length; i += BATCH_CHUNK) {
     const chunk = items.slice(i, i + BATCH_CHUNK);
-    const batch = db.batch();
-    for (const { ref, data } of chunk) {
-      batch.set(ref, data);
-    }
-    await batch.commit();
+    created += await db.runTransaction(async tx => {
+      const snapshots = await tx.getAll(...chunk.map(item => item.ref));
+      let count = 0;
+      for (let j = 0; j < chunk.length; j++) {
+        if (!snapshots[j].exists) { tx.set(chunk[j].ref, chunk[j].data); count++; }
+      }
+      return count;
+    });
   }
 
-  return items.length;
+  return created;
 }

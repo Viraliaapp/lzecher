@@ -71,7 +71,6 @@ export const viewport: Viewport = {
   themeColor: "#0F1B2D",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 interface Props {

@@ -2,127 +2,59 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { recomputeProjectProgress } from "@/lib/recompute-progress";
-
-// Max IDs per batch call — covers full Shas (525) plus headroom
-const MAX_BATCH_IDS = 600;
-// Firestore batch write limit is 500 ops; stay under with headroom
-const WRITE_CHUNK = 450;
-// Firestore getAll practical limit per call
-const GETALL_CHUNK = 300;
+import { hasProjectAccess } from "@/lib/project-access";
+import { ClaimError, claimName } from "@/lib/claim-management";
+import { documentId } from "@/lib/claim-input";
+import { completePortion } from "@/lib/claim-completion";
+import { getClaimMode } from "@/lib/track-config";
+import type { TrackType } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
-    const { portionIds, projectId, completedByName, idToken } = await request.json();
-    if (!Array.isArray(portionIds) || portionIds.length === 0 || !projectId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const body = await request.json().catch(() => null);
+    if (!body || !documentId.safeParse(body.projectId).success || !Array.isArray(body.portionIds)
+      || !body.portionIds.length || body.portionIds.length > 600
+      || !body.portionIds.every((id: unknown) => documentId.safeParse(id).success)) {
+      throw new ClaimError(400, "Invalid portion IDs or project ID");
     }
-    if (portionIds.length > MAX_BATCH_IDS) {
-      return NextResponse.json({ error: `Max ${MAX_BATCH_IDS} per batch` }, { status: 400 });
-    }
-
+    const { projectId, idToken, completedByName } = body;
+    const ids = [...new Set<string>(body.portionIds)];
     let uid: string | null = null;
     if (idToken) {
-      try {
-        const adminAuth = getAdminAuth();
-        const decoded = await adminAuth.verifyIdToken(idToken);
-        uid = decoded.uid;
-      } catch { /* anon */ }
+      const decoded = await getAdminAuth().verifyIdToken(idToken).catch(() => null);
+      if (!decoded) throw new ClaimError(401, "Invalid token; sign in again");
+      uid = decoded.uid;
     }
-
-    // Rate limit only for anonymous users — authenticated users are trusted
+    const name = completedByName ? claimName(completedByName) : null;
     if (!uid) {
-      const trimmedName = (completedByName || "").trim();
-      if (!trimmedName) {
-        return NextResponse.json({ error: "Name required for anonymous completion" }, { status: 400 });
-      }
-      const ip = getClientIp(request);
-      // Use bulkCompleteOp: counts this entire batch as ONE action, not N actions
-      const rl = await checkRateLimit("bulkCompleteOp", `complete-batch:${ip}`);
-      if (!rl.success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+      if (!name) throw new ClaimError(400, "Name required for anonymous completion");
+      const rl = await checkRateLimit("bulkCompleteOp", `complete-batch:${getClientIp(request)}`);
+      if (!rl.success) throw new ClaimError(429, "Too many requests");
     }
-
     const db = getAdminDb();
-    const now = Date.now();
-    const completerName = (completedByName || "").trim() || null;
-    const projectRef = db.collection("lzecher_projects").doc(projectId);
-    const projectSnap = await projectRef.get();
-    if (!projectSnap.exists) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    const access = await hasProjectAccess(projectId);
+    const project = await db.collection("lzecher_projects").doc(projectId).get();
+    if (!project.exists) throw new ClaimError(404, "Project not found");
+    if (project.data()!.passwordHash && !access && project.data()!.createdBy !== uid) {
+      throw new ClaimError(403, "Memorial password required");
     }
-
-    // Fetch all portions in chunks (getAll handles large sets but chunk to be safe)
-    const ids = portionIds as string[];
-    const allSnaps: FirebaseFirestore.DocumentSnapshot[] = [];
-    for (let i = 0; i < ids.length; i += GETALL_CHUNK) {
-      const chunkRefs = ids.slice(i, i + GETALL_CHUNK).map(id => db.collection("lzecher_portions").doc(id));
-      const chunkSnaps = await db.getAll(...chunkRefs);
-      allSnaps.push(...chunkSnaps);
-    }
-
-    const completedPortionIds = new Set<string>();
-
-    // Batch-write portion completions in WRITE_CHUNK-sized Firestore batches.
     let count = 0;
-    for (let i = 0; i < allSnaps.length; i += WRITE_CHUNK) {
-      const chunk = allSnaps.slice(i, i + WRITE_CHUNK);
-      const batch = db.batch();
-      for (const snap of chunk) {
-        if (!snap.exists) continue;
-        const data = snap.data()!;
-        if (data.projectId !== projectId) continue;
-        if (data.status !== "claimed") continue;   // only claimed → completed
-        if (data.trackType === "kabalos") continue; // kabalos excluded
-        batch.update(snap.ref, {
-          status: "completed",
-          completedAt: now,
-          completedByName: completerName || data.claimedByName || null,
-          completedByUid: uid,
-        });
-        completedPortionIds.add(snap.id);
-        count++;
-      }
-      await batch.commit();
-    }
-
-    // Keep creator dashboard participant rows in sync with the public memorial.
-    // Dashboard reads lzecher_claims.status, so matching active claims must move
-    // to completed whenever their portions are marked learned here.
-    if (completedPortionIds.size > 0) {
-      const claimsSnap = await db
-        .collection("lzecher_claims")
-        .where("projectId", "==", projectId)
-        .get();
-      const claimDocs = claimsSnap.docs.filter((doc) => {
-        const claim = doc.data();
-        return claim.status === "active" && completedPortionIds.has(claim.portionId);
+    for (let offset = 0; offset < ids.length; offset += 20) {
+      const snaps = await db.getAll(...ids.slice(offset, offset + 20).map(id => db.collection("lzecher_portions").doc(id)));
+      const eligible = snaps.filter(s => {
+        const p = s.data();
+        return p && p.projectId === projectId && ["claimed", "completed"].includes(p.status)
+          && (p.claimMode ?? getClaimMode(p.trackType as TrackType)) === "exclusive";
       });
-      for (let i = 0; i < claimDocs.length; i += WRITE_CHUNK) {
-        const batch = db.batch();
-        for (const doc of claimDocs.slice(i, i + WRITE_CHUNK)) {
-          batch.update(doc.ref, {
-            status: "completed",
-            completedAt: now,
-            completedByName: completerName || null,
-            completedByUid: uid,
-          });
-        }
-        await batch.commit();
-      }
+      const completed = await Promise.all(eligible.map(s => completePortion(db, projectId, s.id, { uid, name }, access)));
+      count += completed.filter(Boolean).length;
     }
-
-    // Update project completedPortions counter ONCE for the whole batch
-    if (count > 0) {
-      await projectRef.update({ completedPortions: (projectSnap.data()!.completedPortions || 0) + count });
-      try {
-        await recomputeProjectProgress(db, projectId);
-      } catch (e) {
-        console.error("[complete-batch] recompute failed:", e);
-      }
-    }
-
+    try { await recomputeProjectProgress(db, projectId); }
+    catch (error) { console.error("[complete-batch] recompute failed:", error); }
     return NextResponse.json({ success: true, count });
-  } catch (err) {
-    console.error("[complete-batch] error:", err);
+  } catch (error) {
+    if (error instanceof ClaimError) return NextResponse.json({ error: error.message }, { status: error.status });
+    console.error("[complete-batch] error:", error);
     return NextResponse.json({ error: "Failed to mark complete" }, { status: 500 });
   }
 }

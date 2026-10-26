@@ -124,7 +124,8 @@
     "noResults": "No se encontraron memoriales que coincidan con su busqueda.",
     "takenLabel": "Tomados para el estudio",
     "cardCta": "→ Únete al estudio",
-    "protectedBadge": "Protegido con contraseña"
+    "protectedBadge": "Protegido con contraseña",
+    "participantCount": "{count, plural, one {# participante} other {# participantes}}"
   },
   "auth": {
     "signInTitle": "Iniciar sesion",
@@ -212,7 +213,12 @@
     "participantsLabel": "participantes",
     "communityTitle": "Unase al estudio comunitario",
     "communityDesc": "Hay memoriales activos esperando participantes.",
-    "browseMemorials": "Ver memoriales"
+    "browseMemorials": "Ver memoriales",
+    "claimSaveError": "No se pudo guardar el compromiso. Inténtalo de nuevo.",
+    "claimLoadError": "No se pudieron cargar los compromisos. Inténtalo de nuevo.",
+    "learningEntries": "Compromisos",
+    "participantName": "Nombre del participante",
+    "participantCount": "{count, plural, one {# participante} other {# participantes}}"
   },
   "create": {
     "stepOf": "Paso {current} de {total}",
@@ -439,7 +445,10 @@
     "trackPickSubtitle": "Elige el area que te convenga",
     "trackTileCta": "Haz clic para elegir →",
     "startedByLabel": "Iniciado por",
-    "announcementLabel": "Anuncio"
+    "announcementLabel": "Anuncio",
+    "confirmLearningTitle": "Confirma tu estudio",
+    "confirmLearningPrompt": "Guarda esta actualización solo si has terminado el estudio indicado en tu correo.",
+    "confirmLearningAction": "Confirmar estudio"
   },
   "memorials": {
     "title": "Todos los memoriales",

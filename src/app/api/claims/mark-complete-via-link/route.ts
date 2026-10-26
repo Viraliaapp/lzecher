@@ -5,7 +5,8 @@ import { verifyToken as verifySignedToken } from "@/lib/signed-tokens";
 import { normalizeLocale } from "@/lib/locales";
 import * as crypto from "crypto";
 
-const WRITE_CHUNK = 450;
+import { completePortion, checkInClaim } from "@/lib/claim-completion";
+import { documentId } from "@/lib/claim-input";
 
 function actionSecret(): string {
   const secret = process.env.REMINDER_ACTION_SECRET || process.env.CRON_SECRET;
@@ -23,10 +24,11 @@ function verifyLegacyActionToken(token: string): { claimId: string; action: stri
       .createHmac("sha256", actionSecret())
       .update(payloadB64)
       .digest("hex");
-    if (sigHex !== expectedSig) return null;
+    if (sigHex.length !== expectedSig.length || !crypto.timingSafeEqual(Buffer.from(sigHex), Buffer.from(expectedSig))) return null;
     const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString());
+    if (payload.purpose) return null; // Modern signed tokens must match their explicit purpose above.
     // Check expiry (7 days)
-    if (payload.exp && Date.now() > payload.exp) return null;
+    if (typeof payload.exp !== "number" || Date.now() > payload.exp || !documentId.safeParse(payload.claimId).success || !["mark_complete", "check_in"].includes(payload.action || "mark_complete")) return null;
     return { claimId: payload.claimId, action: payload.action || "mark_complete" };
   } catch {
     return null;
@@ -35,7 +37,7 @@ function verifyLegacyActionToken(token: string): { claimId: string; action: stri
 
 function verifyActionToken(token: string): { claimId: string; action: string } | null {
   const signed = verifySignedToken(token);
-  if (signed?.purpose === "mark_complete" && signed.claimId) {
+  if (signed?.purpose === "mark_complete" && signed.claimId && documentId.safeParse(signed.claimId).success) {
     return { claimId: signed.claimId, action: "mark_complete" };
   }
   return verifyLegacyActionToken(token);
@@ -52,29 +54,38 @@ export function generateActionToken(claimId: string, action: string = "mark_comp
   return `${payloadB64}.${sig}`;
 }
 
-async function commitWritesInChunks(
-  db: FirebaseFirestore.Firestore,
-  writes: Array<(batch: FirebaseFirestore.WriteBatch) => void>
-) {
-  for (let i = 0; i < writes.length; i += WRITE_CHUNK) {
-    const batch = db.batch();
-    for (const write of writes.slice(i, i + WRITE_CHUNK)) write(batch);
-    await batch.commit();
-  }
+function redirect(url: URL) {
+  const response = NextResponse.redirect(url, 303);
+  response.headers.set("Cache-Control", "no-store");
+  response.headers.set("Referrer-Policy", "no-referrer");
+  return response;
 }
 
+// Email previews and security scanners may fetch GET links automatically.
+// Only a deliberate form submission may change a learning commitment.
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
   const locale = normalizeLocale(req.nextUrl.searchParams.get("locale"));
+  const url = new URL(`/${locale}/confirm-complete`, req.url);
+  if (!token || !verifyActionToken(token)) url.searchParams.set("status", "expired");
+  else { url.searchParams.set("status", "confirm"); url.searchParams.set("token", token); }
+  return redirect(url);
+}
+
+export async function POST(req: NextRequest) {
+  const form = await req.formData().catch(() => null);
+  const token = form?.get("token");
+  const locale = normalizeLocale(form?.get("locale"));
+  if (typeof token !== "string") return redirect(new URL(`/${locale}/confirm-complete?status=expired`, req.url));
 
   if (!token) {
-    return NextResponse.redirect(new URL(`/${locale}/dashboard`, req.url));
+    return redirect(new URL(`/${locale}/dashboard`, req.url));
   }
 
   const verified = verifyActionToken(token);
   if (!verified) {
     // Token expired or invalid — redirect to confirm-complete with error
-    return NextResponse.redirect(
+    return redirect(
       new URL(`/${locale}/confirm-complete?status=expired`, req.url)
     );
   }
@@ -94,7 +105,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!claimSnap.exists) {
-      return NextResponse.redirect(
+      return redirect(
         new URL(`/${locale}/confirm-complete?status=not_found`, req.url)
       );
     }
@@ -102,157 +113,55 @@ export async function GET(req: NextRequest) {
     const claimData = claimSnap.data()!;
 
     if (claimData.status === "completed") {
-      return NextResponse.redirect(
+      return redirect(
         new URL(`/${locale}/confirm-complete?status=already_complete&name=${encodeURIComponent(claimData.reference || "")}`, req.url)
       );
     }
 
     if (!claimData.projectId) {
-      return NextResponse.redirect(
+      return redirect(
         new URL(`/${locale}/confirm-complete?status=error`, req.url)
       );
     }
     const projectRef = db.collection("lzecher_projects").doc(claimData.projectId);
     const projectSnap = await projectRef.get();
     if (!projectSnap.exists) {
-      return NextResponse.redirect(
+      return redirect(
         new URL(`/${locale}/confirm-complete?status=not_found`, req.url)
       );
     }
 
     if (action === "mark_complete") {
-      const completedAt = Date.now();
-      const completionPatch = {
-        status: "completed",
-        completedAt,
-        completedByName: claimData.userName || null,
-        completedByUid: claimData.userId || null,
-      };
-      let completedPortionsIncrement = 0;
-
       if (claimData.isParent === true) {
-        if (!Array.isArray(claimData.portionIds) || claimData.portionIds.length === 0) {
-          return NextResponse.redirect(
-            new URL(`/${locale}/confirm-complete?status=error`, req.url)
-          );
+        const children = await db.collection("lzecher_claims")
+          .where("parentClaimId", "==", claimRef.id).get();
+        for (const child of children.docs) {
+          const data = child.data();
+          if (data.projectId !== claimData.projectId || !data.portionId) throw new Error("Invalid child learning entry");
+          await completePortion(db, data.projectId, data.portionId,
+            { uid: claimData.userId || null, name: claimData.userName || null }, true, child.id);
         }
-
-        const portionIds = [...new Set(
-          claimData.portionIds
-            .map((id: unknown) => (typeof id === "string" ? id.trim() : ""))
-            .filter(Boolean)
-        )];
-        const portionSnaps: FirebaseFirestore.DocumentSnapshot[] = [];
-        for (let i = 0; i < portionIds.length; i += 300) {
-          const refs = portionIds
-            .slice(i, i + 300)
-            .map((id) => db.collection("lzecher_portions").doc(id));
-          const snaps = await db.getAll(...refs);
-          portionSnaps.push(...snaps);
-        }
-
-        const writes: Array<(batch: FirebaseFirestore.WriteBatch) => void> = [];
-        for (const portionSnap of portionSnaps) {
-          if (!portionSnap.exists) continue;
-          const portionData = portionSnap.data()!;
-          if (portionData.projectId !== claimData.projectId) {
-            return NextResponse.redirect(
-              new URL(`/${locale}/confirm-complete?status=error`, req.url)
-            );
-          }
-          if (portionData.status !== "completed") completedPortionsIncrement++;
-          writes.push((batch) => batch.update(portionSnap.ref, completionPatch));
-        }
-
-        const childClaimsSnap = await db
-          .collection("lzecher_claims")
-          .where("parentClaimId", "==", claimRef.id)
-          .get();
-        for (const child of childClaimsSnap.docs) {
-          const childData = child.data();
-          if (childData.projectId !== claimData.projectId) {
-            return NextResponse.redirect(
-              new URL(`/${locale}/confirm-complete?status=error`, req.url)
-            );
-          }
-          if (childData.status !== "completed") {
-            writes.push((batch) => batch.update(child.ref, completionPatch));
-          }
-        }
-
-        writes.push((batch) => batch.update(claimRef, completionPatch));
-        await commitWritesInChunks(db, writes);
-      } else if (claimData.portionId) {
-        const portionRef = db.collection("lzecher_portions").doc(claimData.portionId);
-        const portionSnap = await portionRef.get();
-        if (portionSnap.exists) {
-          const portionData = portionSnap.data()!;
-          if (portionData.projectId !== claimData.projectId) {
-            return NextResponse.redirect(
-              new URL(`/${locale}/confirm-complete?status=error`, req.url)
-            );
-          }
-          if (portionData.status !== "completed") completedPortionsIncrement = 1;
-        }
-
-        const batch = db.batch();
-        if (portionSnap.exists) {
-          batch.update(portionRef, completionPatch);
-        }
-        batch.update(claimRef, completionPatch);
-        await batch.commit();
+        await claimRef.update({ status: "completed", completedAt: Date.now() });
+      } else if (claimData.portionId && claimRef.parent.id === "lzecher_claims") {
+        await completePortion(db, claimData.projectId, claimData.portionId,
+          { uid: claimData.userId || null, name: claimData.userName || null }, true, claimRef.id);
       } else {
-        const batch = db.batch();
-        batch.update(claimRef, completionPatch);
-        await batch.commit();
+        // Legacy inclusive entries have no exclusive portion to mark complete.
+        await claimRef.update({ status: "completed", completedAt: Date.now() });
       }
-
-      // Update project stats
-      const projectData = projectSnap.data()!;
-      await projectRef.update({
-        completedPortions: (projectData.completedPortions || 0) + completedPortionsIncrement,
-      });
-      try {
-        await recomputeProjectProgress(db, claimData.projectId);
-      } catch (e) {
-        console.error("[mark-complete-via-link] recompute failed:", e);
-      }
+      try { await recomputeProjectProgress(db, claimData.projectId); }
+      catch (error) { console.error("[mark-complete-via-link] recompute failed:", error); }
     } else if (action === "check_in") {
-      // Daily check-in for inclusive claims
-      const now = Date.now();
-      const today = new Date().toISOString().split("T")[0];
-      const lastCheckIn = claimData.lastCheckInDate;
-      const currentStreak = claimData.currentStreak || 0;
-      const longestStreak = claimData.longestStreak || 0;
-
-      let newStreak = 1;
-      if (lastCheckIn === today) {
-        // Already checked in today
-        return NextResponse.redirect(
-          new URL(`/${locale}/confirm-complete?status=already_complete&name=${encodeURIComponent(claimData.reference || "")}`, req.url)
-        );
-      } else if (lastCheckIn) {
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-        if (lastCheckIn === yesterday) {
-          newStreak = currentStreak + 1;
-        }
-      }
-
-      await claimRef.update({
-        lastCheckIn: now,
-        lastCheckInDate: today,
-        currentStreak: newStreak,
-        longestStreak: Math.max(longestStreak, newStreak),
-        "progress.completed": (claimData.progress?.completed || 0) + 1,
-      });
+      await checkInClaim(db, claimData.projectId, claimRef.id, claimData.userId,
+        Date.now(), claimRef.parent.id === "lzecher_inclusive_claims" ? "lzecher_inclusive_claims" : "lzecher_claims");
     }
 
-    return NextResponse.redirect(
+    return redirect(
       new URL(`/${locale}/confirm-complete?status=success&name=${encodeURIComponent(claimData.reference || "")}`, req.url)
     );
   } catch (err) {
     console.error("Mark complete via link error:", err);
-    return NextResponse.redirect(
+    return redirect(
       new URL(`/${locale}/confirm-complete?status=error`, req.url)
     );
   }

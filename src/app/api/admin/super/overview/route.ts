@@ -520,7 +520,7 @@ export async function POST(request: NextRequest) {
           settings: canSettings,
         },
       },
-      stats: {
+      stats: canStats ? {
         totalProjects,
         activeProjects,
         hiddenProjects,
@@ -553,7 +553,7 @@ export async function POST(request: NextRequest) {
         siteViewsToday: siteViews.today,
         siteViewsThisWeek: siteViews.thisWeek,
         siteViewsThisMonth: siteViews.thisMonth,
-      },
+      } : {},
       healthChecks: canStats || canProjects ? [
         {
           key: "firebase_scope",

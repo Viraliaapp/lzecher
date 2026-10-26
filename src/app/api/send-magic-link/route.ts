@@ -5,6 +5,7 @@ import { checkRateLimit as checkRL, getClientIp } from "@/lib/rate-limit";
 import { signToken, TTL } from "@/lib/signed-tokens";
 import { lzecherEmailFrom } from "@/lib/email-config";
 import { normalizeLocale } from "@/lib/locales";
+import { safeAuthRedirect } from "@/lib/auth-redirect";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -38,7 +39,8 @@ const TAGLINE: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, locale = "en" } = await request.json();
+    const { email, locale = "en", redirect: requestedRedirect } = await request.json();
+    const redirect = safeAuthRedirect(requestedRedirect);
     const safeLocale = normalizeLocale(locale);
     const normalizedEmail = typeof email === "string" ? email.toLowerCase().trim() : "";
 
@@ -70,14 +72,14 @@ export async function POST(request: NextRequest) {
     // Sign the email + locale into a token so the verify page can complete sign-in
     // without re-prompting the user (works cross-device / cross-browser).
     const emailToken = signToken(
-      { purpose: "email_signin", email: normalizedEmail, locale: safeLocale },
+      { purpose: "email_signin", email: normalizedEmail, locale: safeLocale, redirect },
       TTL.EMAIL_SIGNIN
     );
 
     // Generate the sign-in link server-side using Firebase Admin
     const adminAuth = getAdminAuth();
     const actionCodeSettings = {
-      url: `${baseUrl}/${safeLocale}/login?finishSignIn=true&e=${encodeURIComponent(emailToken)}`,
+      url: `${baseUrl}/${safeLocale}/login?finishSignIn=true&e=${encodeURIComponent(emailToken)}&redirect=${encodeURIComponent(redirect)}`,
       handleCodeInApp: true,
     };
 

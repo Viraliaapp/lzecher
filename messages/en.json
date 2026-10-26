@@ -124,7 +124,8 @@
     "noResults": "No memorials match your search.",
     "takenLabel": "Taken for learning",
     "cardCta": "→ Join the Learning",
-    "protectedBadge": "Password protected"
+    "protectedBadge": "Password protected",
+    "participantCount": "{count, plural, one {# participant} other {# participants}}"
   },
   "auth": {
     "signInTitle": "Sign In",
@@ -212,7 +213,12 @@
     "participantsLabel": "participants",
     "communityTitle": "Join the wider learning",
     "communityDesc": "Active memorials across the community are waiting for participants.",
-    "browseMemorials": "Browse memorials"
+    "browseMemorials": "Browse memorials",
+    "claimSaveError": "Could not save the learning entry. Please retry.",
+    "claimLoadError": "Could not load learning entries. Please retry.",
+    "learningEntries": "Learning entries",
+    "participantName": "Participant name",
+    "participantCount": "{count, plural, one {# participant} other {# participants}}"
   },
   "create": {
     "stepOf": "Step {current} of {total}",
@@ -439,7 +445,10 @@
     "trackPickSubtitle": "Choose the area that suits you",
     "trackTileCta": "Click to choose a chapter",
     "startedByLabel": "Started by",
-    "announcementLabel": "Announcement"
+    "announcementLabel": "Announcement",
+    "confirmLearningTitle": "Confirm your learning",
+    "confirmLearningPrompt": "Save this learning update only if you have finished the learning shown in your email.",
+    "confirmLearningAction": "Confirm learning"
   },
   "memorials": {
     "title": "All Memorials",
