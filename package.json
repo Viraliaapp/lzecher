@@ -15,7 +15,8 @@
     "admin:grant": "dotenv -e .env.local -- node scripts/grant-admin.js",
     "admin:grant-super": "dotenv -e .env.local -- node scripts/grant-super-admin.js",
     "typecheck": "tsc --noEmit",
-    "test:audit": "tsx --test scripts/audit/commitment-regression.test.ts scripts/audit/route-regression.test.ts",
+    "test:audit": "tsx --test scripts/audit/commitment-regression.test.ts scripts/audit/route-regression.test.ts scripts/audit/activity-regression.test.ts scripts/audit/activity-baseline.test.ts",
+    "audit:activity-browser": "node scripts/audit/serve-activity-browser-fixture.mjs",
     "audit:deployed-baseline": "tsx --test scripts/audit/deployed-baseline.test.ts",
     "test:audit-ui": "node scripts/audit/local-ui-regression.mjs",
     "test:audit-emulator": "node scripts/audit/run-firebase-emulator.mjs"

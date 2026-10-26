@@ -86,6 +86,7 @@ before(async () => {
     assert.equal((await auth.verifyIdToken(tokens[role])).uid, uid(role));
   }
   routes = {}; deployed = {};
+  routes.activity = await loadRoute('src/app/api/activity/recent/route.ts', 'activity');
   for (const [name, file] of Object.entries({ single: 'src/app/api/claims/route.ts', multi: 'src/app/api/claims/multi/route.ts', bulk: 'src/app/api/claims/bulk/route.ts', complete: 'src/app/api/claims/complete/route.ts', manage: 'src/app/api/projects/[id]/claims/[claimId]/route.ts', batch: 'src/app/api/claims/complete-batch/route.ts', bulkComplete: 'src/app/api/claims/complete-bulk/route.ts', email: 'src/app/api/claims/mark-complete-via-link/route.ts' })) {
     routes[name] = await loadRoute(file, name);
     if (['single', 'multi', 'bulk', 'complete', 'manage'].includes(name)) deployed[name] = await loadRoute(file, name, true);
@@ -98,6 +99,36 @@ after(async () => {
   if (db) await db.terminate();
   await Promise.all(getApps().map(app => deleteApp(app)));
   assert.equal(state.queued.length, 0, 'No test may request reminder delivery');
+});
+
+test('activity: real bulk reservation yields exact chapter count beyond the 80-document feed window', { timeout: 90000 }, async () => {
+  const f = await fixture();
+  const batch = db.batch();
+  for (let n = 2; n < 120; n++) batch.set(db.collection('lzecher_portions').doc(`${f.id}-${n}`), {
+    projectId: f.id, trackType: 'mishnayos', claimMode: 'exclusive', reference: `Bava Kamma ${n + 1}`,
+    masechet: 'Bava Kamma', status: 'available',
+  });
+  await batch.commit();
+  const reserved = await routes.bulk.POST(request({ ...f.body, scope: 'masechta', scopeId: 'Bava Kamma' }));
+  assert.equal(reserved.status, 200); assert.equal((await reserved.json()).claimedCount, 120);
+  const response = await routes.activity.GET(); assert.equal(response.status, 200);
+  const events = (await response.json()).events.filter(e => e.projectId === f.id);
+  assert.equal(events.length, 1); assert.equal(events[0].count, 120);
+  assert.equal(events[0].trackType, 'mishnayos'); assert.equal('userEmail' in events[0], false);
+  const child = (await claimDocs(f.id)).find(d => !d.data().isParent);
+  assert.equal((await routes.manage.PATCH(request({ idToken: tokens.owner, userName: 'Renamed fixture' }), context(f.id, child.id))).status, 200);
+  const renamed = (await (await routes.activity.GET()).json()).events.filter(e => e.projectId === f.id);
+  assert.equal(renamed.reduce((sum, e) => sum + e.count, 0), 120);
+  assert.equal(renamed.find(e => e.name === 'Renamed fixture').count, 1);
+    const oldAt = Date.now() - 365 * 24 * 3600000;
+    const aging = db.batch();
+    for (const claim of await claimDocs(f.id)) aging.update(claim.ref, { claimedAt: oldAt });
+    await aging.commit();
+    const oldEvents = (await (await routes.activity.GET()).json()).events.filter(e => e.projectId === f.id);
+    assert.equal(oldEvents.reduce((sum, e) => sum + e.count, 0), 120);
+    assert.ok(oldEvents.every(e => e.claimedAt === oldAt));
+  evidence.observations.push({ check: 'bulk-to-popup contract', reserved: 120, popupCount: 120, renamedCount: 1 });
+    evidence.observations.push({ check: 'year-old activity retained', popupCount: 120, timestampPreserved: true });
 });
 
 test('rules: anonymous and authenticated clients cannot directly read or mutate commitments', { timeout: 90000 }, async () => {
