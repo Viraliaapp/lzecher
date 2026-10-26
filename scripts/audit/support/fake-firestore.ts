@@ -13,17 +13,18 @@ class Ref {
   async delete() { this.db.records.delete(this.path); }
 }
 class Query {
-  constructor(readonly db: MemoryFirestore, readonly name: string, readonly filters: [string, string, any][] = [], readonly max = Infinity) {
+  constructor(readonly db: MemoryFirestore, readonly name: string, readonly filters: [string, string, any][] = [], readonly max = Infinity, readonly ordering?: [string, string]) {
     assert.ok(name.startsWith("lzecher_"), "No other application collections may be touched");
   }
   doc(id = `generated-${++this.db.sequence}`) { return new Ref(this.db, this.name, id); }
-  where(key: string, op: string, value: unknown) { assert.ok(["==", ">="].includes(op)); return new Query(this.db, this.name, [...this.filters, [key, op, value]], this.max); }
+  where(key: string, op: string, value: unknown) { assert.ok(["==", ">="].includes(op)); return new Query(this.db, this.name, [...this.filters, [key, op, value]], this.max, this.ordering); }
   count() { return { get: async () => { const snap = await this.get(); return { data: () => ({ count: snap.size }) }; } }; }
-  orderBy() { return this; }
-  limit(count: number) { return new Query(this.db, this.name, this.filters, count); }
+  orderBy(key: string, direction = "asc") { return new Query(this.db, this.name, this.filters, this.max, [key, direction]); }
+  limit(count: number) { return new Query(this.db, this.name, this.filters, count, this.ordering); }
   async get() {
     const docs = [...this.db.records.entries()].filter(([path, data]) => path.startsWith(this.name + "/")
-      && this.filters.every(([key, op, value]) => op === "==" ? data[key] === value : data[key] >= value)).slice(0, this.max)
+      && this.filters.every(([key, op, value]) => op === "==" ? data[key] === value : data[key] >= value))
+      .sort(([, a], [, b]) => this.ordering ? (a[this.ordering[0]] < b[this.ordering[0]] ? -1 : a[this.ordering[0]] > b[this.ordering[0]] ? 1 : 0) * (this.ordering[1] === "desc" ? -1 : 1) : 0).slice(0, this.max)
       .map(([path]) => this.db.snapshot(new Ref(this.db, this.name, path.slice(this.name.length + 1))));
     return { docs, empty: docs.length === 0, size: docs.length };
   }

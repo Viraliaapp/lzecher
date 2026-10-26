@@ -12,28 +12,28 @@ interface UnitForms {
 
 const UNITS: Record<string, Record<string, UnitForms>> = {
   he: {
-    mishnayos: { one: () => "משנה אחת", many: (n) => `${n} משניות` },
+    mishnayos: { one: () => "פרק משניות", many: (n) => `${n} פרקי משניות` },
     tehillim: { one: () => "פרק תהילים", many: (n) => `${n} פרקי תהילים` },
     kabalos: { one: () => "קבלה טובה", many: (n) => `${n} קבלות טובות` },
     shnayim_mikra: { one: () => "פרשה", many: (n) => `${n} פרשות` },
     daf_yomi: { one: () => "דף", many: (n) => `${n} דפים` },
   },
   en: {
-    mishnayos: { one: () => "1 Mishnah", many: (n) => `${n} Mishnayos` },
+    mishnayos: { one: () => "1 Mishnah chapter", many: (n) => `${n} Mishnah chapters` },
     tehillim: { one: () => "1 Tehillim chapter", many: (n) => `${n} Tehillim chapters` },
     kabalos: { one: () => "a kabbalah", many: (n) => `${n} kabbalos` },
     shnayim_mikra: { one: () => "a parsha", many: (n) => `${n} parshiyos` },
     daf_yomi: { one: () => "a daf", many: (n) => `${n} dapim` },
   },
   es: {
-    mishnayos: { one: () => "1 Mishná", many: (n) => `${n} Mishnayot` },
+    mishnayos: { one: () => "1 capítulo de Mishná", many: (n) => `${n} capítulos de Mishná` },
     tehillim: { one: () => "1 capítulo de Tehilim", many: (n) => `${n} capítulos de Tehilim` },
     kabalos: { one: () => "una kabalá", many: (n) => `${n} kabalot` },
     shnayim_mikra: { one: () => "una parashá", many: (n) => `${n} parashiot` },
     daf_yomi: { one: () => "un daf", many: (n) => `${n} dapim` },
   },
   fr: {
-    mishnayos: { one: () => "1 Mishna", many: (n) => `${n} Mishnayot` },
+    mishnayos: { one: () => "1 chapitre de Michna", many: (n) => `${n} chapitres de Michna` },
     tehillim: { one: () => "1 chapitre de Tehilim", many: (n) => `${n} chapitres de Tehilim` },
     kabalos: { one: () => "une kabbale", many: (n) => `${n} kabbalot` },
     shnayim_mikra: { one: () => "une paracha", many: (n) => `${n} parachiot` },

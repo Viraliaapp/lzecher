@@ -1,96 +1,88 @@
 "use client";
 
-/**
- * Live activity bubbles — gentle, dignified toasts in the bottom corner showing
- * recent claims across all projects. Polls /api/activity/recent every ~20s and
- * animates in only genuinely-new events. Memorial-appropriate: warm, slow, capped.
- */
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useLocale } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen } from "lucide-react";
 import { activitySentence } from "@/lib/activity-format";
+import { recentActivityEvents, type ActivityEvent } from "@/lib/activity-events";
 import { useSiteSettings } from "@/lib/use-site-settings";
-
-interface RawEvent {
-  id: string;
-  name: string | null;
-  count: number;
-  trackType: string;
-  honoreeHebrew: string;
-  honoreeHonorific: string;
-  claimedAt: number;
-}
 
 const POLL_MS = 20000;
 const SHOW_MS = 6500;
+const REQUEST_TIMEOUT_MS = 10000;
 const MAX_VISIBLE = 3;
+const MAX_PENDING = 60;
 
 export function ActivityBubbles() {
   const locale = useLocale();
   const { settings, loaded } = useSiteSettings();
-  const [visible, setVisible] = useState<RawEvent[]>([]);
-  const seen = useRef<Set<string>>(new Set());
-  const initialized = useRef(false);
-  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
-  const dismiss = useCallback((id: string) => {
-    setVisible((prev) => prev.filter((e) => e.id !== id));
-  }, []);
-
-  const enqueue = useCallback((events: RawEvent[]) => {
-    for (const e of events) {
-      setVisible((prev) => {
-        if (prev.some((p) => p.id === e.id)) return prev;
-        const next = [e, ...prev].slice(0, MAX_VISIBLE);
-        return next;
-      });
-      if (timers.current[e.id]) clearTimeout(timers.current[e.id]);
-      timers.current[e.id] = setTimeout(() => dismiss(e.id), SHOW_MS);
-    }
-  }, [dismiss]);
-
-  const poll = useCallback(async () => {
-    try {
-      const res = await fetch("/api/activity/recent", { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      const events: RawEvent[] = data.events || [];
-      if (!initialized.current) {
-        // First load: seed "seen" with everything, but gently show the 1 latest.
-        initialized.current = true;
-        events.forEach((e) => seen.current.add(e.id));
-        if (events.length > 0) {
-          const latest = events[0];
-          seen.current.add(latest.id);
-          enqueue([latest]);
-        }
-        return;
-      }
-      // Subsequent polls: show only new events (oldest-first so newest ends on top).
-      const fresh = events.filter((e) => !seen.current.has(e.id)).reverse();
-      fresh.forEach((e) => seen.current.add(e.id));
-      if (fresh.length > 0) enqueue(fresh.slice(-MAX_VISIBLE));
-    } catch {
-      /* network hiccup — ignore */
-    }
-  }, [enqueue]);
+  const enabled = settings.featureFlags.activityBubbles;
+  const [visible, setVisible] = useState<ActivityEvent[]>([]);
 
   useEffect(() => {
-    const kickoff = setTimeout(() => {
-      void poll();
-    }, 0);
-    const iv = setInterval(poll, POLL_MS);
-    const t = timers.current;
+    // Start the display lifetime only after the settings gate can render it.
+    if (!loaded || !enabled) return;
+    let alive = true, initialized = false;
+    let active: ActivityEvent[] = [], pending: ActivityEvent[] = [];
+    const seen = new Set<string>();
+    const timers = new Set<ReturnType<typeof setTimeout>>();
+    let request: AbortController | null = null;
+    function later(fn: () => void, ms: number) {
+      const timer = setTimeout(() => { timers.delete(timer); if (alive) fn(); }, ms);
+      timers.add(timer);
+      return timer;
+    }
+    function displayNext() {
+      while (active.length < MAX_VISIBLE && pending.length) {
+        const event = pending.shift()!;
+        active.push(event);
+        later(() => { active = active.filter(e => e.id !== event.id); displayNext(); }, SHOW_MS);
+      }
+      setVisible([...active]);
+    }
+    async function poll() {
+      if (!alive || request) return;
+      const controller = new AbortController();
+      request = controller;
+      const timeout = later(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      try {
+        const res = await fetch("/api/activity/recent", { cache: "no-store", signal: controller.signal });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!alive || controller.signal.aborted || !Array.isArray(data.events)) return;
+        const events = recentActivityEvents(data.events);
+        // Refresh an in-flight bulk count without replaying its popup.
+        const updates = new Map(events.map(e => [e.id, e]));
+        active = active.map(e => updates.get(e.id) || e);
+        pending = pending.map(e => updates.get(e.id) || e);
+        const fresh = initialized ? events.filter(e => !seen.has(e.id)).reverse() : events.slice(0, 1);
+        initialized = true;
+        // Retain old event IDs too: the latest available reservation may be old,
+        // but must still appear once rather than replaying on every poll.
+        for (const e of events) seen.add(e.id);
+        while (seen.size > 1000) seen.delete(seen.keys().next().value!);
+        pending = [...pending, ...fresh].slice(-MAX_PENDING);
+        displayNext();
+      } catch {
+        // Keep the existing queue on transient failures; the next poll retries.
+      } finally {
+        clearTimeout(timeout); timers.delete(timeout);
+        if (request === controller) request = null;
+        if (alive) later(() => { void poll(); }, POLL_MS);
+      }
+    }
+    later(() => { setVisible([]); void poll(); }, 0);
     return () => {
-      clearTimeout(kickoff);
-      clearInterval(iv);
-      Object.values(t).forEach(clearTimeout);
+      alive = false;
+      request?.abort();
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear(); pending = []; active = [];
     };
-  }, [poll]);
+  }, [loaded, enabled]);
 
   const isRtl = locale === "he";
-  if (!loaded || !settings.featureFlags.activityBubbles) return null;
+  if (!loaded || !enabled) return null;
 
   return (
     <div
