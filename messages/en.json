@@ -710,6 +710,9 @@
     "title": "Yasher Koach",
     "subtitle": "",
     "showAll": "Show all",
-    "showTop": "Show top 5"
+    "showTop": "Show top 5",
+    "empty": "No participants yet.",
+    "loading": "Loading participants...",
+    "unavailable": "Unable to load right now. Retrying shortly."
   }
 }

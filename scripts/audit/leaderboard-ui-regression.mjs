@@ -23,15 +23,15 @@ const names = locale === 'he'
   ? ['משפחת אהרונוביץ ובני המשפחה', 'אמא אהרונוביץ', 'שלומי', 'דוד', 'אורה', 'אליעזר', 'חיים']
   : ['The Aharonovitch Family and Friends', 'Sarah Aharonovitch', 'Shloimy', 'David', 'Ora', 'Eliezer', 'Chaim'];
 const rows = names.map((name, i) => ({name, count: [12345, 88, 17, 14, 12, 10, 9][i]}));
-window.fixture = {fail: false, requests: []};
+window.fixture = {fail: false, failPoll: query.has('offline'), requests: []};
 window.fetch = async (url, options = {}) => {
   if (options.method && options.method !== 'GET') throw Error('Unexpected mutation');
   if (!url.startsWith('/api/projects/fixture/leaderboard')) throw Error('Unexpected request');
   window.fixture.requests.push(url);
-  await new Promise(r => setTimeout(r, 60));
+  await new Promise(r => setTimeout(r, query.has('slow') ? 10000 : 60));
   const all = url.endsWith('?all=1');
-  if (all && window.fixture.fail) return new Response('{}', {status: 503});
-  return new Response(JSON.stringify({matmidim: rows.slice(0, all ? 7 : 5), hasMore: true}));
+  if (window.fixture.failPoll || (all && window.fixture.fail)) return new Response('{}', {status: 503});
+  return new Response(JSON.stringify({matmidim: query.has('empty') ? [] : rows.slice(0, all ? 7 : 5), hasMore: !query.has('empty')}));
 };
 document.documentElement.lang = locale;
 document.documentElement.dir = locale === 'he' ? 'rtl' : 'ltr';
@@ -39,7 +39,7 @@ createRoot(document.getElementById('root')).render(
   <NextIntlClientProvider locale={locale} messages={catalogs[locale]} timeZone="UTC">
     <main style={{maxWidth: 1024, margin: '0 auto', padding: 16}}>
       <div style={{display: 'flex', justifyContent: locale === 'he' ? 'flex-start' : 'flex-end'}} dir="ltr">
-        <Leaderboard projectId="fixture" initial={rows.slice(0, 5)} />
+        <Leaderboard projectId="fixture" initial={query.has('unseeded') ? undefined : query.has('empty') ? [] : rows.slice(0, 5)} />
       </div>
       <section id="following" style={{borderTop: '1px solid #dfcfac', paddingTop: 24, textAlign: 'center', fontSize: 24}}>
         {locale === 'he' ? 'הצטרפו ללימוד' : 'Join the learning'}
@@ -106,6 +106,35 @@ try {
     await toggle.click();
     assert.equal(await page.getByRole('listitem').count(), 5, 'reopen resets to top five');
     results.push(`${locale} ${width}: folded/unfolded, long names, counts, failed expansion, all seven, top five, keyboard, reopen, no overlap`);
+  }
+  await page.clock.install();
+  for (const locale of ['en', 'he']) {
+    await page.setViewportSize({width: 320, height: 780});
+    const toggle = page.getByRole('button', {name: catalogs[locale].leaderboard.title, exact: true});
+    for (const scenario of ['empty', 'slow', 'offline']) {
+      await page.goto(`${origin}/?locale=${locale}&unseeded=1&${scenario}=1`);
+      await toggle.click();
+      await page.clock.runFor(100);
+      const key = scenario === 'empty' ? 'empty' : scenario === 'slow' ? 'loading' : 'unavailable';
+      assert.equal(await page.getByRole('status').textContent(), catalogs[locale].leaderboard[key]);
+      assert.equal(await page.getByRole('listitem').count(), 0);
+      assert.equal(await page.getByRole('button', {name: catalogs[locale].leaderboard.showAll, exact: true}).count(), 0);
+      await page.screenshot({path: path.join(out, `${locale}-320-${scenario}.png`)});
+      if (scenario === 'offline') {
+        await page.evaluate(() => { window.fixture.failPoll = false; });
+        await page.clock.runFor(20100);
+        assert.equal(await page.getByRole('listitem').count(), 5, 'automatic retry restores rankings');
+        const before = await page.getByRole('listitem').allTextContents();
+        await page.evaluate(() => { window.fixture.failPoll = true; });
+        await page.clock.runFor(20100);
+        assert.deepEqual(await page.getByRole('listitem').allTextContents(), before, 'failed refresh preserves loaded names');
+        assert.equal(await toggle.isVisible(), true);
+      } else if (scenario === 'slow') {
+        await page.clock.runFor(10100);
+        assert.equal(await page.getByRole('listitem').count(), 5, 'slow first load reveals rankings');
+      }
+      results.push(`${locale} 320: ${scenario} keeps medallion visible with localized status and no invented participants`);
+    }
   }
   assert.deepEqual(errors, []);
   fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify({results, errors}, null, 2));

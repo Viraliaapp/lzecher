@@ -710,6 +710,9 @@
     "title": "Yasher Koach",
     "subtitle": "",
     "showAll": "Mostrar todos",
-    "showTop": "Mostrar los 5 principales"
+    "showTop": "Mostrar los 5 principales",
+    "empty": "Aún no hay participantes.",
+    "loading": "Cargando participantes...",
+    "unavailable": "No se puede cargar ahora. Se reintentará en breve."
   }
 }

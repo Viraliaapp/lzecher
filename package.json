@@ -19,6 +19,7 @@
     "audit:activity-browser": "node scripts/audit/serve-activity-browser-fixture.mjs",
     "audit:deployed-baseline": "tsx --test scripts/audit/deployed-baseline.test.ts",
     "test:audit-ui": "node scripts/audit/local-ui-regression.mjs",
+    "test:leaderboard": "node scripts/audit/leaderboard-route-regression.mjs && node scripts/audit/leaderboard-ui-regression.mjs",
     "test:audit-emulator": "node scripts/audit/run-firebase-emulator.mjs"
   },
   "dependencies": {

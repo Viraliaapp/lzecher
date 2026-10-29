@@ -51,6 +51,10 @@ export async function GET(
     );
   } catch (err) {
     console.error("[leaderboard] error:", err);
-    return NextResponse.json({ matmidim: [] }, { status: 200 });
+    // A failed read is not an empty ranking: clients must keep their last data.
+    return NextResponse.json(
+      { error: "Leaderboard temporarily unavailable" },
+      { status: 503, headers: { "Cache-Control": "no-store" } }
+    );
   }
 }

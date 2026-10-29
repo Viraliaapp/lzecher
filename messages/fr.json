@@ -710,6 +710,9 @@
     "title": "Yasher Koach",
     "subtitle": "",
     "showAll": "Tout afficher",
-    "showTop": "Afficher les 5 premiers"
+    "showTop": "Afficher les 5 premiers",
+    "empty": "Aucun participant pour le moment.",
+    "loading": "Chargement des participants...",
+    "unavailable": "Chargement impossible pour le moment. Nouvelle tentative bientôt."
   }
 }

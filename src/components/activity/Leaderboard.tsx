@@ -28,21 +28,27 @@ export function Leaderboard({ projectId, initial }: { projectId: string; initial
   const [hasMoreMatmidim, setHasMoreMatmidim] = useState((initial || []).length >= MAX_VISIBLE_MATMIDIM);
   const [fullListHasMore, setFullListHasMore] = useState<boolean | null>(null);
   const [loadingAll, setLoadingAll] = useState(false);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(initial === undefined ? "loading" : "ready");
 
   useEffect(() => {
     let alive = true;
     async function poll() {
       try {
         const res = await fetch(`/api/projects/${projectId}/leaderboard${showAll ? "?all=1" : ""}`, { cache: "no-store" });
-        if (!res.ok) return;
+        if (!res.ok) throw new Error("Leaderboard unavailable");
         const d = await res.json();
+        if (!Array.isArray(d.matmidim)) throw new Error("Invalid leaderboard response");
         if (alive && Array.isArray(d.matmidim)) {
           setMatmidim(d.matmidim);
+          setLoadState("ready");
           setHasMoreMatmidim(showAll
             ? d.matmidim.length > MAX_VISIBLE_MATMIDIM
             : fullListHasMore ?? (Boolean(d.hasMore) || d.matmidim.length >= MAX_VISIBLE_MATMIDIM));
         }
-      } catch { /* ignore */ }
+      } catch {
+        // Keep the last successful rankings while a refresh is unavailable.
+        if (alive) setLoadState("error");
+      }
     }
     poll();
     const iv = setInterval(poll, POLL_MS);
@@ -78,8 +84,6 @@ export function Leaderboard({ projectId, initial }: { projectId: string; initial
 
   const visibleMatmidim = (matmidim || []).slice(0, showAll ? matmidim.length : MAX_VISIBLE_MATMIDIM);
   const canToggleAll = showAll || hasMoreMatmidim || (!showAll && fullListHasMore === null && matmidim.length >= MAX_VISIBLE_MATMIDIM);
-
-  if (visibleMatmidim.length === 0) return null;
 
   const isRtl = locale === "he";
   const panelId = `yasher-koach-${projectId}`;
@@ -129,6 +133,11 @@ export function Leaderboard({ projectId, initial }: { projectId: string; initial
             className="w-full rounded-lg border border-[#DFCFAC] bg-[#FFFDF8] px-[15px] pt-[5px] shadow-[0_6px_16px_#47391b08]"
             dir={isRtl ? "rtl" : "ltr"}
           >
+            {visibleMatmidim.length === 0 ? (
+              <p role="status" className="py-5 text-center text-xs leading-relaxed text-muted">
+                {t(loadState === "loading" ? "loading" : loadState === "error" ? "unavailable" : "empty")}
+              </p>
+            ) : (
             <ol aria-label={t("title")} className={cn(showAll && "max-h-72 overflow-y-auto [scrollbar-gutter:stable]")}>
               {visibleMatmidim.map((m, i) => (
                 <li
@@ -149,6 +158,7 @@ export function Leaderboard({ projectId, initial }: { projectId: string; initial
                 </li>
               ))}
             </ol>
+            )}
             {canToggleAll && (
               <div className="border-t border-[#E7DCC7]">
                 <button
