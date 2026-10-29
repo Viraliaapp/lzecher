@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Award, ChevronDown, Loader2, X } from "lucide-react";
+import { ArrowRight, Award, ChevronDown, Loader2 } from "lucide-react";
 import { fmtNum } from "@/lib/activity-format";
 import { cn } from "@/lib/utils";
 
@@ -76,11 +76,6 @@ export function Leaderboard({ projectId, initial }: { projectId: string; initial
     });
   }
 
-  function closePanel() {
-    setShowAll(false);
-    setIsOpen(false);
-  }
-
   const visibleMatmidim = (matmidim || []).slice(0, showAll ? matmidim.length : MAX_VISIBLE_MATMIDIM);
   const canToggleAll = showAll || hasMoreMatmidim || (!showAll && fullListHasMore === null && matmidim.length >= MAX_VISIBLE_MATMIDIM);
 
@@ -91,13 +86,11 @@ export function Leaderboard({ projectId, initial }: { projectId: string; initial
 
   return (
     <div
-      className={cn(
-        "relative z-30 w-full max-w-[320px] px-4 pt-4 transition-[padding] sm:px-0",
-        isOpen ? (showAll ? "pb-[28rem] sm:pb-[26rem]" : "pb-56 sm:pb-56") : "pb-4"
-      )}
-      dir="ltr"
+      className="relative w-[220px] max-w-full py-4"
+      dir={isRtl ? "rtl" : "ltr"}
+      data-testid="yasher-koach"
     >
-      <div className={cn("relative flex", isRtl ? "justify-start" : "justify-end")}>
+      <div className="flex flex-col items-center">
         <button
           type="button"
           aria-expanded={isOpen}
@@ -105,73 +98,59 @@ export function Leaderboard({ projectId, initial }: { projectId: string; initial
           aria-label={t("title")}
           onClick={togglePanel}
           className={cn(
-            "group relative flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-full border bg-cream-glow text-navy shadow-[0_14px_32px_rgba(15,27,45,0.12)] transition",
-            "border-gold/35 hover:-translate-y-0.5 hover:border-gold/55 hover:shadow-[0_18px_38px_rgba(15,27,45,0.16)] focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/60",
-            "sm:h-20 sm:w-20"
+            "relative flex h-28 w-28 shrink-0 flex-col items-center justify-center gap-[5px] rounded-full border border-[#C8AE73] bg-[#FFFBef] px-2.5 pb-2.5 pt-[13px] text-navy shadow-[0_4px_12px_#47391b0a]",
+            "transition-colors hover:border-[#AE8A41] hover:bg-[#FFF8E4] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-navy"
           )}
         >
-          <Award className="h-4 w-4 text-gold sm:h-5 sm:w-5" aria-hidden="true" />
+          <span className="pointer-events-none absolute inset-[5px] rounded-full border border-[#E9DDBE]" aria-hidden="true" />
+          <Award className="h-[19px] w-[19px] shrink-0 text-[#AF8C43]" strokeWidth={1.4} aria-hidden="true" />
           <span
-            className="whitespace-nowrap px-1 text-center font-heading text-[10px] font-bold leading-none tracking-normal sm:text-xs"
+            className={cn("max-w-[88px] text-center font-heading font-medium tracking-normal", isRtl ? "text-[21px] leading-[26px]" : "text-[18px] leading-[18px]")}
             dir={isRtl ? "rtl" : "ltr"}
           >
             {t("title")}
           </span>
           <span
             className={cn(
-              "absolute -bottom-3 grid h-5 w-8 place-items-center rounded-full border border-gold/25 bg-[#F0E3C4] text-gold shadow-sm transition sm:-bottom-2 sm:h-6 sm:w-6",
+              "flex h-[13px] shrink-0 items-center justify-center text-[#AB8841]",
               isOpen && "rotate-180"
             )}
             aria-hidden="true"
           >
-            <ChevronDown className="h-3.5 w-3.5" />
+            <ChevronDown className="h-[13px] w-[13px]" strokeWidth={1.6} />
           </span>
         </button>
 
         {isOpen && (
+          <div className="w-full">
+          <div className="mx-auto h-[13px] w-px bg-[#C8AE73]" aria-hidden="true" />
           <div
             id={panelId}
-            className={cn(
-              "absolute top-0 w-[calc(100vw-7rem)] max-w-[300px] rounded-2xl border border-gold/25 bg-[#FFFDF8]/95 p-3 shadow-[0_18px_44px_rgba(15,27,45,0.16)] backdrop-blur",
-              isRtl ? "left-[4.75rem] text-right sm:left-[5.75rem]" : "right-[4.75rem] text-left sm:right-[5.75rem]"
-            )}
+            className="w-full rounded-lg border border-[#DFCFAC] bg-[#FFFDF8] px-[15px] pt-[5px] shadow-[0_6px_16px_#47391b08]"
             dir={isRtl ? "rtl" : "ltr"}
           >
-            <div className="mb-2 flex items-center justify-between gap-2 border-b border-gold/15 pb-2">
-              <h3 className="font-heading text-base font-bold text-navy">{t("title")}</h3>
-              <button
-                type="button"
-                aria-label={isRtl ? "סגור" : "Close"}
-                onClick={closePanel}
-                className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gold/10 text-gold transition hover:bg-gold/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
-              >
-                <X className="h-3.5 w-3.5" aria-hidden="true" />
-              </button>
-            </div>
-            <ol className={cn("space-y-1.5", showAll && "max-h-72 overflow-y-auto pr-1")}>
+            <ol aria-label={t("title")} className={cn(showAll && "max-h-72 overflow-y-auto [scrollbar-gutter:stable]")}>
               {visibleMatmidim.map((m, i) => (
                 <li
                   key={`${m.name}-${i}`}
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm"
-                  style={{ background: i % 2 === 0 ? "rgba(201,162,75,0.07)" : "transparent" }}
+                  className="grid min-h-[39px] grid-cols-[13px_minmax(0,1fr)_max-content] items-center gap-2 border-b border-[#EEE7DA] py-2.5 last:border-b-0"
                 >
                   <span
-                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold"
-                    style={{ background: "rgba(201,162,75,0.18)", color: "#8B6F2E" }}
+                    className="text-[10px] leading-[1.4] text-[#938A77] tabular-nums"
                   >
                     {fmtNum(i + 1, locale)}
                   </span>
-                  <span className="truncate font-serif text-navy" style={{ fontFamily: "'Frank Ruhl Libre', Georgia, serif" }}>
+                  <span className={cn("break-words text-xs leading-[1.6] text-navy [overflow-wrap:anywhere]", i === 0 && "font-medium")}>
                     {m.name}
                   </span>
-                  <span className="shrink-0 text-sm font-bold" style={{ color: "#C9A961" }}>
+                  <span className="text-end font-heading text-lg font-medium leading-[1.2] text-[#987735] tabular-nums">
                     {fmtNum(m.count, locale)}
                   </span>
                 </li>
               ))}
             </ol>
             {canToggleAll && (
-              <div className="mt-3 border-t border-gold/15 pt-2">
+              <div className="border-t border-[#E7DCC7]">
                 <button
                   type="button"
                   onClick={() => {
@@ -182,13 +161,15 @@ export function Leaderboard({ projectId, initial }: { projectId: string; initial
                     void loadAllMatmidim();
                   }}
                   disabled={loadingAll}
-                  className="flex w-full items-center justify-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-2 text-xs font-bold text-navy transition hover:bg-gold/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="flex min-h-11 w-full items-center justify-center gap-[7px] py-[11px] text-[11px] leading-[1.4] text-[#80642E] transition-colors hover:text-navy focus-visible:outline-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loadingAll && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
                   {showAll ? t("showTop") : t("showAll")}
+                  {!loadingAll && <ArrowRight className={cn("h-3 w-3 shrink-0", isRtl && "rotate-180")} aria-hidden="true" />}
                 </button>
               </div>
             )}
+          </div>
           </div>
         )}
       </div>
