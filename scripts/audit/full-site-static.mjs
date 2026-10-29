@@ -183,7 +183,8 @@ const collectionPattern = /\.collection\(\s*["']([^"']+)["']\s*\)/g;
 for (const rel of sourceFiles) {
   const text = read(rel);
   for (const match of text.matchAll(collectionPattern)) {
-    if (!match[1].startsWith("lzecher_")) {
+    const nestedBackupChunk = rel.replaceAll("\\", "/") === "src/lib/lzecher-backups.ts" && match[1] === "chunks" && text.slice(Math.max(0, match.index - 6), match.index) === "runRef" && text.includes('db.collection("lzecher_backup_runs").doc(');
+    if (!match[1].startsWith("lzecher_") && !nestedBackupChunk) {
       collectionProblems.push(`${rel}:${lineFor(text, match.index ?? 0)} -> ${match[1]}`);
     }
   }

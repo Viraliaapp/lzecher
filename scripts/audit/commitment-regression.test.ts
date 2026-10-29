@@ -91,7 +91,7 @@ test("interrupted 525-portion bulk reservation preserves only committed parent I
   db.failTransaction = -1;
   const resumed = await reserveClaims(db.asFirestore(), "p", ids, values, { access: false, parentId: "parent", parent: { scope: "shas" } });
   assert.equal(resumed.length, 325); assert.equal(db.data("lzecher_claims", "parent")!.portionIds.length, 525);
-  assert.equal((await db.collection("lzecher_claims").get()).size, 526); assert.ok(db.maxWrites <= 401);
+  assert.equal((await db.collection("lzecher_claims").get()).size, 526); assert.ok(db.maxWrites <= 402);
 });
 for (const scenario of ["missing", "locked", "protected", "foreign", "inclusive anonymous"]) test(`reservation rejects ${scenario}`, async () => {
   const db = fixture(scenario === "inclusive anonymous" ? "inclusive" : "exclusive");

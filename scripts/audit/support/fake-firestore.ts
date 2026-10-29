@@ -6,6 +6,8 @@ const copy = <T>(value: T): T => structuredClone(value);
 class Ref {
   constructor(readonly db: MemoryFirestore, readonly collectionName: string, readonly id: string) {}
   get path() { return `${this.collectionName}/${this.id}`; }
+  get firestore() { return this.db; }
+  collection(name: string) { return this.db.collection(`${this.path}/${name}`); }
   get parent() { return { id: this.collectionName }; }
   async get() { return this.db.snapshot(this); }
   async update(data: Data) { this.db.update(this, data); }
@@ -17,6 +19,7 @@ class Query {
     assert.ok(name.startsWith("lzecher_"), "No other application collections may be touched");
   }
   doc(id = `generated-${++this.db.sequence}`) { return new Ref(this.db, this.name, id); }
+  async add(data: Data) { const ref = this.doc(); await ref.set(data); return ref; }
   where(key: string, op: string, value: unknown) { assert.ok(["==", ">="].includes(op)); return new Query(this.db, this.name, [...this.filters, [key, op, value]], this.max, this.ordering); }
   count() { return { get: async () => { const snap = await this.get(); return { data: () => ({ count: snap.size }) }; } }; }
   orderBy(key: string, direction = "asc") { return new Query(this.db, this.name, this.filters, this.max, [key, direction]); }

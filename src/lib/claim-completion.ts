@@ -2,14 +2,16 @@ import type { Firestore } from "firebase-admin/firestore";
 import { ClaimError } from "./claim-management";
 import { getClaimMode } from "./track-config";
 import type { TrackType } from "./types";
+import { runLearningTransaction } from "./learning-transaction";
 
 type Completer = { uid: string | null; isAdmin?: boolean; name: string | null; email?: string | null };
 
 export async function completePortion(db: Firestore, projectId: string, portionId: string,
   actor: Completer, access: boolean, claimId?: string) {
-  return db.runTransaction(async tx => {
+  return runLearningTransaction(db, async tx => {
     const project = await tx.get(db.collection("lzecher_projects").doc(projectId));
     if (!project.exists) throw new ClaimError(404, "Project not found");
+    if (project.data()!.maintenanceLock || project.data()!.status === "deleted") throw new ClaimError(423, "Project unavailable");
     const ref = db.collection("lzecher_portions").doc(portionId);
     const snap = await tx.get(ref);
     if (!snap.exists) throw new ClaimError(404, "Portion not found");
@@ -34,7 +36,12 @@ export async function completePortion(db: Firestore, projectId: string, portionI
     // Preserve the deployed product's intentional named public completions.
     if (actor.uid !== owner && !actor.isAdmin && !actor.name) throw new ClaimError(400, "Name required");
     if (mode === "exclusive" && portion.status !== "claimed" && portion.status !== "completed") throw new ClaimError(409, "Portion is not taken");
-    const claims = mode === "exclusive" ? await tx.get(db.collection("lzecher_claims")
+    // Current reservations link the exact claim. Only legacy records need a query;
+    // avoiding a query here also keeps simultaneous completions narrowly locked.
+    const linkedClaim = mode === "exclusive" && portion.claimId
+      ? (claimRef?.id === portion.claimId ? claim : await tx.get(db.collection("lzecher_claims").doc(portion.claimId)))
+      : null;
+    const claims = mode === "exclusive" && !portion.claimId ? await tx.get(db.collection("lzecher_claims")
       .where("projectId", "==", projectId).where("portionId", "==", portionId)) : null;
     const changed = mode === "exclusive" ? portion.status !== "completed" : claim!.data()!.status !== "completed";
     const values = { status: "completed", completedAt: Date.now(), completedByName: actor.name,
@@ -42,8 +49,9 @@ export async function completePortion(db: Firestore, projectId: string, portionI
     if (mode === "exclusive") {
       if (changed) tx.update(ref, { ...values, completedByName: actor.name || portion.claimedByName || null });
       // Also repairs a prior interrupted completion where only the portion was saved.
-      for (const doc of claims!.docs) {
+      for (const doc of linkedClaim?.exists ? [linkedClaim] : claims?.docs || []) {
         const data = doc.data();
+        if (!data || data.projectId !== projectId || data.portionId !== portionId) continue;
         const current = portion.claimId ? portion.claimId === doc.id : data.userId === portion.claimedBy &&
           (data.claimedAt == null || portion.claimedAt == null || data.claimedAt === portion.claimedAt);
         if (current && data.status === "active" && !data.isParent) tx.update(doc.ref, values);
@@ -56,7 +64,9 @@ export async function completePortion(db: Firestore, projectId: string, portionI
 }
 
 export async function checkInClaim(db: Firestore, projectId: string, claimId: string, uid: string, now = Date.now(), collection: "lzecher_claims" | "lzecher_inclusive_claims" = "lzecher_claims") {
-  return db.runTransaction(async tx => {
+  return runLearningTransaction(db, async tx => {
+    const project = await tx.get(db.collection("lzecher_projects").doc(projectId));
+    if (project.data()?.maintenanceLock || project.data()?.status === "deleted") throw new ClaimError(423, "Project unavailable");
     const ref = db.collection(collection).doc(claimId);
     const snap = await tx.get(ref);
     if (!snap.exists) throw new ClaimError(404, "Claim not found");

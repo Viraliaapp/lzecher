@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdmin, requireSuperAdmin } from "@/lib/auth-roles";
+import { restoreProject, softDeleteProject } from "@/lib/project-lifecycle";
 
-const BATCH_CHUNK = 400;
-
-// POST /api/admin/projects/[id] — hide, unhide, or delete a project
+// POST /api/admin/projects/[id] — hide, unhide, soft-delete, or restore a project
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -28,6 +27,7 @@ export async function POST(
 
     if (action === "hide") {
       const decoded = await requireAdmin(idToken, "projects");
+      if (projectSnap.data()?.status === "deleted") return NextResponse.json({ error: "Restore the project first" }, { status: 409 });
       await projectRef.update({
         status: "hidden",
         hiddenBy: decoded.uid,
@@ -39,6 +39,7 @@ export async function POST(
 
     if (action === "unhide") {
       const decoded = await requireAdmin(idToken, "projects");
+      if (projectSnap.data()?.status === "deleted") return NextResponse.json({ error: "Restore the project first" }, { status: 409 });
       await projectRef.update({
         status: "active",
         unhiddenBy: decoded.uid,
@@ -58,47 +59,34 @@ export async function POST(
         );
       }
 
-      // Delete all portions
-      const portionsSnap = await db
-        .collection("lzecher_portions")
-        .where("projectId", "==", id)
-        .get();
-
-      // Delete all claims
-      const claimsSnap = await db
-        .collection("lzecher_claims")
-        .where("projectId", "==", id)
-        .get();
-
-      // Delete all reports for this project
-      const reportsSnap = await db
-        .collection("lzecher_reports")
-        .where("projectId", "==", id)
-        .get();
-      const emailsSnap = await db
-        .collection("lzecher_scheduled_emails")
-        .where("projectId", "==", id)
-        .get();
-      await deleteDocsInChunks(db, [
-        ...portionsSnap.docs,
-        ...claimsSnap.docs,
-        ...reportsSnap.docs,
-        ...emailsSnap.docs,
-      ]);
-
-      // Delete the project itself
-      await projectRef.delete();
-
-      // Audit log
-      await db.collection("lzecher_admin_audit").add({
-        action: "delete_project",
+      const result = await softDeleteProject({
+        db,
         projectId: id,
-        deletedBy: decoded.uid,
-        deletedAt: Date.now(),
-        projectData: projectSnap.data(),
+        actorUid: decoded.uid,
+        source: "super_admin_delete_project",
+        reason: reason || "manual_delete",
       });
 
-      return NextResponse.json({ success: true, action: "deleted" });
+      if (!result.deleted) {
+        return NextResponse.json({ error: "Project could not be deleted" }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        action: "deleted",
+        restoreUntil: result.restoreUntil || null,
+      });
+    }
+
+    if (action === "restore") {
+      const decoded = await requireSuperAdmin(idToken);
+      const result = await restoreProject({ projectId: id, actorUid: decoded.uid });
+      if (!result.restored) {
+        const status = result.reason === "restore_window_expired" ? 410 : 400;
+        return NextResponse.json({ error: result.reason, restoreUntil: result.restoreUntil || null }, { status });
+      }
+
+      return NextResponse.json({ success: true, action: "restored", status: result.status });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -109,18 +97,5 @@ export async function POST(
     }
     console.error("Admin action error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
-  }
-}
-
-async function deleteDocsInChunks(
-  db: FirebaseFirestore.Firestore,
-  docs: FirebaseFirestore.QueryDocumentSnapshot[]
-) {
-  for (let i = 0; i < docs.length; i += BATCH_CHUNK) {
-    const batch = db.batch();
-    for (const doc of docs.slice(i, i + BATCH_CHUNK)) {
-      batch.delete(doc.ref);
-    }
-    await batch.commit();
   }
 }

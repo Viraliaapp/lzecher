@@ -34,7 +34,7 @@ import { learningLabel } from "@/lib/learning-label";
 import { friendlyEmailError } from "@/lib/email-config";
 import { formatHebrewHonoreeName } from "@/lib/honoree-name";
 
-type Filter = "all" | "active" | "hidden" | "reported";
+type Filter = "all" | "active" | "hidden" | "reported" | "deleted";
 
 type SupportPriority = "low" | "normal" | "high" | "urgent";
 type SupportDraft = {
@@ -196,6 +196,18 @@ type SuperScheduledEmail = {
   lastError: string | null;
 };
 
+type ResetArchiveSummary = {
+  id: string;
+  createdAt: number;
+  expiresAt: number;
+  counts?: {
+    claims?: number;
+    portions?: number;
+    scheduledEmails?: number;
+  };
+  isExpired?: boolean;
+};
+
 type SuperAuditEntry = {
   id: string;
   action: string;
@@ -244,6 +256,7 @@ type SuperProjectDetail = {
   contactMessages: SuperContactMessage[];
   feedback: SuperFeedback[];
   scheduledEmails: { id: string; status: string | null; type: string | null; scheduledFor: number | null; recipientEmail: string | null; attempts?: number; lastError?: string | null }[];
+  resetArchives?: ResetArchiveSummary[];
 };
 
 type AdminRole = {
@@ -445,6 +458,7 @@ export default function AdminPage() {
     if (filter === "active" && p.status !== "active") return false;
     if (filter === "hidden" && p.status !== "hidden") return false;
     if (filter === "reported" && !(p as MemorialProject & { reportsCount?: number }).reportsCount) return false;
+    if (filter === "deleted" && p.status !== "deleted") return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
@@ -501,7 +515,7 @@ export default function AdminPage() {
             />
           </div>
           <div className="flex gap-2">
-            {(["all", "active", "hidden", "reported"] as const).map((f) => (
+            {(["all", "active", "hidden", "reported", "deleted"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -546,9 +560,11 @@ export default function AdminPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <a href={`/${locale}/memorial/${project.slug}`} target="_blank" rel="noopener">
-                      <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                    </a>
+                    {project.status !== "deleted" && (
+                      <a href={`/${locale}/memorial/${project.slug}`} target="_blank" rel="noopener">
+                        <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+                      </a>
+                    )}
                     <Button variant="ghost" size="icon" title="Share" onClick={() => setShareProject(project)}>
                       <Share2 className="h-4 w-4 text-navy/60" />
                     </Button>
@@ -564,11 +580,15 @@ export default function AdminPage() {
                         <Eye className="h-4 w-4 text-gold" />
                       </Button>
                     ) : null}
-                    {isSuperAdmin && (
+                    {isSuperAdmin && project.status === "deleted" ? (
+                      <Button variant="ghost" size="icon" onClick={() => handleAction("restore", project.id)} disabled={processing}>
+                        <RotateCw className="h-4 w-4 text-gold" />
+                      </Button>
+                    ) : isSuperAdmin ? (
                       <Button variant="ghost" size="icon" onClick={() => { setActionId(project.id); setDeleteDialogOpen(true); }}>
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
-                    )}
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>
@@ -797,13 +817,17 @@ function reminderStatusLabel(locale: string, status: string) {
     pending: "ממתין",
     sent: "נשלח",
     failed: "נכשל",
+    canceled: "בוטל",
     cancelled: "בוטל",
+    completed: "בוצע",
   };
   const en: Record<string, string> = {
     pending: "Pending",
     sent: "Sent",
     failed: "Failed",
+    canceled: "Canceled",
     cancelled: "Cancelled",
+    completed: "Completed",
   };
   return locale === "he" ? he[status] || status : en[status] || status;
 }
@@ -818,6 +842,10 @@ function reminderTypeLabel(locale: string, type?: string | null) {
     oneDayBefore: "יום לפני",
     dailyReminder: "תזכורת יומית",
     weeklyDigest: "סיכום שבועי",
+    creatorZeroClaimsTwoWeeks: "יוצר: שבועיים ללא מצטרפים",
+    creatorZeroClaimsThirtyDays: "יוצר: 30 יום ללא מצטרפים",
+    creatorZeroClaimsFinalWarning: "יוצר: התראה אחרונה",
+    creatorZeroClaimsAutoDelete: "יוצר: הסרה אוטומטית אם אין מצטרפים",
   };
   const en: Record<string, string> = {
     confirmation: "Confirmation",
@@ -827,6 +855,10 @@ function reminderTypeLabel(locale: string, type?: string | null) {
     oneDayBefore: "One day before",
     dailyReminder: "Daily reminder",
     weeklyDigest: "Weekly digest",
+    creatorZeroClaimsTwoWeeks: "Creator: 2 weeks with no learners",
+    creatorZeroClaimsThirtyDays: "Creator: 30 days with no learners",
+    creatorZeroClaimsFinalWarning: "Creator: final warning",
+    creatorZeroClaimsAutoDelete: "Creator: auto-remove if no learners",
   };
   return locale === "he" ? he[key] || key : en[key] || key;
 }
@@ -1002,6 +1034,7 @@ function SuperAdminPortal({ locale, initialRole }: { locale: string; initialRole
   const [openingProjectId, setOpeningProjectId] = useState<string | null>(null);
   const [recomputingProject, setRecomputingProject] = useState(false);
   const [resettingProjectClaims, setResettingProjectClaims] = useState(false);
+  const [restoringResetArchiveId, setRestoringResetArchiveId] = useState<string | null>(null);
   const [savingProjectControls, setSavingProjectControls] = useState(false);
   const [projectAnnouncement, setProjectAnnouncement] = useState("");
   const [projectDedication, setProjectDedication] = useState("");
@@ -1253,12 +1286,13 @@ function SuperAdminPortal({ locale, initialRole }: { locale: string; initialRole
 
   async function resetSelectedProjectClaims() {
     if (!selectedProjectId) return;
+    const expected = `RESET_${selectedProjectId}`;
     const typed = window.prompt(label(
       locale,
-      'פעולה זו מאפסת את כל חלוקת הלימוד בפרויקט הזה בלבד. להמשך הקלידו "אפס".',
-      'This resets all learning assignments for this project only. Type "reset" to continue.'
+      `אזהרה חשובה: פעולה זו מסירה מהדף החי את השמות, התאריכים והשיוכים של פרויקט זה. גיבוי מאומת יישמר לפני האיפוס למשך 7 ימים. אם תתווסף פעילות חדשה, השחזור ייחסם לבדיקה כדי לא לפגוע בה. הודעות ישנות לא יישלחו מחדש. להמשך הקלידו בדיוק: ${expected}`,
+      `Important warning: this removes live names, dates, and assignments for this project. A verified recovery archive is saved first for 7 days. New learning blocks automatic restore and requires review, so it cannot be overwritten. Old emails will not be replayed. Type exactly: ${expected}`
     ));
-    if (typed !== "אפס" && typed !== "reset") {
+    if (typed !== expected) {
       toast.error(label(locale, "האישור לא תאם", "Confirmation did not match"));
       return;
     }
@@ -1275,12 +1309,115 @@ function SuperAdminPortal({ locale, initialRole }: { locale: string; initialRole
         toast.error(data.error || label(locale, "לא ניתן לאפס חלוקת לימוד", "Could not reset learning assignments"));
         return;
       }
-      toast.success(label(locale, "חלוקת הלימוד אופסה", "Learning assignments reset"));
+      const undoUntil = typeof data.undoUntil === "number" ? formatTimestamp(data.undoUntil, locale) : "";
+      toast.success(label(
+        locale,
+        undoUntil ? `חלוקת הלימוד אופסה. ניתן לשחזר עד ${undoUntil}` : "חלוקת הלימוד אופסה",
+        undoUntil ? `Learning assignments reset. Undo is available until ${undoUntil}` : "Learning assignments reset"
+      ));
       await Promise.all([loadOverview(), loadProjectDetail(selectedProjectId)]);
     } catch {
       toast.error(label(locale, "לא ניתן לאפס חלוקת לימוד", "Could not reset learning assignments"));
     } finally {
       setResettingProjectClaims(false);
+    }
+  }
+
+  async function restoreProjectResetArchive(archiveId: string) {
+    if (!selectedProjectId) return;
+    const expected = `UNDO_${archiveId}`;
+    const typed = window.prompt(label(
+      locale,
+      `שחזור זה יחזיר את חלוקת הלימוד מלפני האיפוס. אם נוספה פעילות חדשה, השחזור ייחסם לבדיקה. הודעות ישנות לא יישלחו מחדש. להמשך הקלידו בדיוק: ${expected}`,
+      `This restores the learning state from before the reset. New learning blocks automatic restore and requires review. Old emails will not be replayed. Type exactly: ${expected}`
+    ));
+    if (typed !== expected) {
+      toast.error(label(locale, "האישור לא תאם", "Confirmation did not match"));
+      return;
+    }
+    setRestoringResetArchiveId(archiveId);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch(`/api/projects/${selectedProjectId}/reset-archives/${archiveId}/restore`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, confirmation: typed }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || label(locale, "לא ניתן לשחזר את האיפוס", "Could not restore reset archive"));
+        return;
+      }
+      toast.success(label(locale, "חלוקת הלימוד שוחזרה מהגיבוי", "Learning assignments restored from backup"));
+      await Promise.all([loadOverview(), loadProjectDetail(selectedProjectId)]);
+    } catch {
+      toast.error(label(locale, "לא ניתן לשחזר את האיפוס", "Could not restore reset archive"));
+    } finally {
+      setRestoringResetArchiveId(null);
+    }
+  }
+
+  async function softDeleteSelectedProject() {
+    if (!selectedProjectId) return;
+    const expected = `DELETE_PROJECT_${selectedProjectId}`;
+    const typed = window.prompt(label(
+      locale,
+      `הדף יוסר מהאתר ויישמר לשחזור במשך 60 יום. להמשך הקלידו ${expected}`,
+      `The page will be removed from the public site and restorable for 60 days. Type ${expected} to continue.`
+    ));
+    if (typed !== expected) {
+      toast.error(label(locale, "האישור לא תאם", "Confirmation did not match"));
+      return;
+    }
+    setSavingProjectControls(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch(`/api/admin/projects/${selectedProjectId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", idToken, confirmation: typed }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || label(locale, "לא ניתן למחוק את הפרויקט", "Could not delete project"));
+        return;
+      }
+      toast.success(label(locale, "הפרויקט הועבר למחיקה וניתן לשחזור במשך 60 יום", "Project moved to deleted and can be restored for 60 days"));
+      await Promise.all([loadOverview(), loadProjectDetail(selectedProjectId)]);
+    } catch {
+      toast.error(label(locale, "לא ניתן למחוק את הפרויקט", "Could not delete project"));
+    } finally {
+      setSavingProjectControls(false);
+    }
+  }
+
+  async function restoreSelectedProject() {
+    if (!selectedProjectId) return;
+    const confirmed = window.confirm(label(
+      locale,
+      "לשחזר את דף ההנצחה ולהחזיר אותו למצב הקודם?",
+      "Restore this memorial page to its previous status?"
+    ));
+    if (!confirmed) return;
+    setSavingProjectControls(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch(`/api/admin/projects/${selectedProjectId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "restore", idToken }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || label(locale, "לא ניתן לשחזר את הפרויקט", "Could not restore project"));
+        return;
+      }
+      toast.success(label(locale, "דף ההנצחה שוחזר", "Memorial page restored"));
+      await Promise.all([loadOverview(), loadProjectDetail(selectedProjectId)]);
+    } catch {
+      toast.error(label(locale, "לא ניתן לשחזר את הפרויקט", "Could not restore project"));
+    } finally {
+      setSavingProjectControls(false);
     }
   }
 
@@ -2799,7 +2936,7 @@ function SuperAdminPortal({ locale, initialRole }: { locale: string; initialRole
                           <p className="text-xs text-muted">{selectedProject.slug} · {selectedProject.createdByEmail || selectedProject.createdBy}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {selectedProject.slug && (portalIsSuperAdmin || !selectedProject.isPasswordProtected) && (
+                          {selectedProject.status !== "deleted" && selectedProject.slug && (portalIsSuperAdmin || !selectedProject.isPasswordProtected) && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -2814,8 +2951,33 @@ function SuperAdminPortal({ locale, initialRole }: { locale: string; initialRole
                             {recomputingProject ? <Spinner className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
                             {label(locale, "חשב מחדש", "Recompute")}
                           </Button>
+                          {portalIsSuperAdmin && selectedProject.status === "deleted" && (
+                            <Button size="sm" variant="outline" onClick={restoreSelectedProject} disabled={savingProjectControls}>
+                              {savingProjectControls ? <Spinner className="h-4 w-4" /> : <RotateCw className="h-4 w-4" />}
+                              {label(locale, "שחזר", "Restore")}
+                            </Button>
+                          )}
+                          {portalIsSuperAdmin && selectedProject.status !== "deleted" && (
+                            <Button size="sm" variant="outline" onClick={softDeleteSelectedProject} disabled={savingProjectControls} className="border-red-200 text-red-700 hover:bg-red-50">
+                              {savingProjectControls ? <Spinner className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                              {label(locale, "העבר למחיקה", "Move to deleted")}
+                            </Button>
+                          )}
                         </div>
                       </div>
+
+                      {selectedProject.status === "deleted" && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                          <p className="font-medium">{label(locale, "הפרויקט נמצא במחיקה זמנית", "Project is temporarily deleted")}</p>
+                          <p className="mt-1 text-xs">
+                            {label(
+                              locale,
+                              `אפשר לשחזר אותו עד ${formatTimestamp(Number(projectDetail?.project?.restoreUntil || 0), locale) || "60 יום ממועד המחיקה"}. לאחר מכן הוא יימחק לצמיתות.`,
+                              `It can be restored until ${formatTimestamp(Number(projectDetail?.project?.restoreUntil || 0), locale) || "60 days after deletion"}. After that it is permanently purged.`
+                            )}
+                          </p>
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                         {[
@@ -2872,25 +3034,73 @@ function SuperAdminPortal({ locale, initialRole }: { locale: string; initialRole
                             </Button>
                           </Link>
                         </div>
+                        {Array.isArray(projectDetail?.resetArchives) && projectDetail.resetArchives.length > 0 && (
+                          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50/70 p-3" dir={locale === "he" ? "rtl" : "ltr"}>
+                            <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-sm font-semibold text-amber-900">
+                                  {label(locale, "שחזורי איפוס זמינים", "Available reset restores")}
+                                </p>
+                                <p className="text-xs leading-relaxed text-amber-800">
+                                  {label(
+                                    locale,
+                                    "כל איפוס שומר גיבוי מאומת למשך 7 ימים. השחזור מחזיר שמות, תאריכים ושיוכים, בלי לשלוח שוב הודעות ישנות.",
+                                    "Every reset keeps a verified 7-day recovery archive. Restore brings back names, dates, and assignments without replaying old emails."
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {projectDetail.resetArchives.slice(0, 3).map((archive) => (
+                                <div key={archive.id} className="flex flex-col gap-2 rounded-md border border-amber-200 bg-white px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-navy">
+                                      {label(locale, "גיבוי איפוס", "Reset archive")} · {Number(archive.counts?.claims || 0).toLocaleString()} {label(locale, "שיוכים", "claims")}
+                                    </p>
+                                    <p className="text-xs text-muted">
+                                      {label(locale, "נוצר", "Created")}: {formatTimestamp(archive.createdAt, locale)} · {label(locale, "זמין עד", "Available until")}: {formatTimestamp(archive.expiresAt, locale)}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-amber-300 text-amber-800 hover:bg-amber-50"
+                                    disabled={restoringResetArchiveId === archive.id}
+                                    onClick={() => restoreProjectResetArchive(archive.id)}
+                                  >
+                                    {restoringResetArchiveId === archive.id ? <Spinner className="h-4 w-4" /> : <History className="h-4 w-4" />}
+                                    {label(locale, "שחזר", "Restore")}
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
                           <div>
                             <label className="mb-1 block text-xs font-medium text-muted">{label(locale, "סטטוס", "Status")}</label>
-                            <Select
-                              value={String(projectDetail?.project?.status || selectedProject.status || "active")}
-                              onValueChange={(value) => updateProjectControls({ status: value })}
-                              disabled={savingProjectControls}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {PROJECT_STATUS_OPTIONS.map((status) => (
-                                  <SelectItem key={status} value={status}>
-                                    {projectStatusLabel(locale, status)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            {selectedProject.status === "deleted" ? (
+                              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+                                {projectStatusLabel(locale, "deleted")}
+                              </div>
+                            ) : (
+                              <Select
+                                value={String(projectDetail?.project?.status || selectedProject.status || "active")}
+                                onValueChange={(value) => updateProjectControls({ status: value })}
+                                disabled={savingProjectControls}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {PROJECT_STATUS_OPTIONS.map((status) => (
+                                    <SelectItem key={status} value={status}>
+                                      {projectStatusLabel(locale, status)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                           </div>
                           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                             {[

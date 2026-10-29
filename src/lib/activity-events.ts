@@ -8,6 +8,7 @@ export interface ActivityEvent {
   honoreeHebrew: string;
   honoreeHonorific: string;
   claimedAt: number;
+  activityLabel?: Partial<Record<"he" | "en" | "es" | "fr", string>>;
 }
 export const ACTIVITY_TRACKS = new Set(["mishnayos", "tehillim", "kabalos", "shnayim_mikra", "daf_yomi"]);
 

@@ -2,9 +2,11 @@ import type { DocumentData, Firestore } from "firebase-admin/firestore";
 import { ClaimError } from "./claim-management";
 import { getClaimMode } from "./track-config";
 import type { TrackType } from "./types";
+import { runLearningTransaction } from "./learning-transaction";
 
 export function validateProject(project: DocumentData | undefined, access: boolean, uid?: string) {
   if (!project) throw new ClaimError(404, "Project not found");
+  if (project.maintenanceLock) throw new ClaimError(423, "Project recovery is in progress");
   if (project.locked) throw new ClaimError(423, "This memorial is locked");
   if (!["active", "completed", "pending_moderation"].includes(project.status)) {
     throw new ClaimError(403, "This memorial is not available");
@@ -14,7 +16,7 @@ export function validateProject(project: DocumentData | undefined, access: boole
 
 /** Availability, project access and the claim/portion write share one transaction.
  * Each chunk is independently durable; retrying a large interrupted reservation
- * skips already reserved portions. No Firestore transaction exceeds 401 writes. */
+ * skips already reserved portions. No Firestore transaction exceeds 402 writes. */
 export async function reserveClaims(
   db: Firestore, projectId: string, portionIds: string[], values: DocumentData,
   options: { access: boolean; allowInclusive?: boolean; parent?: DocumentData; parentId?: string },
@@ -23,7 +25,7 @@ export async function reserveClaims(
   const reserved: { id: string; claimId: string; data: DocumentData }[] = [];
   for (let offset = 0; offset < ids.length; offset += 200) {
     const chunk = ids.slice(offset, offset + 200);
-    const committed = await db.runTransaction(async (tx) => {
+    const committed = await runLearningTransaction(db, async (tx) => {
       const projectRef = db.collection("lzecher_projects").doc(projectId);
       const project = await tx.get(projectRef);
       validateProject(project.data(), options.access, values.userId);
@@ -69,6 +71,7 @@ export async function reserveClaims(
           portionIds: [...(parent?.data()?.portionIds || []), ...accepted.map(p => p.id)],
         });
       }
+      if (accepted.length) tx.update(projectRef, { hasEverHadActivity: true });
       return accepted;
     });
     reserved.push(...committed);

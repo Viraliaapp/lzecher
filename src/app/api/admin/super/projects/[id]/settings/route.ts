@@ -56,6 +56,7 @@ export async function POST(
     }
 
     const current = projectSnap.data() || {};
+    if (current.status === "deleted" || current.maintenanceLock) return NextResponse.json({ error: "Restore or finish recovery before editing this project" }, { status: 409 });
     const cleanedUpdates: Record<string, unknown> = {};
     const before: Record<string, unknown> = {};
     const after: Record<string, unknown> = {};

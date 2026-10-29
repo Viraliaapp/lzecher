@@ -17,6 +17,8 @@ const { reserveClaims } = require('./src/lib/claim-writes.ts');
 const { completePortion, checkInClaim } = require('./src/lib/claim-completion.ts');
 const { seedSetForTrack } = require('./src/lib/seed-set.ts');
 const { signToken, TTL } = require('./src/lib/signed-tokens.ts');
+const { restoreResetArchive } = require('./src/lib/reset-archive.ts');
+const { softDeleteProject, restoreProject, hardPurgeDeletedProject } = require('./src/lib/project-lifecycle.ts');
 const toolsRequire = createRequire(path.join(process.env.LZECHER_EMULATOR_TOOLS, 'package.json'));
 const { initializeTestEnvironment, assertFails, assertSucceeds } = toolsRequire('@firebase/rules-unit-testing');
 const { doc, setDoc, getDoc, updateDoc } = toolsRequire('firebase/firestore');
@@ -87,6 +89,7 @@ before(async () => {
   }
   routes = {}; deployed = {};
   routes.activity = await loadRoute('src/app/api/activity/recent/route.ts', 'activity');
+  routes.reset = await loadRoute('src/app/api/projects/[id]/reset-claims/route.ts', 'reset');
   for (const [name, file] of Object.entries({ single: 'src/app/api/claims/route.ts', multi: 'src/app/api/claims/multi/route.ts', bulk: 'src/app/api/claims/bulk/route.ts', complete: 'src/app/api/claims/complete/route.ts', manage: 'src/app/api/projects/[id]/claims/[claimId]/route.ts', batch: 'src/app/api/claims/complete-batch/route.ts', bulkComplete: 'src/app/api/claims/complete-bulk/route.ts', email: 'src/app/api/claims/mark-complete-via-link/route.ts' })) {
     routes[name] = await loadRoute(file, name);
     if (['single', 'multi', 'bulk', 'complete', 'manage'].includes(name)) deployed[name] = await loadRoute(file, name, true);
@@ -99,6 +102,51 @@ after(async () => {
   if (db) await db.terminate();
   await Promise.all(getApps().map(app => deleteApp(app)));
   assert.equal(state.queued.length, 0, 'No test may request reminder delivery');
+});
+
+test('recovery: reset archives exact names and reservations; undo restores them', { timeout: 90000 }, async () => {
+  const f = await fixture();
+  const response = await routes.single.POST(request({...f.body, claimerName: 'שם לשימור'}));
+  assert.equal(response.status,200);
+  const original = (await claimDocs(f.id)).map(d=>({id:d.id,data:d.data()}));
+  assert.equal((await routes.reset.POST(request({idToken:tokens.owner,confirmation:'reset'}),context(f.id))).status,400);
+  const reset = await routes.reset.POST(request({idToken:tokens.owner,confirmation:`RESET_${f.id}`}),context(f.id));
+  assert.equal(reset.status,200);const result=await reset.json();assert.ok(result.archiveId);assert.equal((await claimDocs(f.id)).length,0);
+  const restored=await restoreResetArchive({db,projectId:f.id,archiveId:result.archiveId,actorUid:uid('owner')});
+  assert.equal(restored.restored,true);
+  assert.deepEqual((await claimDocs(f.id)).map(d=>({id:d.id,data:d.data()})),original);
+  assert.equal((await db.collection('lzecher_portions').doc(f.portionId).get()).data().claimedByName,'שם לשימור');
+  assert.equal((await db.collection('lzecher_projects').doc(f.id).get()).data().maintenanceLock,undefined);
+});
+test('recovery: undo never overwrites a new reservation after reset', { timeout: 90000 }, async () => {
+  const f=await fixture();await routes.single.POST(request(f.body));
+  const reset=await (await routes.reset.POST(request({idToken:tokens.owner,confirmation:`RESET_${f.id}`}),context(f.id))).json();
+  assert.equal((await routes.single.POST(request({...f.body,claimerName:'New learner'}))).status,200);
+  const before=(await claimDocs(f.id)).map(d=>({id:d.id,data:d.data()}));
+  const result=await restoreResetArchive({db,projectId:f.id,archiveId:reset.archiveId,actorUid:uid('owner')});
+  assert.equal(result.restored,false);assert.equal(result.reason,'new_learning_requires_review');
+  assert.deepEqual((await claimDocs(f.id)).map(d=>({id:d.id,data:d.data()})),before);
+});
+test('recovery: soft deletion retains learning and restores within 60 days', { timeout: 90000 }, async () => {
+  const f=await fixture();await routes.single.POST(request(f.body));const before=(await claimDocs(f.id)).map(d=>d.data());
+  const result=await softDeleteProject({db,projectId:f.id,actorUid:uid('owner'),source:'test'});assert.equal(result.deleted,true);
+  assert.deepEqual((await claimDocs(f.id)).map(d=>d.data()),before);
+  assert.equal((await restoreProject({projectId:f.id,actorUid:uid('owner')})).restored,true);
+  assert.deepEqual((await claimDocs(f.id)).map(d=>d.data()),before);
+});
+test('recovery: inactivity removal refuses any project with reservations', { timeout: 90000 }, async () => {
+  const f=await fixture();await routes.single.POST(request(f.body));
+  const result=await softDeleteProject({db,projectId:f.id,actorUid:'system',source:'zero_claim_inactivity',requireZeroActivity:true});
+  assert.equal(result.deleted,false);assert.equal((await claimDocs(f.id)).length,1);
+});
+test('recovery: permanent purge refuses active or unexpired deleted projects', { timeout: 90000 }, async () => {
+  const f=await fixture();await routes.single.POST(request(f.body));
+  const p=(await db.collection('lzecher_projects').doc(f.id).get()).data();
+  assert.equal((await hardPurgeDeletedProject({db,projectId:f.id,projectData:p,now:Date.now(),source:'test'})).purged,false);
+  await softDeleteProject({db,projectId:f.id,actorUid:uid('owner'),source:'test'});
+  const deleted=(await db.collection('lzecher_projects').doc(f.id).get()).data();
+  assert.equal((await hardPurgeDeletedProject({db,projectId:f.id,projectData:deleted,now:Date.now(),source:'test'})).purged,false);
+  assert.equal((await claimDocs(f.id)).length,1);
 });
 
 test('activity: real bulk reservation yields exact chapter count beyond the 80-document feed window', { timeout: 90000 }, async () => {

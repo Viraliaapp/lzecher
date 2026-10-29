@@ -7,6 +7,7 @@ import {
   normalizeIsoDate,
   normalizeProjectType,
 } from "@/lib/project-purpose";
+import { queueCreatorZeroClaimNudges } from "@/lib/creator-zero-claim-nudges";
 import type { TrackType } from "@/lib/types";
 
 const FIRESTORE_WRITE_CHUNK = 450;
@@ -361,6 +362,20 @@ export async function POST(request: NextRequest) {
       await userRef.update({
         projectsCreated: (userSnap.data()?.projectsCreated || 0) + 1,
       });
+    }
+
+    try {
+      await queueCreatorZeroClaimNudges({
+        projectId: projectRef.id,
+        projectSlug: slug,
+        creatorUserId: uid,
+        creatorEmail: email || null,
+        locale: normalizedLocale,
+        honoreeName: [nameHebrewClean, familyNameHebrewClean, honorificClean].filter(Boolean).join(" "),
+        createdAt: now,
+      });
+    } catch (nudgeErr) {
+      console.error("[project-create] Failed to queue creator zero-claim nudges:", nudgeErr);
     }
 
     return NextResponse.json({

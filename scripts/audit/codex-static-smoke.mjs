@@ -65,8 +65,9 @@ const collectionPattern = /\.collection\(\s*["']([^"']+)["']\s*\)/g;
 for (const rel of sourceFiles) {
   const text = read(rel);
   for (const match of text.matchAll(collectionPattern)) {
+    const nestedBackupChunk = rel.replaceAll("\\", "/") === "src/lib/lzecher-backups.ts" && match[1] === "chunks" && text.slice(Math.max(0, match.index - 6), match.index) === "runRef" && text.includes('db.collection("lzecher_backup_runs").doc(');
     assert(
-      match[1].startsWith("lzecher_"),
+      match[1].startsWith("lzecher_") || nestedBackupChunk,
       `Unsafe Firestore collection in ${rel}: ${match[1]}`
     );
   }
@@ -128,7 +129,7 @@ const claimCompletion = read("src/lib/claim-completion.ts");
 const claimManagement = read("src/lib/claim-management.ts");
 const bulkRoute = read("src/app/api/claims/bulk/route.ts");
 assert(
-  bulkRoute.includes("reserveClaims") && claimWrites.includes("offset += 200") && claimWrites.includes("runTransaction"),
+  bulkRoute.includes("reserveClaims") && claimWrites.includes("offset += 200") && claimWrites.includes("runLearningTransaction") && read("src/lib/learning-transaction.ts").includes("db.runTransaction(work)"),
   "Bulk claims route should stay under the Firestore batch limit"
 );
 assert(
@@ -161,7 +162,7 @@ assert(
 
 const completeBulkRoute = read("src/app/api/claims/complete-bulk/route.ts");
 assert(
-  completeBulkRoute.includes("completePortion") && claimCompletion.includes("runTransaction"),
+  completeBulkRoute.includes("completePortion") && claimCompletion.includes("runLearningTransaction"),
   "Bulk completion route should stay under the Firestore batch limit"
 );
 assert(
@@ -187,7 +188,7 @@ assert(
     claimCompletion.includes("portion.projectId !== projectId") &&
     claimCompletion.includes("claim.data()!.projectId !== projectId || claim.data()!.portionId !== portionId") &&
     claimCompletion.includes('.where("projectId", "==", projectId)') &&
-    completeRoute.includes("completePortion") && claimCompletion.includes("runTransaction"),
+    completeRoute.includes("completePortion") && claimCompletion.includes("runLearningTransaction"),
   "Single completion must verify project, portion, and claim ownership before writing"
 );
 
@@ -246,7 +247,7 @@ assert(
     claimManagement.includes("data.projectId !== projectId") &&
     claimManagement.includes("siblings.docs") &&
     claimManagement.includes("claimerNames: names") &&
-    claimManagement.includes("runTransaction"),
+    claimManagement.includes("runLearningTransaction"),
   "Creator claim edit/delete routes must verify portions stay inside the selected Lzecher project and keep inclusive names in sync"
 );
 
@@ -386,13 +387,13 @@ assert(
 );
 
 const creatorDeleteRoute = read("src/app/api/projects/[id]/delete/route.ts");
+const lifecycle = read("src/lib/project-lifecycle.ts");
 assert(
-  creatorDeleteRoute.includes("deletedProjectSummary") &&
-    !creatorDeleteRoute.includes("projectData: projectData") &&
-    creatorDeleteRoute.includes('collection("lzecher_contact_messages").where("projectId", "==", id)') &&
-    creatorDeleteRoute.includes('collection("lzecher_project_photos").doc(id)') &&
-    creatorDeleteRoute.includes('prefix: `lzecher/photos/${creatorUid}/${id}`'),
-  "Creator delete must sanitize audit data, delete contact messages, and clean only Lzecher-scoped photos"
+  creatorDeleteRoute.includes("softDeleteProject") && !creatorDeleteRoute.includes(".delete()") &&
+    lifecycle.includes("60 * DAY_MS") && lifecycle.includes("deletedProjectSummary") &&
+    lifecycle.includes('"lzecher_contact_messages"') && lifecycle.includes('collection("lzecher_project_photos")') &&
+    lifecycle.includes('prefix: `lzecher/photos/${creatorUid}/${params.projectId}`'),
+  "Creator delete must preserve records for 60 days; eventual purge stays Lzecher-scoped"
 );
 
 const photoRoute = read("src/app/api/projects/photo/route.ts");

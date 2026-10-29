@@ -10,6 +10,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { recomputeGlobalStats } from "@/lib/recompute-global";
 import { hasAdminPermission, verifyToken } from "@/lib/auth-roles";
+import { archiveProjectLearningState } from "@/lib/reset-archive";
+import { FieldValue } from "firebase-admin/firestore";
 
 const BATCH_CHUNK = 400;
 
@@ -35,11 +37,18 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    if (confirmation !== "אפס" && confirmation !== "reset") {
-      return NextResponse.json({ error: 'Type "אפס" to confirm reset' }, { status: 400 });
+    if (confirmation !== `RESET_${id}`) {
+      return NextResponse.json({ error: `Type RESET_${id} to confirm reset` }, { status: 400 });
     }
 
-    // 1. Delete all claims for this project
+    await db.runTransaction(async tx => {
+      const current = await tx.get(projectRef);
+      if (current.data()?.maintenanceLock || current.data()?.status === "deleted") throw new Error("Project unavailable for reset");
+      tx.update(projectRef, { maintenanceLock: { action: "reset", startedAt: Date.now(), actorUid: decoded.uid }, hasEverHadActivity: true });
+    });
+    const archive = await archiveProjectLearningState({ db, projectId: id, projectData, actorUid: decoded.uid, reason: "reset_claims" });
+
+    // Only mutate after the complete recovery archive has been durably written.
     const claimsSnap = await db.collection("lzecher_claims").where("projectId", "==", id).get();
     for (let i = 0; i < claimsSnap.docs.length; i += BATCH_CHUNK) {
       const batch = db.batch();
@@ -78,6 +87,11 @@ export async function POST(
           claimedBy: null,
           claimedByName: null,
           claimedAt: null,
+          claimId: null,
+          claimedByParentClaimId: null,
+          completedByName: null,
+          completedByEmail: null,
+          completedByUid: null,
           completedAt: null,
           deadline: null,
           currentClaimerCount: 0,
@@ -101,6 +115,8 @@ export async function POST(
       claimedByTrack: {},
       topMatmidim: [],
       updatedAt: Date.now(),
+      maintenanceLock: FieldValue.delete(),
+      lastResetArchiveId: archive.archiveId,
     });
 
     // Refresh the platform-wide aggregate after the reset. Non-fatal.
@@ -121,7 +137,7 @@ export async function POST(
       extraSetsRemoved: Math.max(0, (projectData.totalSets || 1) - 1),
     });
 
-    return NextResponse.json({ success: true, claimsDeleted: claimsSnap.size, portionsReset: setOnePortions.length });
+    return NextResponse.json({ success: true, claimsDeleted: claimsSnap.size, portionsReset: setOnePortions.length, archiveId: archive.archiveId, undoUntil: archive.expiresAt });
   } catch (err) {
     console.error("[reset-claims]", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

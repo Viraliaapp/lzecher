@@ -120,9 +120,9 @@ async function run() {
   await check("partial settings payload retains defaults without crashing", async () => {
     await mount({ malformedSettings: true }); equal(text().length, 1);
   });
-  await check("initial feed shows only the newest available event, including activity older than a day", async () => {
+  await check("initial feed shows the newest three available events, including activity older than a day", async () => {
     await mount({ events: [event(1), event(3), event(2), event(4, { claimedAt: base - 25 * 3600000 })] });
-    assert(text()[0]?.includes("Learner 3"), "Newest event shown"); equal(text().length, 1);
+    assert(text()[0]?.includes("Learner 3"), "Newest event shown"); equal(text().length, 3);
     await mount({ events: [event(1, { claimedAt: base - 25 * 3600000 })] }); equal(text().length, 1);
   });
   await check("year-old latest activity displays once, keeps truthful wording and never repeats on unchanged polls", async () => {
@@ -181,7 +181,7 @@ async function run() {
     await mount({ events: [event(2, { name, trackType: "mishnayos" })] }, locale);
     equal(text().length, 1); assert(text()[0].includes(name), "Name rendered as text");
     equal(document.querySelectorAll("#fixture img").length, 0);
-    const expected = { en: "2 Mishnah chapters", he: "2 פרקי משניות", es: "2 capítulos de Mishná", fr: "2 chapitres de Michna" }[locale]!;
+    const expected = { en: "2 perakim of Mishnayos", he: "שני פרקים", es: "2 capítulos de Mishnayot", fr: "2 chapitres de Michna" }[locale]!;
     assert(text()[0].includes(expected), "Correct chapter unit");
     equal(document.querySelector<HTMLElement>("#fixture [aria-live] p")!.parentElement!.style.direction, locale === "he" ? "rtl" : "ltr");
   });

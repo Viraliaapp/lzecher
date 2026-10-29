@@ -12,7 +12,10 @@ export type ReminderType =
   | "threeDaysBefore"
   | "oneDayBefore"
   | "dailyReminder"
-  | "weeklyDigest";
+  | "weeklyDigest"
+  | "creatorZeroClaimsTwoWeeks"
+  | "creatorZeroClaimsThirtyDays"
+  | "creatorZeroClaimsFinalWarning";
 
 export interface ReminderTemplateArgs {
   honoreeName: string;
@@ -143,6 +146,112 @@ function body(text: string): string {
 
 function badge(text: string): string {
   return `<div style="display:inline-block;background:#FAF6EC;border:1px solid #C9A961;border-radius:8px;padding:6px 14px;font-size:13px;color:#0F1B2D;font-style:italic;margin:0 0 20px;">${text}</div>`;
+}
+
+function creatorZeroClaimsTemplate(stage: 1 | 2 | 3): Record<ReminderLocale, (args: ReminderTemplateArgs) => ReminderEmail> {
+  const subjectPrefix = {
+    en: stage === 1 ? "Your memorial page is still waiting for its first learner" : stage === 2 ? "Important reminder: no one has joined the learning yet" : "Final warning: the page will be removed in 3 days if no one joins",
+    he: stage === 1 ? "דף ההנצחה עדיין ממתין למצטרפים" : stage === 2 ? "תזכורת חשובה: עדיין לא הצטרפו ללימוד" : "התראה אחרונה: הדף יוסר בעוד 3 ימים אם לא יצטרפו ללימוד",
+    es: stage === 1 ? "Tu pagina aun espera a su primer participante" : stage === 2 ? "Recordatorio importante: aun nadie se unio al estudio" : "Aviso final: la pagina se quitara en 3 dias si nadie se une",
+    fr: stage === 1 ? "Votre page attend encore son premier participant" : stage === 2 ? "Rappel important : personne n'a encore rejoint l'etude" : "Dernier avertissement : la page sera retiree dans 3 jours si personne ne rejoint",
+  } satisfies Record<ReminderLocale, string>;
+
+  const headingText = {
+    en: stage === 1 ? "Two weeks have passed, and the page is still waiting." : stage === 2 ? "After 30 days, the page still has no learning taken." : "This is the final warning before the inactive page is removed.",
+    he: stage === 1 ? "עברו שבועיים, והדף עדיין ממתין למצטרפים." : stage === 2 ? "עברו 30 יום, ועדיין לא נלקח שום חלק ללימוד." : "זו ההתראה האחרונה לפני הסרת דף שאינו פעיל.",
+    es: stage === 1 ? "Pasaron dos semanas y la pagina aun espera." : stage === 2 ? "Despues de 30 dias, la pagina aun no tiene estudio tomado." : "Este es el ultimo aviso antes de retirar una pagina inactiva.",
+    fr: stage === 1 ? "Deux semaines sont passees et la page attend encore." : stage === 2 ? "Apres 30 jours, aucune etude n'a encore ete prise." : "Ceci est le dernier avertissement avant le retrait d'une page inactive.",
+  } satisfies Record<ReminderLocale, string>;
+
+  const bodyText = {
+    en: stage === 1
+      ? "No learning has been taken yet on this memorial page. The most helpful next step is to send the link to family, friends, or a group chat with a short personal note."
+      : stage === 2
+        ? "This page still has zero learning taken. Please share it again with the people closest to the neshama so the learning can begin."
+        : "If no one takes even one part of learning in the next 3 days, this inactive page will be removed from the public site. If anyone joins, the removal is canceled automatically.",
+    he: stage === 1
+      ? "עדיין לא נלקחו חלקים ללימוד בדף ההנצחה. הצעד שעוזר הכי הרבה הוא לשלוח את הקישור למשפחה, לחברים או לקבוצה עם כמה מילים אישיות."
+      : stage === 2
+        ? "בדף הזה עדיין לא נלקח שום חלק ללימוד. כדאי לשתף את הקישור שוב עם הקרובים לנשמה כדי שהלימוד יתחיל."
+        : "אם לא יילקח אפילו חלק אחד ללימוד בשלושת הימים הקרובים, הדף שאינו פעיל יוסר מהאתר. אם מישהו יצטרף, ההסרה תבוטל אוטומטית.",
+    es: stage === 1
+      ? "Aun nadie tomo una parte de estudio en esta pagina. El paso mas util es enviar el enlace a familiares, amigos o un grupo con unas palabras personales."
+      : stage === 2
+        ? "Esta pagina sigue sin ningun estudio tomado. Comparta el enlace otra vez con las personas mas cercanas a la neshama para que el estudio pueda comenzar."
+        : "Si nadie toma ni una parte de estudio en los proximos 3 dias, esta pagina inactiva sera retirada del sitio publico. Si alguien se une, la retirada se cancela automaticamente.",
+    fr: stage === 1
+      ? "Personne n'a encore pris de partie d'etude sur cette page. Le geste le plus utile est d'envoyer le lien a la famille, aux amis ou a un groupe avec quelques mots personnels."
+      : stage === 2
+        ? "Cette page n'a toujours aucune etude prise. Partagez de nouveau le lien avec les personnes les plus proches de la neshama afin que l'etude commence."
+        : "Si personne ne prend au moins une partie d'etude dans les 3 prochains jours, cette page inactive sera retiree du site public. Si quelqu'un rejoint, le retrait est annule automatiquement.",
+  } satisfies Record<ReminderLocale, string>;
+
+  return {
+    en: ({ honoreeName, link, dashboardLink }) => ({
+      subject: `${subjectPrefix.en} for ${honoreeName}`,
+      body: emailWrapper(
+        `
+        ${heading(headingText.en)}
+        ${badge(`L'iluy Nishmas ${honoreeName}`)}
+        ${body(bodyText.en)}
+        ${body(`Every person who joins adds another zechus for the neshama.`)}
+        ${ctaButton(link, "Open memorial page")}
+        ${dashboardLink ? secondaryButton(dashboardLink, VIEW_DASHBOARD_TEXT.en) : ""}
+        `,
+        TAGLINES.en,
+        "ltr",
+        "en"
+      ),
+    }),
+    he: ({ honoreeName, link, dashboardLink }) => ({
+      subject: `${subjectPrefix.he} לעילוי נשמת ${honoreeName}`,
+      body: emailWrapper(
+        `
+        ${heading(headingText.he)}
+        ${badge(`לעילוי נשמת ${honoreeName}`)}
+        ${body(bodyText.he)}
+        ${body(`כל מצטרף מוסיף עוד זכות לנשמה.`)}
+        ${ctaButton(link, "פתח את דף ההנצחה")}
+        ${dashboardLink ? secondaryButton(dashboardLink, VIEW_DASHBOARD_TEXT.he) : ""}
+        `,
+        TAGLINES.he,
+        "rtl",
+        "he"
+      ),
+    }),
+    es: ({ honoreeName, link, dashboardLink }) => ({
+      subject: `${subjectPrefix.es} por ${honoreeName}`,
+      body: emailWrapper(
+        `
+        ${heading(headingText.es)}
+        ${badge(`L'iluy Nishmas ${honoreeName}`)}
+        ${body(bodyText.es)}
+        ${body(`Cada persona que se une agrega otro merito para la neshama.`)}
+        ${ctaButton(link, "Abrir pagina del memorial")}
+        ${dashboardLink ? secondaryButton(dashboardLink, VIEW_DASHBOARD_TEXT.es) : ""}
+        `,
+        TAGLINES.es,
+        "ltr",
+        "es"
+      ),
+    }),
+    fr: ({ honoreeName, link, dashboardLink }) => ({
+      subject: `${subjectPrefix.fr} pour ${honoreeName}`,
+      body: emailWrapper(
+        `
+        ${heading(headingText.fr)}
+        ${badge(`L'iluy Nishmas ${honoreeName}`)}
+        ${body(bodyText.fr)}
+        ${body(`Chaque personne qui rejoint ajoute un merite pour la neshama.`)}
+        ${ctaButton(link, "Ouvrir la page de memorial")}
+        ${dashboardLink ? secondaryButton(dashboardLink, VIEW_DASHBOARD_TEXT.fr) : ""}
+        `,
+        TAGLINES.fr,
+        "ltr",
+        "fr"
+      ),
+    }),
+  };
 }
 
 // ─── Taglines per locale ──────────────────────────────────────────────────────
@@ -711,6 +820,9 @@ const templates: Record<
       ),
     }),
   },
+  creatorZeroClaimsTwoWeeks: creatorZeroClaimsTemplate(1),
+  creatorZeroClaimsThirtyDays: creatorZeroClaimsTemplate(2),
+  creatorZeroClaimsFinalWarning: creatorZeroClaimsTemplate(3),
 };
 
 /**

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { SEO_TOPIC_SLUGS } from "@/lib/seo-topic-pages";
 
 const BASE_URL = "https://lzecher.com";
 const LOCALES = ["en", "he", "es", "fr"];
@@ -11,7 +12,8 @@ const STATIC_ROUTES = [
   { path: "/privacy", changeFrequency: "monthly" as const, priority: 0.3 },
   { path: "/terms", changeFrequency: "monthly" as const, priority: 0.3 },
   { path: "/contact", changeFrequency: "monthly" as const, priority: 0.4 },
-  { path: "/login", changeFrequency: "monthly" as const, priority: 0.5 },
+  { path: "/memorials", changeFrequency: "weekly" as const, priority: 0.8 },
+  ...SEO_TOPIC_SLUGS.map(slug => ({ path: `/${slug}`, changeFrequency: "monthly" as const, priority: 0.9 })),
   { path: "/create", changeFrequency: "monthly" as const, priority: 0.6 },
 ];
 

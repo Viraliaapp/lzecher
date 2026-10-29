@@ -78,6 +78,8 @@ export async function seedSetForTrack(
   for (let i = 0; i < items.length; i += BATCH_CHUNK) {
     const chunk = items.slice(i, i + BATCH_CHUNK);
     created += await db.runTransaction(async tx => {
+      const project = await tx.get(db.collection("lzecher_projects").doc(projectId));
+      if (project.data()?.maintenanceLock || project.data()?.status === "deleted") throw new Error("Project recovery is in progress");
       const snapshots = await tx.getAll(...chunk.map(item => item.ref));
       let count = 0;
       for (let j = 0; j < chunk.length; j++) {

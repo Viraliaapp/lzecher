@@ -60,7 +60,7 @@ export interface MemorialProject {
   announcementAt?: number | null;
   locked?: boolean; // when true, no new claims accepted (still viewable)
   customDedication?: string | null; // message shown at the top of the memorial page
-  status: "active" | "completed" | "archived" | "pending_moderation" | "hidden";
+  status: "active" | "completed" | "archived" | "pending_moderation" | "hidden" | "deleted";
   repeatingSetEnabled?: boolean; // default true for mishnayos/tehillim
 
   // Completion target

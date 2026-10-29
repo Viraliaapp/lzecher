@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { getClaimMode } from "./track-config";
 import type { TrackType } from "./types";
+import { runLearningTransaction } from "./learning-transaction";
 
 export class ClaimError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -20,11 +21,12 @@ export async function manageClaim(
   action: { type: "rename"; name: string } | { type: "delete" },
 ) {
   const name = action.type === "rename" ? claimName(action.name) : null;
-  await db.runTransaction(async (tx) => {
+  await runLearningTransaction(db, async (tx) => {
     const projectRef = db.collection("lzecher_projects").doc(projectId);
     const claimRef = db.collection("lzecher_claims").doc(claimId);
     const project = await tx.get(projectRef);
     if (!project.exists) throw new ClaimError(404, "Project not found");
+    if (project.data()!.maintenanceLock) throw new ClaimError(423, "Project recovery is in progress");
     if (project.data()!.createdBy !== actor.uid && !actor.isAdmin && !actor.isSuperAdmin) {
       throw new ClaimError(403, "Forbidden");
     }

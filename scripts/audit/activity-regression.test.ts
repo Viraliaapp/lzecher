@@ -22,7 +22,7 @@ test("actual reservation writer -> activity -> localized popup contract counts a
   const events = await getRecentActivity(db.asFirestore(), now);
   assert.equal(events.length,1); assert.equal(events[0].count,525);
   assert.equal(recentActivityEvents(events,now).length,1);
-  assert.match(activitySentence(events[0],"en"),/525 Mishnah chapters/);
+  assert.match(activitySentence(events[0],"en"),/Shas Mishnayos/);
   assert.equal(JSON.stringify(events).includes("private@example.test"),false);
 });
 
@@ -92,7 +92,7 @@ test("oversized bulk is omitted instead of publishing a partial count; single ev
 });
 
 test("Mishnah reservations are chapters in all four languages; names remain ordinary text", () => {
-  for(const [locale,one,many] of [["en","1 Mishnah chapter","2 Mishnah chapters"],["he","פרק משניות","2 פרקי משניות"],["es","1 capítulo de Mishná","2 capítulos de Mishná"],["fr","1 chapitre de Michna","2 chapitres de Michna"]]) {
+  for(const [locale,one,many] of [["en","1 perek of Mishnayos","2 perakim of Mishnayos"],["he","פרק אחד","שני פרקים"],["es","1 capítulo de Mishná","2 capítulos de Mishnayot"],["fr","1 chapitre de Michna","2 chapitres de Michna"]]) {
     assert.equal(unitLabel("mishnayos",1,locale),one);assert.equal(unitLabel("mishnayos",2,locale),many);
     assert.ok(activitySentence({name:null,count:1,trackType:"tehillim",honoreeHebrew:"Memorial",honoreeHonorific:""},locale).includes("Memorial"));
   }

@@ -3,6 +3,7 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdmin } from "@/lib/auth-roles";
 import { computeProgress } from "@/lib/progress";
 import { computeTopMatmidim } from "@/lib/recompute-progress";
+import { listAvailableResetArchives } from "@/lib/reset-archive";
 
 type DocWithId = FirebaseFirestore.DocumentData & { id: string };
 
@@ -146,6 +147,7 @@ export async function POST(
       contactsSnap,
       feedbackSnap,
       emailsSnap,
+      resetArchives,
     ] = await Promise.all([
       db.collection("lzecher_portions").where("projectId", "==", id).get(),
       db.collection("lzecher_claims").where("projectId", "==", id).get(),
@@ -153,6 +155,7 @@ export async function POST(
       db.collection("lzecher_contact_messages").where("projectId", "==", id).get().catch(() => null),
       db.collection("lzecher_feedback").orderBy("submittedAt", "desc").limit(200).get().catch(() => null),
       db.collection("lzecher_scheduled_emails").where("projectId", "==", id).limit(50).get().catch(() => null),
+      listAvailableResetArchives({ db, projectId: id }).catch(() => []),
     ]);
 
     const portions = portionsSnap.docs.map(withId);
@@ -223,6 +226,7 @@ export async function POST(
             };
           })
         : [],
+      resetArchives,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

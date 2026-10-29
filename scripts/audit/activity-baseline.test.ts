@@ -61,6 +61,6 @@ test("before/after: both released and fixed routes retain the latest 25-hour-old
 });
 test("before/after: exact released formatter calls a chapter one Mishnah; fixed identifies chapter units", () => {
   assert.equal(oldFormat.unitLabel("mishnayos", 1, "en"), "1 Mishnah");
-  assert.equal(unitLabel("mishnayos", 1, "en"), "1 Mishnah chapter");
+  assert.equal(unitLabel("mishnayos", 1, "en"), "1 perek of Mishnayos");
   for (const locale of ["en", "he", "es", "fr"]) assert.notEqual(oldFormat.unitLabel("mishnayos", 2, locale), unitLabel("mishnayos", 2, locale));
 });

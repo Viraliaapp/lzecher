@@ -24,6 +24,18 @@ const TRACK_LABELS: Record<TrackType, string> = {
   daf_yomi: "דף יומי",
 };
 
+type ResetArchiveSummary = {
+  id: string;
+  createdAt: number;
+  expiresAt: number;
+  counts?: {
+    claims?: number;
+    portions?: number;
+    scheduledEmails?: number;
+  };
+  isExpired?: boolean;
+};
+
 export default function CreatorEditPage({ params }: { params: Promise<{ locale: string; id: string }> }) {
   const { id } = use(params);
   const locale = useLocale();
@@ -66,9 +78,14 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
 
   // Danger zone
   const [resetConfirm, setResetConfirm] = useState("");
+  const [resetSafetyChecked, setResetSafetyChecked] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [showResetSection, setShowResetSection] = useState(false);
   const [showDeleteSection, setShowDeleteSection] = useState(false);
+  const [resetArchives, setResetArchives] = useState<ResetArchiveSummary[]>([]);
+  const [loadingResetArchives, setLoadingResetArchives] = useState(false);
+  const [restoringArchiveId, setRestoringArchiveId] = useState<string | null>(null);
+  const [restoreConfirmByArchive, setRestoreConfirmByArchive] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (authLoading) return;
@@ -114,6 +131,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         const tracks = Array.isArray(data.tracks) ? data.tracks : [];
         setOriginalTracks(tracks);
         setSelectedTracks(tracks);
+        void loadResetArchives();
       } catch (err) {
         console.error("[edit] load failed", err);
         toast.error(locale === "he" ? "לא ניתן לטעון את ההנצחה" : "Failed to load project");
@@ -125,6 +143,33 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
 
   function toggleTrack(track: TrackType) {
     setSelectedTracks(prev => prev.includes(track) ? prev.filter(t => t !== track) : [...prev, track]);
+  }
+
+  function formatRestoreTime(value?: number) {
+    if (!value) return locale === "he" ? "לא ידוע" : "Unknown";
+    return new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  }
+
+  async function loadResetArchives() {
+    setLoadingResetArchives(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) return;
+      const res = await fetch(`/api/projects/${id}/reset-archives`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.archives)) {
+        setResetArchives(data.archives);
+      }
+    } catch (err) {
+      console.error("[edit] reset archive load failed", err);
+    } finally {
+      setLoadingResetArchives(false);
+    }
   }
 
   async function handleSave() {
@@ -209,8 +254,13 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
   }
 
   async function handleResetClaims() {
-    if (resetConfirm !== "אפס" && resetConfirm !== "reset") {
-      toast.error(locale === "he" ? 'הזן "אפס" לאישור' : 'Type "reset" to confirm');
+    const expected = `RESET_${id}`;
+    if (resetConfirm.trim() !== expected) {
+      toast.error(locale === "he" ? "האישור לא תאם" : "Confirmation did not match");
+      return;
+    }
+    if (!resetSafetyChecked) {
+      toast.error(locale === "he" ? "יש לאשר שהבנתם את משמעות האיפוס" : "Please confirm you understand the reset");
       return;
     }
     setResetting(true);
@@ -219,21 +269,63 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
       const res = await fetch(`/api/projects/${id}/reset-claims`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken, confirmation: resetConfirm }),
+        body: JSON.stringify({ idToken, confirmation: resetConfirm.trim() }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(locale === "he" ? "לא ניתן לאפס את חלוקת הלימוד" : (data.error || "Reset failed"));
         return;
       }
-      toast.success(locale === "he" ? "כל חלוקת הלימוד אופסה" : "All learning assignments reset");
+      const undoText = typeof data.undoUntil === "number"
+        ? (locale === "he" ? ` ניתן לשחזר עד ${formatRestoreTime(data.undoUntil)}.` : ` Undo is available until ${formatRestoreTime(data.undoUntil)}.`)
+        : "";
+      toast.success((locale === "he" ? "כל חלוקת הלימוד אופסה." : "All learning assignments reset.") + undoText);
       setResetConfirm("");
-      setShowResetSection(false);
+      setResetSafetyChecked(false);
+      setProject(prev => prev ? {
+        ...prev,
+        claimedPortions: 0,
+        completedPortions: 0,
+        participantCount: 0,
+        progressPct: 0,
+        progressTotalPct: 0,
+        completedProgressPct: 0,
+      } : prev);
+      await loadResetArchives();
     } catch (err) {
       console.error("[edit] reset failed", err);
       toast.error(locale === "he" ? "לא ניתן לאפס את חלוקת הלימוד" : "Reset failed");
     } finally {
       setResetting(false);
+    }
+  }
+
+  async function handleRestoreResetArchive(archiveId: string) {
+    const expected = `UNDO_${archiveId}`;
+    if ((restoreConfirmByArchive[archiveId] || "").trim() !== expected) {
+      toast.error(locale === "he" ? `להמשך הזינו בדיוק ${expected}` : `Type exactly ${expected}`);
+      return;
+    }
+    setRestoringArchiveId(archiveId);
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+      const res = await fetch(`/api/projects/${id}/reset-archives/${archiveId}/restore`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, confirmation: expected }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(locale === "he" ? "לא ניתן לשחזר את האיפוס" : (data.error || "Restore failed"));
+        return;
+      }
+      toast.success(locale === "he" ? "חלוקת הלימוד שוחזרה מהגיבוי" : "Learning assignments restored from backup");
+      window.location.reload();
+    } catch (err) {
+      console.error("[edit] reset restore failed", err);
+      toast.error(locale === "he" ? "לא ניתן לשחזר את האיפוס" : "Restore failed");
+    } finally {
+      setRestoringArchiveId(null);
     }
   }
 
@@ -374,9 +466,6 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-muted">
-              הבחירה נשמרת עם פרטי היוצר לצורך תיעוד הסכמה בלבד. אין עדיין פרסום חדש בלוח מרכזי.
-            </p>
           </div>
 
           {/* Tracks */}
@@ -506,20 +595,79 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
             </Button>
           </div>
         </CardHeader>
+        {(loadingResetArchives || resetArchives.length > 0) && (
+          <CardContent className="border-t border-amber-100 pt-4">
+            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4" dir="rtl">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium text-amber-900">שחזור איפוס זמין</p>
+                  <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                    לפני כל איפוס נשמר גיבוי של השיוכים, התאריכים, השמות והתזכורות. שחזור מחזיר את החלוקה כפי שהיתה בזמן האיפוס.
+                  </p>
+                </div>
+                {loadingResetArchives && <Spinner className="mt-1 h-4 w-4 text-amber-700" />}
+              </div>
+              <div className="mt-3 space-y-3">
+                {resetArchives.map((archive) => {
+                  const expected = `UNDO_${archive.id}`;
+                  return (
+                    <div key={archive.id} className="rounded-lg border border-amber-200 bg-white p-3">
+                      <div className="flex flex-col gap-1 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+                        <span>נוצר: {formatRestoreTime(archive.createdAt)}</span>
+                        <span>זמין עד: {formatRestoreTime(archive.expiresAt)}</span>
+                      </div>
+                      <p className="mt-2 text-sm text-navy">
+                        נשמרו {Number(archive.counts?.claims || 0).toLocaleString()} שיוכים ו-{Number(archive.counts?.portions || 0).toLocaleString()} חלקי לימוד.
+                      </p>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+                        <Input
+                          dir="ltr"
+                          value={restoreConfirmByArchive[archive.id] || ""}
+                          onChange={(e) => setRestoreConfirmByArchive(prev => ({ ...prev, [archive.id]: e.target.value }))}
+                          placeholder={expected}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-amber-400 text-amber-800 hover:bg-amber-50"
+                          disabled={restoringArchiveId === archive.id || (restoreConfirmByArchive[archive.id] || "").trim() !== expected}
+                          onClick={() => handleRestoreResetArchive(archive.id)}
+                        >
+                          {restoringArchiveId === archive.id ? <Spinner className="h-4 w-4" /> : "שחזר איפוס"}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        )}
         {showResetSection && (
           <CardContent className="space-y-3">
             <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800 leading-relaxed" dir="rtl">
-              <strong>⚠️ אזהרה:</strong> פעולה זו תמחק את כל {claimedCount} החלקים שנבחרו ללימוד ותתחיל מחדש. לא ניתן לבטל.
+              <strong>אזהרה חשובה:</strong> פעולה זו מוחקת מהדף החי את כל השמות, התאריכים, השיוכים והתזכורות של {claimedCount} חלקים שנבחרו ללימוד. לפני האיפוס יישמר גיבוי אוטומטי, וניתן יהיה לשחזר את החלוקה במשך 7 ימים.
+              <br />
+              אם נוספה פעילות לאחר האיפוס, השחזור האוטומטי ייחסם כדי להגן עליה. במקרה כזה יש לפנות למנהל האתר למיזוג מבוקר.
             </div>
+            <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-white p-3 text-sm text-navy" dir="rtl">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 accent-gold"
+                checked={resetSafetyChecked}
+                onChange={(e) => setResetSafetyChecked(e.target.checked)}
+              />
+              <span>אני מבין/ה שהאיפוס מוחק את חלוקת הלימוד מהדף, וששחזור אפשרי רק מגיבוי האיפוס.</span>
+            </label>
             <div>
-              <label className="text-sm text-navy mb-1 block" dir="rtl">להמשיך, הזן <strong>&quot;אפס&quot;</strong> (או &quot;reset&quot;)</label>
-              <Input dir="rtl" value={resetConfirm} onChange={e => setResetConfirm(e.target.value)} placeholder='אפס' className="max-w-[200px]" />
+              <label className="text-sm text-navy mb-1 block" dir="rtl">להמשיך, הזן בדיוק: <strong dir="ltr">RESET_{id}</strong></label>
+              <Input dir="ltr" value={resetConfirm} onChange={e => setResetConfirm(e.target.value)} placeholder={`RESET_${id}`} />
             </div>
             <Button
               variant="outline"
               className="border-amber-400 text-amber-700 hover:bg-amber-50"
               onClick={handleResetClaims}
-              disabled={resetting || (resetConfirm !== "אפס" && resetConfirm !== "reset")}
+              disabled={resetting || !resetSafetyChecked || resetConfirm.trim() !== `RESET_${id}`}
             >
               {resetting ? <Spinner className="h-4 w-4" /> : "אפס את כל חלוקת הלימוד"}
             </Button>
@@ -533,7 +681,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base text-red-700">מחק הנצחה</CardTitle>
-              <CardDescription>מחק לצמיתות את ההנצחה ואת כל הנתונים</CardDescription>
+              <CardDescription>העבר את ההנצחה למחיקה ושמור אפשרות שחזור זמנית</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={() => setShowDeleteSection(!showDeleteSection)} className="border-red-300 text-red-600 hover:bg-red-50">
               {showDeleteSection ? "הסתר" : "מחק"}
@@ -543,7 +691,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
         {showDeleteSection && (
           <CardContent className="space-y-3">
             <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800 leading-relaxed" dir="rtl">
-              <strong>⛔ פעולה בלתי הפיכה:</strong> פעולה זו תמחק לצמיתות את ההנצחה של <strong>{honoree}</strong> ואת כל {claimedCount} רשומות ההשתתפות. לא ניתן לשחזר.
+              <strong>אזהרה:</strong> פעולה זו תסיר את ההנצחה של <strong>{honoree}</strong> מהאתר ותעביר אותה למחיקה. ניתן לשחזר במשך 60 יום; לאחר מכן היא תימחק לצמיתות.
             </div>
             <div>
               <label className="text-sm text-navy mb-1 block" dir="rtl">להמשיך, הזן את שם הנפטר: <strong dir="rtl">{project.nameHebrew as string}</strong></label>
@@ -554,7 +702,7 @@ export default function CreatorEditPage({ params }: { params: Promise<{ locale: 
               onClick={handleDelete}
               disabled={deleting || deleteConfirm.trim() !== (project.nameHebrew as string || "").trim()}
             >
-              {deleting ? <Spinner className="h-4 w-4" /> : "מחק לצמיתות"}
+              {deleting ? <Spinner className="h-4 w-4" /> : "העבר למחיקה"}
             </Button>
           </CardContent>
         )}

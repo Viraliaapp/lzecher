@@ -4,29 +4,63 @@
  */
 
 type Locale = string;
+type ActivityLabel = Partial<Record<"he" | "en" | "es" | "fr", string>>;
 
 interface UnitForms {
   one: (n: number) => string;
   many: (n: number) => string;
 }
 
+const HE_MASCULINE_COUNTS: Record<number, string> = {
+  3: "שלושה",
+  4: "ארבעה",
+  5: "חמישה",
+  6: "שישה",
+  7: "שבעה",
+  8: "שמונה",
+  9: "תשעה",
+  10: "עשרה",
+  11: "אחד עשר",
+  12: "שנים עשר",
+  13: "שלושה עשר",
+  14: "ארבעה עשר",
+  15: "חמישה עשר",
+  16: "שישה עשר",
+  17: "שבעה עשר",
+  18: "שמונה עשר",
+  19: "תשעה עשר",
+  20: "עשרים",
+};
+
+function hePerekCount(count: number): string {
+  if (count === 1) return "פרק אחד";
+  if (count === 2) return "שני פרקים";
+  return `${HE_MASCULINE_COUNTS[count] || count} פרקים`;
+}
+
+function heTehillimChapterCount(count: number): string {
+  if (count === 1) return "פרק תהילים";
+  if (count === 2) return "שני פרקי תהילים";
+  return `${HE_MASCULINE_COUNTS[count] || count} פרקי תהילים`;
+}
+
 const UNITS: Record<string, Record<string, UnitForms>> = {
   he: {
-    mishnayos: { one: () => "פרק משניות", many: (n) => `${n} פרקי משניות` },
-    tehillim: { one: () => "פרק תהילים", many: (n) => `${n} פרקי תהילים` },
+    mishnayos: { one: () => "פרק אחד", many: hePerekCount },
+    tehillim: { one: () => "פרק תהילים", many: heTehillimChapterCount },
     kabalos: { one: () => "קבלה טובה", many: (n) => `${n} קבלות טובות` },
     shnayim_mikra: { one: () => "פרשה", many: (n) => `${n} פרשות` },
     daf_yomi: { one: () => "דף", many: (n) => `${n} דפים` },
   },
   en: {
-    mishnayos: { one: () => "1 Mishnah chapter", many: (n) => `${n} Mishnah chapters` },
+    mishnayos: { one: () => "1 perek of Mishnayos", many: (n) => `${n} perakim of Mishnayos` },
     tehillim: { one: () => "1 Tehillim chapter", many: (n) => `${n} Tehillim chapters` },
     kabalos: { one: () => "a kabbalah", many: (n) => `${n} kabbalos` },
     shnayim_mikra: { one: () => "a parsha", many: (n) => `${n} parshiyos` },
     daf_yomi: { one: () => "a daf", many: (n) => `${n} dapim` },
   },
   es: {
-    mishnayos: { one: () => "1 capítulo de Mishná", many: (n) => `${n} capítulos de Mishná` },
+    mishnayos: { one: () => "1 capítulo de Mishná", many: (n) => `${n} capítulos de Mishnayot` },
     tehillim: { one: () => "1 capítulo de Tehilim", many: (n) => `${n} capítulos de Tehilim` },
     kabalos: { one: () => "una kabalá", many: (n) => `${n} kabalot` },
     shnayim_mikra: { one: () => "una parashá", many: (n) => `${n} parashiot` },
@@ -47,12 +81,18 @@ export function unitLabel(trackType: string, count: number, locale: Locale): str
   return count === 1 ? forms.one(count) : forms.many(count);
 }
 
-/** "שלמה בחר/ה 2 משניות עבור רפאל כהן ז״ל" and locale equivalents. */
+function exactActivityLabel(label: ActivityLabel | undefined, locale: Locale): string | null {
+  if (!label) return null;
+  const lang = locale.split("-")[0] as keyof ActivityLabel;
+  return label[lang] || label.en || null;
+}
+
+/** "שלמה לקח חמישה פרקים עבור רפאל כהן ז״ל" and locale equivalents. */
 export function activitySentence(
-  e: { name: string | null; count: number; trackType: string; honoreeHebrew: string; honoreeHonorific: string },
+  e: { name: string | null; count: number; trackType: string; honoreeHebrew: string; honoreeHonorific: string; activityLabel?: ActivityLabel },
   locale: Locale
 ): string {
-  const unit = unitLabel(e.trackType, e.count, locale);
+  const unit = exactActivityLabel(e.activityLabel, locale) || unitLabel(e.trackType, e.count, locale);
   const honoree = `${e.honoreeHebrew}${e.honoreeHonorific ? " " + e.honoreeHonorific : ""}`.trim();
   switch (locale) {
     case "he": {

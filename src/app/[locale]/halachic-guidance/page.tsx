@@ -2,14 +2,16 @@ import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { BookOpen, Music, ScrollText, Heart } from "lucide-react";
+import { BookOpen, Flame, Heart, Music, ScrollText } from "lucide-react";
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 const SECTIONS = [
-  { key: "mishnayos", icon: BookOpen, color: "bg-moed/10 text-moed" },
-  { key: "tehillim", icon: Music, color: "bg-kodashim/10 text-kodashim" },
-  { key: "shnayimMikra", icon: ScrollText, color: "bg-zeraim/10 text-zeraim" },
-  { key: "kabalos", icon: Heart, color: "bg-nashim/10 text-nashim" },
+  { key: "mishnayos", icon: BookOpen, color: "bg-moed/10 text-moed", featured: false },
+  { key: "tehillim", icon: Music, color: "bg-kodashim/10 text-kodashim", featured: false },
+  { key: "kaddish", icon: Flame, color: "bg-gold/10 text-gold", featured: true },
+  { key: "shnayimMikra", icon: ScrollText, color: "bg-zeraim/10 text-zeraim", featured: false },
+  { key: "kabalos", icon: Heart, color: "bg-nashim/10 text-nashim", featured: false },
 ] as const;
 
 export async function generateMetadata({
@@ -20,7 +22,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "halachicGuidance" });
   return {
-    title: t("title"),
+    title: `${t("title")} · Lzecher`,
     description: t("subtitle"),
     alternates: { canonical: `https://lzecher.com/${locale}/halachic-guidance` },
   };
@@ -28,6 +30,10 @@ export async function generateMetadata({
 
 export default function HalachicGuidancePage() {
   const t = useTranslations("halachicGuidance");
+  const richText = {
+    strong: (chunks: ReactNode) => <strong className="font-semibold text-navy">{chunks}</strong>,
+    source: (chunks: ReactNode) => <span className="font-semibold text-navy">{chunks}</span>,
+  };
 
   return (
     <>
@@ -50,7 +56,9 @@ export default function HalachicGuidancePage() {
 
         {/* Content */}
         <div className="mx-auto max-w-3xl px-4 sm:px-6 py-12 sm:py-16">
-          <p className="text-muted leading-relaxed mb-10 text-lg">{t("intro")}</p>
+          <p className="text-muted leading-relaxed mb-10 text-lg">
+            {t.rich("intro", richText)}
+          </p>
 
           {/* Gold divider */}
           <div className="flex items-center gap-4 mb-10">
@@ -60,8 +68,16 @@ export default function HalachicGuidancePage() {
           </div>
 
           <div className="space-y-8">
-            {SECTIONS.map(({ key, icon: Icon, color }) => (
-              <div key={key} className="rounded-xl border border-navy/5 bg-white p-6 sm:p-8">
+            {SECTIONS.map(({ key, icon: Icon, color, featured }) => (
+              <div
+                key={key}
+                className={`rounded-xl border bg-white p-6 sm:p-8 ${
+                  featured
+                    ? "relative overflow-hidden border-gold/40 bg-gradient-to-b from-white to-gold/5"
+                    : "border-navy/5"
+                }`}
+              >
+                {featured && <div className="absolute inset-y-0 end-0 w-1 bg-gold" aria-hidden="true" />}
                 <div className="flex items-center gap-3 mb-4">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${color}`}>
                     <Icon className="h-5 w-5" />
@@ -70,7 +86,27 @@ export default function HalachicGuidancePage() {
                     {t(`${key}_title`)}
                   </h2>
                 </div>
-                <p className="text-muted leading-relaxed">{t(`${key}_content`)}</p>
+                <p className="text-muted leading-relaxed">
+                  {key === "kaddish" ? t.rich("kaddish_content", richText) : t(`${key}_content`)}
+                </p>
+                {key === "kaddish" && (
+                  <>
+                    <span className="mt-4 inline-flex rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
+                      {t("kaddish_sourceTag")}
+                    </span>
+                    <div className="mt-5 rounded-xl border border-gold/20 bg-gold/5 p-4 sm:p-5">
+                      <h3 className="mb-2 font-heading text-base font-semibold text-navy">
+                        {t("kaddish_quote_title")}
+                      </h3>
+                      <p className="text-muted leading-relaxed">
+                        {t.rich("kaddish_quote_intro", richText)}
+                      </p>
+                      <p className="mt-3 text-muted leading-relaxed">
+                        {t.rich("kaddish_quote_content", richText)}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

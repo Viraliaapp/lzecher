@@ -56,7 +56,7 @@ export function ActivityBubbles() {
         const updates = new Map(events.map(e => [e.id, e]));
         active = active.map(e => updates.get(e.id) || e);
         pending = pending.map(e => updates.get(e.id) || e);
-        const fresh = initialized ? events.filter(e => !seen.has(e.id)).reverse() : events.slice(0, 1);
+        const fresh = initialized ? events.filter(e => !seen.has(e.id)).reverse() : events.slice(0, MAX_VISIBLE);
         initialized = true;
         // Retain old event IDs too: the latest available reservation may be old,
         // but must still appear once rather than replaying on every poll.

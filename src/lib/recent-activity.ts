@@ -1,5 +1,6 @@
 import type { DocumentData, Firestore } from "firebase-admin/firestore";
 import { ACTIVITY_TRACKS, type ActivityEvent } from "./activity-events";
+import { activityScopeLabel } from "./activity-scope";
 
 const validId = (id: unknown): id is string => typeof id === "string" && !!id && !id.includes("/");
 type Claim = { id: string; data: DocumentData };
@@ -19,10 +20,11 @@ export async function getRecentActivity(db: Firestore, now = Date.now()): Promis
     if (!reservations.has(key)) reservations.set(key, { id: doc.id, data: c });
     if (reservations.size === 20) break;
   }
-  const groups = new Map<string, { claim: DocumentData; count: number }>();
+  const groups = new Map<string, { claim: DocumentData; count: number; parent?: DocumentData }>();
   let remainingChildReads = 2000;
   for (const [reservation, sample] of reservations) {
     let claims: Claim[] = [sample];
+    let parent: DocumentData | undefined;
     if (reservation.startsWith("parent:")) {
       if (remainingChildReads === 0) continue;
       const children = await db.collection("lzecher_claims")
@@ -32,6 +34,8 @@ export async function getRecentActivity(db: Firestore, now = Date.now()): Promis
       // the entire response, rather than allowing 2000 reads for each group.
       if (children.size > remainingChildReads) { remainingChildReads = 0; continue; }
       remainingChildReads -= children.size;
+      const parentSnap = await db.collection("lzecher_claims").doc(reservation.slice(7)).get();
+      parent = parentSnap.data();
       claims = children.docs.map(doc => ({ id: doc.id, data: doc.data() }));
     }
     for (const { data: c } of claims) {
@@ -41,19 +45,20 @@ export async function getRecentActivity(db: Firestore, now = Date.now()): Promis
       const name = typeof c.userName === "string" ? c.userName.trim() : "";
       const key = JSON.stringify([reservation, c.trackType, c.userId || "anonymous", name]);
       const group = groups.get(key);
-      if (group) group.count++;
-      else groups.set(key, { claim: { ...c, userName: name }, count: 1 });
+      if (group) { group.count++; group.claim.claimedAt = Math.max(group.claim.claimedAt, c.claimedAt); }
+      else groups.set(key, { claim: { ...c, userName: name }, count: 1, parent });
     }
   }
   const projectIds = [...new Set([...groups.values()].map(g => g.claim.projectId as string))];
   const projects = projectIds.length ? await db.getAll(...projectIds.map(id => db.collection("lzecher_projects").doc(id))) : [];
-  const byProject = new Map(projects.filter(p => p.exists).map(p => [p.id, p.data()!]));
-  return [...groups.entries()].flatMap(([id, { claim: c, count }]) => {
+  const byProject = new Map(projects.filter(p => p.exists && p.data()?.status !== "deleted").map(p => [p.id, p.data()!]));
+  return [...groups.entries()].flatMap(([id, { claim: c, count, parent }]) => {
     const p = byProject.get(c.projectId);
     if (!p) return [];
     return [{ id, name: c.userName || null, count, trackType: c.trackType, projectId: c.projectId,
       honoreeHebrew: `${p.nameHebrew || ""} ${p.familyNameHebrew || ""}`.trim(),
       honoreeHonorific: typeof p.honorific === "string" ? p.honorific : p.gender === "female" ? "ע״ה" : "ז״ל",
-      claimedAt: c.claimedAt }];
+      claimedAt: c.claimedAt,
+      activityLabel: parent?.projectId === c.projectId && parent?.trackType === c.trackType && parent?.userId === c.userId && parent?.userName?.trim() === c.userName ? activityScopeLabel(parent, count) : undefined }];
   }).sort((a, b) => b.claimedAt - a.claimedAt).slice(0, 20);
 }

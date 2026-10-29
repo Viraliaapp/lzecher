@@ -21,7 +21,7 @@
 export interface ProgressStats {
   /** cumulative taken % of TM sets: 0, 75, 150, 300, ... */
   pct: number;
-  /** 0–100: completed % of the current active set (TM only) */
+  /** cumulative completed % against the original TM set size */
   completedPct: number;
   /** number of fully-taken TM sets ("cycles completed") */
   cycles: number;
@@ -46,34 +46,26 @@ export function computeProgress(portions: PortionLike[]): ProgressStats {
   const tm = portions.filter((p) => isTM(p.trackType));
   if (tm.length === 0) return { pct: 0, completedPct: 0, cycles: 0, hasTM: false };
 
-  const maxSet = Math.max(...tm.map(setOf));
-
-  let fullSets = 0;
-  let currentSet = maxSet;
-  let foundActive = false;
-  for (let s = 1; s <= maxSet; s++) {
-    const sp = tm.filter((p) => setOf(p) === s);
-    if (sp.length === 0) continue;
-    const taken = sp.filter((p) => p.status !== "available").length;
-    if (taken === sp.length) {
-      fullSets++;
-    } else if (!foundActive) {
-      currentSet = s;
-      foundActive = true;
+  const taken = (p: PortionLike) => p.status === "claimed" || p.status === "completed";
+  const tracks = ["mishnayos", "tehillim"].map(track => tm.filter(p => p.trackType === track)).filter(p => p.length);
+  const baseline = tm.filter(p => setOf(p) === 1).length;
+  if (!baseline) return { pct: 0, completedPct: 0, cycles: 0, hasTM: true };
+  // A Tehillim-only repeat is 150/675 of a mixed project, never an extra 100%.
+  const cycles = Math.min(...tracks.map(portions => {
+    const size = portions.filter(p => setOf(p) === 1).length;
+    if (!size) return 0;
+    let count = 0;
+    for (let s = 1; ; s++) {
+      const round = portions.filter(p => setOf(p) === s);
+      if (round.length !== size || !round.every(taken)) break;
+      count++;
     }
-  }
-
-  const cycles = fullSets;
-
-  const cs = tm.filter((p) => setOf(p) === currentSet);
-  const csLen = cs.length;
-  const csTaken = cs.filter((p) => p.status !== "available").length;
-  const csCompleted = cs.filter((p) => p.status === "completed").length;
-  const activeSetPct = csLen > 0 ? Math.round((csTaken / csLen) * 100) : 0;
+    return count;
+  }));
 
   return {
-    pct: (fullSets * 100) + (foundActive ? activeSetPct : 0),
-    completedPct: csLen > 0 ? Math.round((csCompleted / csLen) * 100) : 0,
+    pct: Math.round(tm.filter(taken).length / baseline * 100),
+    completedPct: Math.round(tm.filter(p => p.status === "completed").length / baseline * 100),
     cycles,
     hasTM: true,
   };
@@ -104,9 +96,7 @@ export function progressFromProject(p: {
   }
   if (typeof p.progressPct === "number") {
     const cycles = p.completedCycles ?? 0;
-    const pct = cycles > 0 && p.progressPct <= 100
-      ? (cycles * 100) + p.progressPct
-      : p.progressPct;
+    const pct = p.progressPct;
     return {
       pct,
       completedPct: p.completedProgressPct ?? 0,
